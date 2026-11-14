@@ -1,0 +1,1176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CEsim Circuit</title>
+<link href="fonts/fonts.css" rel="stylesheet">
+<style>
+/* Layout idea: classic EDA workbench — menu bar, two toolbars, schematic sheet, instrument rail on the right, design tabs and status bar at the bottom. */
+:root{
+  --ui-bg:#e9ecf0; --ui-panel:#f5f6f8; --ui-border:#c3c9d2; --ui-text:#1b2230; --ui-dim:#5b6676; --ui-hover:#d9e1ea; --ui-active:#c9d6e6;
+  --accent:#0d6e8a; --accent-ink:#ffffff; --danger:#c0392b; --ok:#1e8e3e;
+  --cv-bg:#ffffff; --cv-dot:#c2c8d0; --cv-part:#1d3c8f; --cv-wire:#d3461a; --cv-label:#1d3c8f; --cv-value:#1b2230; --cv-sel:#0f9bb4; --cv-border:#9aa3af; --cv-pin:#6b7686;
+  --font-ui:"IBM Plex Sans",-apple-system,"Segoe UI",Roboto,Arial,sans-serif; --font-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:light;
+}
+:root[data-cetheme="dark"]{
+  --ui-bg:#1a1f27; --ui-panel:#222833; --ui-border:#353e4c; --ui-text:#dfe5ee; --ui-dim:#9aa6b6; --ui-hover:#2c3442; --ui-active:#34506a;
+  --accent:#35b6d4; --accent-ink:#0b1117;
+  --cv-bg:#12161d; --cv-dot:#2c3442; --cv-part:#8fbaff; --cv-wire:#ff8a50; --cv-label:#ffd27a; --cv-value:#c9d3e0; --cv-sel:#4fd1e8; --cv-border:#3b4555; --cv-pin:#7d8899;
+  color-scheme:dark;
+}
+:root[data-cetheme="blueprint"]{
+  --ui-bg:#e6ebf2; --ui-panel:#f3f6fa; --ui-border:#b9c4d4; --ui-text:#16233a; --ui-dim:#56637a; --ui-hover:#d6e0ee; --ui-active:#c3d4ea;
+  --accent:#1c5fb8; --accent-ink:#fff;
+  --cv-bg:#0f3d6e; --cv-dot:#2e5f93; --cv-part:#f3f8ff; --cv-wire:#ffd166; --cv-label:#9fe3ff; --cv-value:#e6f0ff; --cv-sel:#7cf1c8; --cv-border:#5c86b5; --cv-pin:#bcd3ee;
+  color-scheme:light;
+}
+:root[data-cetheme="graphite"]{
+  --ui-bg:#2b2d31; --ui-panel:#34373c; --ui-border:#4a4e55; --ui-text:#ececec; --ui-dim:#a7abb2; --ui-hover:#40444a; --ui-active:#4f5f4a;
+  --accent:#8bc34a; --accent-ink:#151515;
+  --cv-bg:#1e1f22; --cv-dot:#3a3c41; --cv-part:#e6e6e6; --cv-wire:#8bc34a; --cv-label:#ffb74d; --cv-value:#cfcfcf; --cv-sel:#4dd0e1; --cv-border:#4a4e55; --cv-pin:#9e9e9e;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--ui-bg);color:var(--ui-text);font:13px/1.35 var(--font-ui);overflow:hidden;user-select:none;-webkit-user-select:none}
+#app{display:grid;grid-template-rows:28px 26px 34px 34px 1fr 26px 22px;height:100%}
+#titlebar{display:flex;align-items:center;gap:8px;padding:0 10px;background:var(--ui-panel);border-bottom:1px solid var(--ui-border);font-size:12.5px}
+#titlebar .logo{width:18px;height:18px;border-radius:4px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font:600 9px var(--font-mono)}
+#titlebar .t{font-weight:500}
+#titlebar .sp{flex:1}
+#titlebar .theme{display:flex;gap:4px}
+.swatch{width:16px;height:16px;border-radius:50%;border:1px solid var(--ui-border);cursor:pointer;padding:0}
+.swatch:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+#menubar{display:flex;align-items:stretch;background:var(--ui-panel);border-bottom:1px solid var(--ui-border);padding-left:4px}
+.mitem{position:relative;padding:0 9px;display:flex;align-items:center;cursor:default;border-radius:3px}
+.mitem:hover,.mitem.open{background:var(--ui-hover)}
+.mitem u{text-decoration:underline;text-underline-offset:2px}
+.menu{position:fixed;min-width:230px;background:var(--ui-panel);border:1px solid var(--ui-border);box-shadow:0 8px 24px rgba(0,0,0,.18);padding:4px 0;z-index:50;border-radius:4px}
+.menu .mi{display:flex;align-items:center;gap:8px;padding:5px 14px 5px 10px;cursor:default;white-space:nowrap}
+.menu .mi:hover{background:var(--accent);color:var(--accent-ink)}
+.menu .mi .ck{width:14px;text-align:center}
+.menu .mi .k{margin-left:auto;padding-left:24px;color:var(--ui-dim);font-size:11.5px}
+.menu .mi:hover .k{color:inherit}
+.menu .mi.dis{opacity:.45;pointer-events:none}
+.menu .sep{height:1px;background:var(--ui-border);margin:4px 0}
+.toolbar{display:flex;align-items:center;gap:1px;padding:0 4px;background:var(--ui-panel);border-bottom:1px solid var(--ui-border);overflow-x:auto;overflow-y:hidden;scrollbar-width:none}
+.toolbar::-webkit-scrollbar{display:none}
+.tb{width:28px;height:28px;display:grid;place-items:center;border:1px solid transparent;border-radius:3px;background:none;color:var(--ui-text);cursor:pointer;flex:none;padding:0}
+.tb:hover{background:var(--ui-hover);border-color:var(--ui-border)}
+.tb.on{background:var(--ui-active);border-color:var(--ui-border)}
+.tb:focus-visible{outline:2px solid var(--accent)}
+.tb svg{width:18px;height:18px}
+.tb.run svg{color:#1e9e48}.tb.pause svg{color:#b08300}.tb.stop svg{color:#c0392b}
+.tsep{width:1px;height:20px;background:var(--ui-border);margin:0 5px;flex:none}
+.inuse{height:24px;font:12px var(--font-ui);border:1px solid var(--ui-border);background:var(--cv-bg);color:var(--ui-text);border-radius:3px;max-width:190px;margin:0 2px}
+.mode{display:flex;align-items:center;gap:5px;padding:0 8px;height:24px;border:1px solid var(--ui-border);border-radius:3px;background:var(--cv-bg);font-size:12px;flex:none}
+.mode .dot{width:8px;height:8px;border-radius:50%;background:#9aa3af}
+.mode.running .dot{background:#1e9e48;box-shadow:0 0 0 3px rgba(30,158,72,.2)}
+.mode.paused .dot{background:#d49b00}
+.speed{height:24px;font:12px var(--font-ui);border:1px solid var(--ui-border);background:var(--cv-bg);color:var(--ui-text);border-radius:3px;margin-left:4px}
+#main{display:grid;grid-template-columns:1fr 38px;min-height:0}
+#cvwrap{position:relative;min-width:0;min-height:0;background:var(--cv-bg);border-right:1px solid var(--ui-border)}
+#cv{position:absolute;inset:0;width:100%;height:100%;display:block;outline:none}
+#instbar{display:flex;flex-direction:column;align-items:center;gap:2px;padding:4px 0;background:var(--ui-panel);overflow-y:auto}
+#instbar .tb{width:30px;height:30px}
+#tabs{display:flex;align-items:stretch;background:var(--ui-panel);border-top:1px solid var(--ui-border);overflow-x:auto;scrollbar-width:thin}
+.tab{display:flex;align-items:center;gap:6px;padding:0 10px;border-right:1px solid var(--ui-border);cursor:pointer;white-space:nowrap;font-size:12px;color:var(--ui-dim)}
+.tab svg{width:13px;height:13px}
+.tab.on{background:var(--cv-bg);color:var(--ui-text);font-weight:500;box-shadow:inset 0 2px 0 var(--accent)}
+.tab .x{opacity:.5;padding:0 2px}.tab .x:hover{opacity:1;color:var(--danger)}
+.tab.add{color:var(--ui-dim);font-weight:600}
+#status{display:grid;grid-template-columns:1fr auto auto;gap:16px;align-items:center;padding:0 10px;background:var(--ui-panel);border-top:1px solid var(--ui-border);font-size:11.5px;color:var(--ui-dim);white-space:nowrap;overflow:hidden}
+#status b{color:var(--ui-text);font-weight:500;font-family:var(--font-mono)}
+/* windows */
+.win{position:fixed;background:var(--ui-panel);border:1px solid var(--ui-border);box-shadow:0 12px 32px rgba(0,0,0,.25);border-radius:6px;z-index:30;display:flex;flex-direction:column;min-width:240px}
+.win .wt{display:flex;align-items:center;gap:8px;padding:6px 8px 6px 12px;border-bottom:1px solid var(--ui-border);cursor:move;font-weight:500;font-size:12.5px;background:var(--ui-bg);border-radius:6px 6px 0 0}
+.win .wt .sp{flex:1}
+.win .wt button{border:none;background:none;color:var(--ui-dim);font-size:16px;line-height:1;cursor:pointer;width:22px;height:22px;border-radius:3px}
+.win .wt button:hover{background:var(--danger);color:#fff}
+.win .wb{padding:12px;overflow:auto}
+.modal-bg{position:fixed;inset:0;background:rgba(10,15,25,.28);z-index:40}
+.win.modal{z-index:45}
+.btn{height:28px;padding:0 14px;border:1px solid var(--ui-border);border-radius:4px;background:var(--cv-bg);color:var(--ui-text);font:13px var(--font-ui);cursor:pointer}
+.btn:hover{background:var(--ui-hover)}
+.btn.pri{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.row{display:flex;gap:8px;align-items:center}
+.imgai{width:min(1040px,92vw)}.ia-grid{display:grid;grid-template-columns:380px 1fr;gap:16px}
+#ia-drop{height:260px;border:2px dashed var(--ui-line,#c9d2de);border-radius:8px;display:grid;place-items:center;text-align:center;cursor:pointer;overflow:hidden;background:#f7f9fc;font-size:12.5px;color:var(--ui-dim)}#ia-drop.over{border-color:#1a8cff;background:#eaf3ff}#ia-drop b{color:var(--ui-text,#18202d);font-size:13.5px}#ia-drop span{font-size:11.5px}
+#ia-img{display:none;max-width:100%;max-height:100%;object-fit:contain}
+.ia-row{display:flex;align-items:center;gap:8px;margin-top:10px}.ia-row label{font-size:12px;color:var(--ui-dim);min-width:84px}.ia-row select,.ia-row input{flex:1;height:30px}
+.ia-status{margin-top:10px;font-size:12.5px;line-height:1.5;padding:8px 10px;border-radius:6px;background:#f3f6fa;min-height:20px}.ia-status.ok{background:#e9f7ef}.ia-status.warn{background:#fff6e5}.ia-status.err{background:#fdecec}.ia-status ol{margin:6px 0 0;padding-left:18px}.ia-status progress{width:140px;vertical-align:middle}
+.ia-dim{font-size:12px;color:var(--ui-dim)}.ia-adv{margin-top:12px;font-size:12.5px}.ia-adv summary{cursor:pointer;color:var(--ui-dim)}
+#ia-net{width:100%;height:330px;font:12px/1.5 var(--mono,monospace);border:1px solid var(--ui-line,#c9d2de);border-radius:6px;padding:8px;resize:vertical;box-sizing:border-box}
+#ia-warn{font-size:12px;color:#8a5a00;margin-top:6px;max-height:80px;overflow:auto}.ia-pre{max-width:70vw;max-height:60vh;overflow:auto;font:11.5px/1.4 monospace;white-space:pre-wrap;margin:0}
+.colf{display:flex;flex-direction:column;gap:6px}.colf .sw{display:grid;grid-template-columns:repeat(8,22px);gap:5px}.colf .sw button{width:22px;height:22px;border-radius:5px;border:1px solid rgba(0,0,0,.18);cursor:pointer;padding:0}.colf .sw button.on{outline:2px solid #1a8cff;outline-offset:2px}.colf .more{font-size:11.5px;color:var(--ui-dim);display:flex;align-items:center;gap:6px;cursor:pointer}.colf .more input{width:30px;height:20px;border:none;padding:0;background:none;cursor:pointer}
+.form{display:grid;grid-template-columns:auto 1fr auto;gap:7px 10px;align-items:center}
+.form label{color:var(--ui-dim);font-size:12px}
+.form input,.form select,.inp{height:26px;border:1px solid var(--ui-border);border-radius:3px;background:var(--cv-bg);color:var(--ui-text);font:12.5px var(--font-mono);padding:0 7px;min-width:0}
+.form .u{color:var(--ui-dim);font:12px var(--font-mono)}
+.foot{display:flex;justify-content:flex-end;gap:8px;padding:10px 12px;border-top:1px solid var(--ui-border)}
+/* component browser */
+.cb{display:grid;grid-template-columns:200px 220px 1fr;gap:10px;height:430px}
+.cb .col{display:flex;flex-direction:column;min-height:0;gap:6px}
+.cb .lbl{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--ui-dim)}
+.cb .list{flex:1;overflow:auto;border:1px solid var(--ui-border);background:var(--cv-bg);border-radius:3px}
+.cb .list div{padding:3px 8px;cursor:default;white-space:nowrap;font-size:12.5px}
+.cb .list div:hover{background:var(--ui-hover)}
+.cb .list div.on{background:var(--accent);color:var(--accent-ink)}
+.cb .list div .ar{float:right;color:var(--ui-dim);font-size:11.5px;margin-left:10px}
+.cb .list div.on .ar{color:inherit;opacity:.8}
+.cb .prev{border:1px solid var(--ui-border);background:var(--cv-bg);border-radius:3px;height:170px;display:block;width:100%}
+.cb .info{font-size:12px;line-height:1.5;overflow:auto;flex:1;border:1px solid var(--ui-border);border-radius:3px;padding:8px;background:var(--cv-bg)}
+.cb .info b{font-weight:600}
+.cb .info .mono{font-family:var(--font-mono);font-size:11.5px;color:var(--ui-dim);white-space:pre-wrap}
+/* instruments */
+.dmm{font:600 30px var(--font-mono);text-align:right;padding:10px 12px;background:#0d1b14;color:#7CFFB2;border-radius:4px;letter-spacing:.02em;min-width:230px;font-variant-numeric:tabular-nums}
+.seg{display:flex;gap:4px;margin-top:10px}
+.seg button{flex:1;height:30px;border:1px solid var(--ui-border);background:var(--cv-bg);color:var(--ui-text);border-radius:3px;font:600 13px var(--font-mono);cursor:pointer}
+.seg button.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.scope{display:grid;grid-template-columns:auto 210px;gap:10px}
+.scope canvas{background:#081018;border-radius:4px;display:block}
+.scope .ctl{display:flex;flex-direction:column;gap:8px;font-size:12px}
+.scope .grp{border:1px solid var(--ui-border);border-radius:4px;padding:7px 8px;display:grid;grid-template-columns:auto 1fr;gap:5px 8px;align-items:center}
+.scope .grp h4{grid-column:1/-1;margin:0;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ui-dim);font-weight:600}
+.scope select,.scope input{height:24px;font:12px var(--font-mono);border:1px solid var(--ui-border);border-radius:3px;background:var(--cv-bg);color:var(--ui-text);min-width:0}
+.meas{font:12px var(--font-mono);display:grid;grid-template-columns:auto 1fr 1fr;gap:3px 10px;font-variant-numeric:tabular-nums}
+.toast{position:fixed;left:50%;bottom:60px;transform:translateX(-50%);background:var(--ui-text);color:var(--ui-bg);padding:8px 14px;border-radius:5px;z-index:60;font-size:12.5px;max-width:70vw;box-shadow:0 6px 18px rgba(0,0,0,.25)}
+.toast.err{background:var(--danger);color:#fff}
+.ctx{position:fixed;z-index:55}
+textarea.code{width:100%;height:300px;font:12px var(--font-mono);border:1px solid var(--ui-border);border-radius:3px;background:var(--cv-bg);color:var(--ui-text);padding:8px;resize:vertical}
+table.bom{border-collapse:collapse;font-size:12.5px;width:100%}
+table.bom td,table.bom th{border-bottom:1px solid var(--ui-border);padding:4px 10px;text-align:left}
+table.bom th{color:var(--ui-dim);font-weight:500}
+kbd{font:11px var(--font-mono);border:1px solid var(--ui-border);border-bottom-width:2px;border-radius:3px;padding:0 4px;background:var(--cv-bg)}
+.hint{position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);text-align:center;color:var(--ui-dim);pointer-events:none;font-size:13px;line-height:1.7}
+.hint h2{font-size:18px;margin:0 0 6px;color:var(--ui-text);font-weight:600;text-wrap:balance}
+
+#splash{position:fixed;inset:0;display:grid;place-items:center;z-index:100;background:rgba(10,20,40,.18);transition:opacity .35s}
+#splash.out{opacity:0;pointer-events:none}
+.sp-box{width:min(520px,90vw);border-radius:10px;overflow:hidden;box-shadow:0 24px 60px rgba(5,20,60,.45);background:linear-gradient(135deg,#0a2a6b 0%,#1048a8 55%,#1a6fd6 100%);color:#fff;position:relative}
+.sp-box canvas{position:absolute;inset:0;width:100%;height:100%;opacity:.22}
+.sp-in{position:relative;padding:34px 36px 22px;display:grid;gap:4px}
+.sp-row{display:flex;align-items:center;gap:16px}
+.sp-logo{width:58px;height:58px;border-radius:12px;background:#fff;color:#0d47a1;display:grid;place-items:center;font:700 22px var(--font-mono);box-shadow:0 4px 14px rgba(0,0,0,.25)}
+.sp-name{font:600 44px/1 var(--font-ui);letter-spacing:-.01em}
+.sp-name span{color:#8fd3ff}
+.sp-sub{font-size:13.5px;color:#cfe3ff;margin-top:2px}
+.sp-ver{margin-top:22px;font:500 12.5px var(--font-mono);color:#e3efff}
+.sp-bar{height:3px;background:rgba(255,255,255,.18);border-radius:2px;overflow:hidden;margin-top:10px}
+.sp-bar i{display:block;height:100%;width:0;background:#8fd3ff;transition:width 1.6s ease-out}
+.sp-foot{display:flex;justify-content:space-between;align-items:end;margin-top:14px;font-size:10.5px;color:#b9d4f7}
+.sp-by{font:600 10.5px var(--font-ui);letter-spacing:.14em;color:#fff;opacity:.85}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="titlebar"><div class="logo">CE</div><span class="t" id="ttl">Design1 - CEsim</span><span class="sp"></span>
+    <span style="color:var(--ui-dim);font-size:11.5px">Theme</span>
+    <div class="theme">
+      <button class="swatch" title="Classic White" style="background:#fff" data-th="white"></button>
+      <button class="swatch" title="Dark" style="background:#12161d" data-th="dark"></button>
+      <button class="swatch" title="Blueprint" style="background:#0f3d6e" data-th="blueprint"></button>
+      <button class="swatch" title="Graphite" style="background:#1e1f22;border-color:#8bc34a" data-th="graphite"></button>
+    </div>
+  </div>
+  <div id="menubar"></div>
+  <div class="toolbar" id="tb1"></div>
+  <div class="toolbar" id="tb2"></div>
+  <div id="main">
+    <div id="cvwrap"><canvas id="cv" tabindex="0"></canvas><div class="hint" id="hint"><h2>Design1</h2>Place parts from the component toolbar or press <kbd>Ctrl</kbd>+<kbd>W</kbd>.<br>Drag from a pin to draw a wire. Press <kbd>F5</kbd> to run.<br>Example circuits are in the tabs below.</div></div>
+    <div id="instbar"></div>
+  </div>
+  <div id="tabs"></div>
+  <div id="status"><span id="st-hint">For Help, press F1</span><span id="st-mid"></span><span>Tran: <b id="st-time">0 s</b></span></div>
+</div>
+<div id="splash" role="dialog" aria-label="CEsim"><div class="sp-box"><canvas id="sp-cv"></canvas><div class="sp-in">
+ <div class="sp-row"><div class="sp-logo">CE</div><div><div class="sp-name">CE<span>sim</span></div><div class="sp-sub">Circuit Design &amp; Simulation Suite</div></div></div>
+ <div class="sp-ver">Version 1.4.0</div><div class="sp-bar"><i id="sp-bar"></i></div><div class="sp-foot"><span id="sp-msg">Loading component database…</span><span class="sp-by">BY. YOUSEF</span></div>
+</div></div></div>
+<script src="lib/canvas2svg.js"></script>
+<script>(function(){if(!window.C2S)return;const P=C2S.prototype;const os=P.save,or=P.restore,ost=P.stroke;P.setLineDash=function(a){this.__dash=a||[]};P.getLineDash=function(){return this.__dash||[]};P.save=function(){(this.__ds=this.__ds||[]).push(this.__dash);os.call(this)};P.restore=function(){this.__dash=(this.__ds||[]).pop();or.call(this)};P.stroke=function(){ost.apply(this,arguments);if(this.__dash&&this.__dash.length&&this.__currentElement)this.__currentElement.setAttribute("stroke-dasharray",this.__dash.join(","))}})()</script>
+<input type="file" id="fileIn" accept=".cesim,.json,.cir,.net,.sp,.txt" style="display:none">
+<script>
+"use strict";
+/* ================= utilities ================= */
+const $=s=>document.querySelector(s);
+const PI=Math.PI;
+const SIP={T:1e12,G:1e9,M:1e6,k:1e3,K:1e3,m:1e-3,u:1e-6,"µ":1e-6,"μ":1e-6,n:1e-9,p:1e-12};
+function num(s){if(typeof s==="number")return s;s=String(s==null?"":s).trim();const m=s.match(/^([-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?)\s*(meg|MEG|Meg|[TGMkKmuµμnp])?/);if(!m)return NaN;let v=parseFloat(m[1]);if(m[2])v*=/meg/i.test(m[2])?1e6:SIP[m[2]];return v}
+const PFX=[[1e9,"G"],[1e6,"M"],[1e3,"k"],[1,""],[1e-3,"m"],[1e-6,"µ"],[1e-9,"n"],[1e-12,"p"]];
+function si(v,u="",p=4,sp=""){if(!isFinite(v))return "—";if(v===0)return "0"+sp+u;const a=Math.abs(v);for(const[m,s]of PFX){if(a>=m*0.99995||m===1e-12)return String(+(v/m).toPrecision(p))+sp+s+u}}
+function rd(v,u,d=4){if(!isFinite(v))return "—";if(Math.abs(v)<1e-15)v=0;const a=Math.abs(v);let m=1,s="";for(const[mm,ss]of PFX){if(a>=mm*0.9995||mm===1e-12){m=mm;s=ss;break}}if(v===0){m=1;s=""}const x=v/m;const dec=Math.max(0,d-1-Math.floor(Math.log10(Math.max(Math.abs(x),1))));return x.toFixed(dec)+" "+s+u}
+let UID=1;const uid=()=>"c"+(Date.now().toString(36))+(UID++).toString(36);
+function clamp(v,a,b){return v<a?a:v>b?b:v}
+const Vt=0.025852;
+function lexp(x){return x<40?Math.exp(x):Math.exp(40)*(1+x-40)}
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
+function toast(msg,err){const d=document.createElement("div");d.className="toast"+(err?" err":"");d.textContent=msg;document.body.appendChild(d);setTimeout(()=>d.remove(),err?5200:2600)}
+function E_series(n){const t={3:[1,2.2,4.7],6:[1,1.5,2.2,3.3,4.7,6.8],12:[1,1.2,1.5,1.8,2.2,2.7,3.3,3.9,4.7,5.6,6.8,8.2],24:[1,1.1,1.2,1.3,1.5,1.6,1.8,2,2.2,2.4,2.7,3,3.3,3.6,3.9,4.3,4.7,5.1,5.6,6.2,6.8,7.5,8.2,9.1]};return t[n]}
+function decades(series,from,to){const out=[];for(let d=from;d<to*0.999;d*=10)for(const s of E_series(series)){const v=+(s*d).toPrecision(3);if(v<=to*1.0001)out.push(v)}if(!out.includes(to))out.push(to);return out}
+
+/* ================= device models ================= */
+const MODELS={
+ npn:{"Generic NPN":{bf:100,is:1e-14,br:1},"2N2222A":{bf:200,is:14.3e-15,br:6},"2N3904":{bf:300,is:6.7e-15,br:0.74},"BC547B":{bf:290,is:7e-14,br:7.6},"BC548":{bf:250,is:7e-14,br:7},"BC337":{bf:300,is:4e-14,br:5},"2N4401":{bf:180,is:26e-15,br:4},"BD139":{bf:100,is:1e-13,br:2},"TIP31C":{bf:50,is:1.8e-12,br:3},"TIP41C":{bf:60,is:2e-12,br:3},"2N3055":{bf:50,is:5e-12,br:2},"MJE3055":{bf:60,is:4e-12,br:2},"TIP120 (Darlington)":{bf:2500,is:5e-13,br:5},"PN2222A":{bf:200,is:14e-15,br:6},"2N5551":{bf:120,is:2.5e-14,br:3},"S8050":{bf:200,is:3e-14,br:4},"C1815":{bf:250,is:2e-14,br:4}},
+ pnp:{"Generic PNP":{bf:100,is:1e-14,br:1},"2N3906":{bf:180,is:1.4e-15,br:4},"2N2907A":{bf:230,is:6.5e-15,br:6},"BC557B":{bf:290,is:1e-14,br:5},"BC558":{bf:250,is:1e-14,br:5},"BC327":{bf:250,is:4e-14,br:5},"2N4403":{bf:180,is:6e-15,br:4},"BD140":{bf:100,is:1e-13,br:2},"TIP32C":{bf:50,is:1.8e-12,br:3},"TIP42C":{bf:60,is:2e-12,br:3},"MJ2955":{bf:50,is:5e-12,br:2},"2N5401":{bf:120,is:2.5e-14,br:3},"S8550":{bf:200,is:3e-14,br:4},"A1015":{bf:200,is:2e-14,br:4}},
+ nmos:{"Generic NMOS":{vth:2,k:0.02,lam:0.01},"2N7000":{vth:2.1,k:0.32,lam:0.01},"BS170":{vth:2,k:0.25,lam:0.01},"IRF540N":{vth:3,k:20,lam:0.005},"IRFZ44N":{vth:3,k:25,lam:0.005},"IRF530":{vth:3,k:8,lam:0.005},"IRF3205":{vth:3,k:40,lam:0.003},"IRLZ44N (logic)":{vth:1.5,k:30,lam:0.005},"IRF840":{vth:3.5,k:5,lam:0.005},"2N7002":{vth:1.8,k:0.2,lam:0.01},"AO3400":{vth:1.1,k:6,lam:0.01}},
+ pmos:{"Generic PMOS":{vth:2,k:0.02,lam:0.01},"BS250":{vth:2.5,k:0.2,lam:0.01},"IRF9540N":{vth:3,k:10,lam:0.005},"IRF9Z34N":{vth:3,k:8,lam:0.005},"FQP27P06":{vth:3,k:12,lam:0.005},"IRF4905":{vth:3,k:30,lam:0.004},"AO3401":{vth:1,k:5,lam:0.01},"NDP6020P":{vth:0.8,k:10,lam:0.01}},
+ diode:{"Generic":{is:1e-14,n:1},"1N4148":{is:2.52e-9,n:1.75},"1N914":{is:2.52e-9,n:1.75},"1N4001":{is:1.4e-8,n:1.98},"1N4002":{is:1.4e-8,n:1.98},"1N4004":{is:1.4e-8,n:1.98},"1N4007":{is:7e-9,n:1.8},"1N5408":{is:1e-8,n:1.9},"UF4007":{is:5e-9,n:1.9},"BAV21":{is:2e-9,n:1.8},"FR107":{is:6e-9,n:1.9}},
+ schottky:{"1N5817":{is:3e-5,n:1.2},"1N5818":{is:3e-5,n:1.2},"1N5819":{is:3e-5,n:1.4},"BAT54":{is:2e-7,n:1.1},"BAT85":{is:2e-7,n:1.1},"SS14":{is:2e-5,n:1.3},"SB560":{is:5e-5,n:1.3},"MBR745":{is:3e-5,n:1.2}},
+ opamp:{"Ideal":{a:1e6,gbw:1e9,sr:1e9,drop:0},"uA741":{a:2e5,gbw:1e6,sr:0.5e6,drop:1.5},"LM741":{a:2e5,gbw:1e6,sr:0.5e6,drop:1.5},"LM358":{a:1e5,gbw:1e6,sr:0.3e6,drop:1.5},"LM324":{a:1e5,gbw:1.2e6,sr:0.5e6,drop:1.5},"TL071":{a:2e5,gbw:3e6,sr:13e6,drop:1.5},"TL072":{a:2e5,gbw:3e6,sr:13e6,drop:1.5},"TL082":{a:2e5,gbw:4e6,sr:13e6,drop:1.5},"LF356":{a:2e5,gbw:5e6,sr:12e6,drop:1.5},"AD712KN":{a:4e5,gbw:4e6,sr:20e6,drop:1.5},"NE5532":{a:1e5,gbw:10e6,sr:9e6,drop:1.5},"OP07":{a:5e5,gbw:0.6e6,sr:0.3e6,drop:1.2},"OPA2134":{a:1e6,gbw:8e6,sr:20e6,drop:1},"LM318":{a:2e5,gbw:15e6,sr:70e6,drop:1.5},"MCP6002 (RRIO)":{a:1e5,gbw:1e6,sr:0.6e6,drop:0.02},"OPA344 (RRIO)":{a:1e5,gbw:1e6,sr:0.8e6,drop:0.01},"CA3140":{a:1e5,gbw:4.5e6,sr:9e6,drop:1}},
+ comparator:{"LM311":{a:2e5,gbw:1e9,sr:1e9,drop:0.3},"LM339":{a:2e5,gbw:1e9,sr:1e9,drop:0.3},"LM393":{a:2e5,gbw:1e9,sr:1e9,drop:0.3},"LM319":{a:4e4,gbw:1e9,sr:1e9,drop:0.3}},
+ reg:{"LM7805":{v:5,drop:2},"LM7806":{v:6,drop:2},"LM7809":{v:9,drop:2},"LM7812":{v:12,drop:2},"LM7815":{v:15,drop:2},"LM7824":{v:24,drop:2},"LM7905":{v:-5,drop:2},"LM7912":{v:-12,drop:2},"LM7915":{v:-15,drop:2},"LM1117-3.3":{v:3.3,drop:1.2},"LM1117-5.0":{v:5,drop:1.2},"AMS1117-3.3":{v:3.3,drop:1.1},"LM2940-5":{v:5,drop:0.5},"LM78L05":{v:5,drop:1.7}}
+};
+const ZENERS={};[["1N4728A",3.3],["1N4729A",3.6],["1N4730A",3.9],["1N4731A",4.3],["1N4732A",4.7],["1N4733A",5.1],["1N4734A",5.6],["1N4735A",6.2],["1N4736A",6.8],["1N4737A",7.5],["1N4738A",8.2],["1N4739A",9.1],["1N4740A",10],["1N4741A",11],["1N4742A",12],["1N4743A",13],["1N4744A",15],["1N4745A",16],["1N4746A",18],["1N4747A",20],["1N4748A",22],["1N4749A",24],["1N4750A",27],["1N4751A",30],["1N4752A",33],["BZX55C2V7",2.7],["BZX55C3V0",3],["BZX55C5V1",5.1],["BZX55C9V1",9.1],["BZX55C12",12]].forEach(([n,v])=>ZENERS[n]=v);
+const LEDC={red:{vf:1.8,c:"#ff3b30"},orange:{vf:2.0,c:"#ff8a00"},yellow:{vf:2.1,c:"#ffd60a"},green:{vf:2.2,c:"#30d158"},blue:{vf:3.0,c:"#2f7bff"},white:{vf:3.1,c:"#f4f8ff"},"infrared":{vf:1.3,c:"#8b2b2b"},"UV":{vf:3.4,c:"#a855f7"}};
+
+/* ================= symbol drawing helpers ================= */
+function L(c,...p){c.beginPath();c.moveTo(p[0],p[1]);for(let i=2;i<p.length;i+=2)c.lineTo(p[i],p[i+1]);c.stroke()}
+function CIR(c,x,y,r,fill){c.beginPath();c.arc(x,y,r,0,2*PI);if(fill){c.fillStyle=fill;c.fill()}c.stroke()}
+function POLY(c,pts,fill,close=true){c.beginPath();c.moveTo(pts[0],pts[1]);for(let i=2;i<pts.length;i+=2)c.lineTo(pts[i],pts[i+1]);if(close)c.closePath();if(fill){c.fillStyle=fill;c.fill()}c.stroke()}
+function RECT(c,x1,y1,x2,y2,fill){if(fill){c.fillStyle=fill;c.fillRect(x1,y1,x2-x1,y2-y1)}c.strokeRect(x1,y1,x2-x1,y2-y1)}
+function zig(c,x1,x2,y=0,h=6,n=6){const w=(x2-x1)/n;c.beginPath();c.moveTo(x1,y);for(let i=0;i<n;i++)c.lineTo(x1+w*(i+0.5),y+(i%2?h:-h));c.lineTo(x2,y);c.stroke()}
+function arrowHead(c,x1,y1,x2,y2,s=5,fill=true){const a=Math.atan2(y2-y1,x2-x1);c.beginPath();c.moveTo(x2,y2);c.lineTo(x2-s*Math.cos(a-0.45),y2-s*Math.sin(a-0.45));c.lineTo(x2-s*Math.cos(a+0.45),y2-s*Math.sin(a+0.45));c.closePath();if(fill){c.fillStyle=c.strokeStyle;c.fill()}c.stroke()}
+function diodeSym(c,x1,x2,y=0,fill){const m=(x1+x2)/2;POLY(c,[m-8,y-8,m-8,y+8,m+6,y],fill);L(c,m+6,y-8,m+6,y+8)}
+function diodeAlong(c,ax,ay,bx,by){const mx=(ax+bx)/2,my=(ay+by)/2,a=Math.atan2(by-ay,bx-ax);c.save();c.translate(mx,my);c.rotate(a);POLY(c,[-4,-5,-4,5,4,0],c.strokeStyle);L(c,4,-5,4,5);c.restore()}
+function gateBody(c,kind){
+  c.beginPath();
+  if(kind==="and"){c.moveTo(-15,-15);c.lineTo(0,-15);c.arc(0,0,15,-PI/2,PI/2);c.lineTo(-15,15);c.closePath()}
+  else if(kind==="or"||kind==="xor"){c.moveTo(-17,-15);c.quadraticCurveTo(2,-15,15,0);c.quadraticCurveTo(2,15,-17,15);c.quadraticCurveTo(-9,0,-17,-15);c.closePath()}
+  else if(kind==="not"||kind==="buf"){c.moveTo(-15,-12);c.lineTo(10,0);c.lineTo(-15,12);c.closePath()}
+  c.fillStyle=CV.bg;c.fill();c.stroke();
+  if(kind==="xor"){c.beginPath();c.moveTo(-22,-15);c.quadraticCurveTo(-14,0,-22,15);c.stroke()}
+}
+function bubble(c,x){c.beginPath();c.arc(x,0,3,0,2*PI);c.fillStyle=CV.bg;c.fill();c.stroke()}
+function chipBox(c,x1,y1,x2,y2,title,tx){RECT(c,x1,y1,x2,y2,CV.bg);if(title)tx(title,(x1+x2)/2,y1+9,8,"part","center")}
+function seven(c,x,y,w,h,segs,on,off){const t=Math.max(2,w*0.16);const S={a:[x+t,y,x+w-t,y],b:[x+w,y+t,x+w,y+h/2-t/2],c:[x+w,y+h/2+t/2,x+w,y+h-t],d:[x+t,y+h,x+w-t,y+h],e:[x,y+h/2+t/2,x,y+h-t],f:[x,y+t,x,y+h/2-t/2],g:[x+t,y+h/2,x+w-t,y+h/2]};c.save();c.lineCap="round";c.lineWidth=t;for(const k in S){c.strokeStyle=segs.includes(k)?on:off;const s=S[k];c.beginPath();c.moveTo(s[0],s[1]);c.lineTo(s[2],s[3]);c.stroke()}c.restore()}
+const HEXSEG=["abcdef","bc","abged","abgcd","fgbc","afgcd","afgedc","abc","abcdefg","abcdfg","abcefg","fedcg","agde"+"f".slice(1)+"","bcdeg","afged","afge"];HEXSEG[12]="adef";
+
+/* ================= part library ================= */
+const LIB={};const GROUPS=[];
+function def(t,o){o.t=t;o.fields=o.fields||[];o.props=o.props||{};LIB[t]=o}
+const fSI=(k,l,u)=>[k,l,"si",u],fSel=(k,l,opts)=>[k,l,"sel",opts],fTxt=(k,l)=>[k,l,"txt"],fCol=(k,l)=>[k,l,"col"];
+const PALETTE=["#1b2230","#5b6b80","#9aa7b8","#ffffff","#1f4ea3","#2f80ed","#0fa3b1","#1f9d55","#7cb342","#f2b705","#f2994a","#d64545","#c2185b","#8e44ad","#6d4c41","#000000"];
+function colField(id,v){v=v||"#1b2230";return '<div class="colf"><input type="hidden" id="'+id+'" value="'+esc(v)+'"><div class="sw">'+PALETTE.map(c=>'<button type="button" data-c="'+c+'" title="'+c+'" aria-label="Color '+c+'" style="background:'+c+'"'+(c.toLowerCase()===String(v).toLowerCase()?' class="on"':"")+'></button>').join("")+'</div><label class="more">More… <input type="color" value="'+(/^#[0-9a-f]{6}$/i.test(v)?v:"#1b2230")+'"></label></div>'}
+function wireColFields(root){root.querySelectorAll(".colf").forEach(f=>{const inp=f.querySelector("input[type=hidden]");const pick=c=>{inp.value=c;f.querySelectorAll(".sw button").forEach(b=>b.classList.toggle("on",b.dataset.c.toLowerCase()===c.toLowerCase()))};f.querySelectorAll(".sw button").forEach(b=>b.onclick=()=>pick(b.dataset.c));f.querySelector("input[type=color]").oninput=e=>pick(e.target.value)})}
+function P(c){if(c._pp)return c._pp;const L=LIB[c.t],o={};for(const f of L.fields){const v=c.p[f[0]];o[f[0]]=f[2]==="si"?num(v):v}c._pp=o;return o}
+function PV(c,k){return P(c)[k]}
+
+/* ---- sources ---- */
+def("gnd",{name:"Ground",ar:"أرضي",prefix:"",noLabel:1,pins:[[0,0,"GND"]],bb:[-12,0,12,20],
+ draw(c){L(c,0,0,0,8);L(c,-12,8,12,8);L(c,-8,12,8,12);L(c,-4,16,4,16)}});
+def("vcc",{name:"VCC / Power rail",ar:"مصدر تغذية",prefix:"VCC",noLabel:1,pins:[[0,0,"+"]],bb:[-8,-24,8,0],props:{voltage:"5",net:"VCC"},fields:[fSI("voltage","Voltage","V"),fTxt("net","Net name")],
+ draw(c){L(c,0,0,0,-14);POLY(c,[0,-22,5,-17,0,-12,-5,-17])},
+ val(c){return [c.p.net||"VCC"]},valColor:"wire",
+ build(c,n,E){const p=P(c);E.V(n[0],0,()=>P(c).voltage)},spice(c,n){return `V${c.label} ${n[0]} 0 DC ${num(c.p.voltage)}`}});
+def("dcv",{name:"DC Voltage source",ar:"مصدر جهد مستمر (بطارية)",prefix:"V",pins:[[0,-30,"+"],[0,30,"-"]],bb:[-14,-30,14,30],props:{voltage:"12"},fields:[fSI("voltage","Voltage","V")],
+ draw(c,st,tx){L(c,0,-30,0,-5);L(c,-14,-5,14,-5);L(c,-7,3,7,3);L(c,0,3,0,30);tx("+",-11,-13,9,"part")},
+ val(c){return [si(PV(c,"voltage"),"V")]},
+ build(c,n,E){E.V(n[0],n[1],()=>P(c).voltage)},spice(c,n){return `V${c.label} ${n[0]} ${n[1]} DC ${num(c.p.voltage)}`}});
+def("acv",{name:"AC Voltage source",ar:"مصدر جهد متردد",prefix:"V",pins:[[0,-30,"+"],[0,30,"-"]],bb:[-15,-30,15,30],props:{amp:"1",freq:"1k",phase:"0",offset:"0"},fields:[fSI("amp","Peak voltage (Vpk)","V"),fSI("freq","Frequency","Hz"),fSI("phase","Phase","°"),fSI("offset","DC offset","V")],
+ draw(c){L(c,0,-30,0,-15);L(c,0,15,0,30);CIR(c,0,0,15);c.beginPath();for(let i=0;i<=20;i++){const x=-9+i*0.9,y=-5*Math.sin(i/20*2*PI);i?c.lineTo(x,y):c.moveTo(x,y)}c.stroke()},
+ val(c){const p=P(c);return [si(p.amp,"Vpk"),si(p.freq,"Hz"),(+p.phase||0)+"°"]},
+ build(c,n,E){E.V(n[0],n[1],()=>{const p=P(c);return p.offset+p.amp*Math.sin(2*PI*p.freq*E.t()+p.phase*PI/180)})},
+ spice(c,n){const p=P(c);return `V${c.label} ${n[0]} ${n[1]} SIN(${p.offset} ${p.amp} ${p.freq} 0 0 ${p.phase})`},fmax(c){return P(c).freq}});
+def("idc",{name:"DC Current source",ar:"مصدر تيار مستمر",prefix:"I",pins:[[0,-30,"+"],[0,30,"-"]],bb:[-15,-30,15,30],props:{current:"1m"},fields:[fSI("current","Current","A")],
+ draw(c){L(c,0,-30,0,-15);L(c,0,15,0,30);CIR(c,0,0,15);L(c,0,9,0,-7);arrowHead(c,0,9,0,-9,6)},
+ val(c){return [si(PV(c,"current"),"A")]},build(c,n,E){E.I(n[0],n[1],()=>P(c).current)},spice(c,n){return `I${c.label} ${n[1]} ${n[0]} DC ${num(c.p.current)}`}});
+def("iac",{name:"AC Current source",ar:"مصدر تيار متردد",prefix:"I",pins:[[0,-30,"+"],[0,30,"-"]],bb:[-15,-30,15,30],props:{amp:"1m",freq:"1k"},fields:[fSI("amp","Peak current","A"),fSI("freq","Frequency","Hz")],
+ draw(c){L(c,0,-30,0,-15);L(c,0,15,0,30);CIR(c,0,0,15);L(c,0,9,0,-7);arrowHead(c,0,9,0,-9,6);c.beginPath();for(let i=0;i<=12;i++){const x=4+i*0.7,y=-4*Math.sin(i/12*2*PI);i?c.lineTo(x,y):c.moveTo(x,y)}c.stroke()},
+ val(c){const p=P(c);return [si(p.amp,"Apk"),si(p.freq,"Hz")]},build(c,n,E){E.I(n[0],n[1],()=>{const p=P(c);return p.amp*Math.sin(2*PI*p.freq*E.t())})},fmax(c){return P(c).freq},
+ spice(c,n){const p=P(c);return `I${c.label} ${n[1]} ${n[0]} SIN(0 ${p.amp} ${p.freq})`}});
+def("clock",{name:"Clock / Pulse source",ar:"مصدر نبضات (ساعة)",prefix:"V",pins:[[0,-30,"+"],[0,30,"-"]],bb:[-15,-30,15,30],props:{freq:"1k",amp:"5",duty:"50"},fields:[fSI("freq","Frequency","Hz"),fSI("amp","Voltage","V"),fSI("duty","Duty cycle","%")],
+ draw(c){L(c,0,-30,0,-15);L(c,0,15,0,30);CIR(c,0,0,15);L(c,-9,5,-5,5,-5,-5,0,-5,0,5,5,5,5,-5,9,-5)},
+ val(c){const p=P(c);return [si(p.freq,"Hz"),si(p.amp,"V")+" "+p.duty+"%"]},
+ build(c,n,E){E.V(n[0],n[1],()=>{const p=P(c);const ph=(E.t()*p.freq)%1;return ph<p.duty/100?p.amp:0})},fmax(c){return P(c).freq*5},
+ spice(c,n){const p=P(c),T=1/p.freq;return `V${c.label} ${n[0]} ${n[1]} PULSE(0 ${p.amp} 0 ${T/1000} ${T/1000} ${T*p.duty/100} ${T})`}});
+def("vcvs",{name:"Voltage-controlled voltage source",ar:"مصدر جهد متحكم بالجهد",prefix:"V",pins:[[-30,-20,"C+"],[-30,20,"C-"],[30,-20,"+"],[30,20,"-"]],bb:[-30,-24,30,24],props:{gain:"10"},fields:[fSI("gain","Gain (V/V)","")],
+ draw(c,st,tx){L(c,-30,-20,-14,-20);L(c,-30,20,-14,20);L(c,30,-20,10,-20,10,-12);L(c,30,20,10,20,10,12);POLY(c,[10,-12,22,0,10,12,-2,0]);tx("+",10,-4,8,"part","center");tx("−",10,7,8,"part","center");tx("+",-20,-26,8,"part");tx("−",-20,15,8,"part")},
+ val(c){return ["E="+P(c).gain]},build(c,n,E){E.VCVS(n[2],n[3],n[0],n[1],()=>P(c).gain)},spice(c,n){return `E${c.label} ${n[2]} ${n[3]} ${n[0]} ${n[1]} ${num(c.p.gain)}`}});
+def("vccs",{name:"Voltage-controlled current source",ar:"مصدر تيار متحكم بالجهد",prefix:"I",pins:[[-30,-20,"C+"],[-30,20,"C-"],[30,-20,"+"],[30,20,"-"]],bb:[-30,-24,30,24],props:{gm:"1m"},fields:[fSI("gm","Transconductance","S")],
+ draw(c,st,tx){L(c,-30,-20,-14,-20);L(c,-30,20,-14,20);L(c,30,-20,10,-20,10,-12);L(c,30,20,10,20,10,12);POLY(c,[10,-12,22,0,10,12,-2,0]);L(c,10,6,10,-5);arrowHead(c,10,6,10,-7,4);tx("+",-20,-26,8,"part");tx("−",-20,15,8,"part")},
+ val(c){return ["G="+si(P(c).gm,"S")]},build(c,n,E){E.VCCS(n[3],n[2],n[0],n[1],()=>P(c).gm)},spice(c,n){return `G${c.label} ${n[3]} ${n[2]} ${n[0]} ${n[1]} ${num(c.p.gm)}`}});
+
+/* ---- basic ---- */
+def("res",{name:"Resistor",ar:"مقاومة",prefix:"R",pins:[[-30,0,"1"],[30,0,"2"]],bb:[-30,-8,30,8],props:{resistance:"1k",tol:"5%",power:"0.25W"},fields:[fSI("resistance","Resistance","Ω"),fSel("tol","Tolerance",["0.1%","1%","2%","5%","10%","20%"]),fSel("power","Power rating",["0.125W","0.25W","0.5W","1W","2W","5W","10W"])],
+ draw(c){L(c,-30,0,-18,0);zig(c,-18,18);L(c,18,0,30,0)},val(c){return [si(PV(c,"resistance"),"Ω")]},
+ build(c,n,E){E.Rf(n[0],n[1],()=>Math.max(1e-6,P(c).resistance))},spice(c,n){return `R${c.label} ${n[0]} ${n[1]} ${num(c.p.resistance)}`}});
+def("cap",{name:"Capacitor",ar:"مكثف",prefix:"C",pins:[[-30,0,"1"],[30,0,"2"]],bb:[-30,-11,30,11],props:{capacitance:"1u",ic:"0"},fields:[fSI("capacitance","Capacitance","F"),fSI("ic","Initial voltage","V")],
+ draw(c){L(c,-30,0,-4,0);L(c,4,0,30,0);L(c,-4,-11,-4,11);L(c,4,-11,4,11)},val(c){return [si(PV(c,"capacitance"),"F")]},
+ build(c,n,E){E.C(n[0],n[1],()=>P(c).capacitance,P(c).ic||0)},spice(c,n){return `C${c.label} ${n[0]} ${n[1]} ${num(c.p.capacitance)}`}});
+def("ecap",{name:"Electrolytic capacitor",ar:"مكثف كيميائي",prefix:"C",pins:[[-30,0,"+"],[30,0,"-"]],bb:[-30,-11,30,11],props:{capacitance:"100u",vmax:"25"},fields:[fSI("capacitance","Capacitance","F"),fSI("vmax","Voltage rating","V")],
+ draw(c,st,tx){L(c,-30,0,-4,0);L(c,7,0,30,0);L(c,-4,-11,-4,11);c.beginPath();c.arc(16,0,12,PI-0.98,PI+0.98);c.stroke();tx("+",-13,-9,9,"part")},val(c){return [si(PV(c,"capacitance"),"F")]},
+ build(c,n,E){E.C(n[0],n[1],()=>P(c).capacitance,0)},spice(c,n){return `C${c.label} ${n[0]} ${n[1]} ${num(c.p.capacitance)}`}});
+def("ind",{name:"Inductor",ar:"ملف (محث)",prefix:"L",pins:[[-30,0,"1"],[30,0,"2"]],bb:[-30,-8,30,4],props:{inductance:"1m"},fields:[fSI("inductance","Inductance","H")],
+ draw(c){L(c,-30,0,-20,0);for(let i=0;i<4;i++){c.beginPath();c.arc(-15+i*10,0,5,PI,0);c.stroke()}L(c,20,0,30,0)},val(c){return [si(PV(c,"inductance"),"H")]},
+ build(c,n,E){E.Lx(n[0],n[1],()=>Math.max(1e-12,P(c).inductance))},spice(c,n){return `L${c.label} ${n[0]} ${n[1]} ${num(c.p.inductance)}`}});
+def("pot",{name:"Potentiometer",ar:"مقاومة متغيرة",prefix:"R",interactive:1,pins:[[-30,0,"1"],[30,0,"2"],[0,-20,"W"]],bb:[-30,-20,30,8],props:{resistance:"10k",wiper:"50",key:"A"},fields:[fSI("resistance","Resistance","Ω"),fSI("wiper","Wiper position","%"),fTxt("key","Key (Shift = decrease)")],
+ draw(c){L(c,-30,0,-18,0);zig(c,-18,18);L(c,18,0,30,0);const p=P(c);const wx=clamp((p.wiper/100)*36-18,-18,18);L(c,0,-20,0,-15,wx,-15,wx,-9);arrowHead(c,wx,-15,wx,-7,5)},
+ val(c){const p=P(c);return [si(p.resistance,"Ω")+" "+Math.round(p.wiper)+"%","Key="+(c.p.key||"A")]},
+ build(c,n,E){E.Rf(n[0],n[2],()=>{const p=P(c);return Math.max(0.5,p.resistance*clamp(p.wiper,0,100)/100)});E.Rf(n[2],n[1],()=>{const p=P(c);return Math.max(0.5,p.resistance*(1-clamp(p.wiper,0,100)/100))})},
+ spice(c,n){const p=P(c);return `R${c.label}a ${n[0]} ${n[2]} ${Math.max(0.5,p.resistance*p.wiper/100)}\nR${c.label}b ${n[2]} ${n[1]} ${Math.max(0.5,p.resistance*(1-p.wiper/100))}`}});
+def("xfmr",{name:"Transformer",ar:"محول",prefix:"T",pins:[[-30,-20,"P1"],[-30,20,"P2"],[30,-20,"S1"],[30,20,"S2"]],bb:[-30,-22,30,22],props:{ratio:"10"},fields:[fSI("ratio","Turns ratio Np:Ns","")],
+ draw(c){L(c,-30,-20,-12,-20);L(c,-30,20,-12,20);for(let i=0;i<4;i++){c.beginPath();c.arc(-12,-15+i*10,5,-PI/2,PI/2);c.stroke()}L(c,30,-20,12,-20);L(c,30,20,12,20);for(let i=0;i<4;i++){c.beginPath();c.arc(12,-15+i*10,5,PI/2,3*PI/2);c.stroke()}L(c,-2,-20,-2,20);L(c,2,-20,2,20)},
+ val(c){return [P(c).ratio+":1"]},build(c,n,E){E.XF(n[0],n[1],n[2],n[3],()=>1/Math.max(1e-6,P(c).ratio));E.R(n[0],n[1],1e7);E.R(n[2],n[3],1e7)},
+ spice(c,n){return `* ideal transformer ${c.label} ratio ${c.p.ratio}:1 (use coupled inductors in SPICE)\nE${c.label} ${n[2]} ${n[3]} ${n[0]} ${n[1]} ${1/num(c.p.ratio)}`}});
+def("fuse",{name:"Fuse",ar:"فيوز",prefix:"F",pins:[[-30,0,"1"],[30,0,"2"]],bb:[-30,-6,30,6],props:{rating:"1"},fields:[fSI("rating","Current rating","A")],
+ draw(c,st){L(c,-30,0,-15,0);L(c,15,0,30,0);RECT(c,-15,-5,15,5);if(st&&st.blown){L(c,-15,0,-4,0);L(c,4,0,15,0);L(c,-4,0,-1,-3);L(c,4,0,1,3)}else L(c,-15,0,15,0)},
+ val(c,st){return [si(PV(c,"rating"),"A")+(st&&st.blown?" BLOWN":"")]},
+ build(c,n,E){const st=E.st;st.blown=false;E.Rf(n[0],n[1],()=>st.blown?1e9:0.01);E.post(()=>{if(!st.blown&&Math.abs((E.v(n[0])-E.v(n[1]))/0.01)>P(c).rating){st.blown=true;toast(c.label+" blew ("+si(P(c).rating,"A")+" exceeded)")}})}});
+
+/* ---- switches & electromechanical ---- */
+def("spst",{name:"Switch SPST",ar:"مفتاح بسيط",prefix:"S",interactive:1,pins:[[-30,0,"1"],[30,0,"2"]],bb:[-30,-12,30,6],props:{closed:"open",key:"Space"},fields:[fSel("closed","State",["open","closed"]),fTxt("key","Key")],
+ draw(c){L(c,-30,0,-12,0);L(c,12,0,30,0);CIR(c,-12,0,2,CV.part);CIR(c,12,0,2,CV.part);if(c.p.closed==="closed")L(c,-12,0,12,-1);else L(c,-12,0,10,-11)},
+ val(c){return ["Key = "+(c.p.key||"Space")]},toggle(c){c.p.closed=c.p.closed==="closed"?"open":"closed";c._pp=null},
+ build(c,n,E){E.Rf(n[0],n[1],()=>c.p.closed==="closed"?1e-3:1e10)},spice(c,n){return `R${c.label} ${n[0]} ${n[1]} ${c.p.closed==="closed"?1e-3:1e10}`}});
+def("push",{name:"Push button (momentary)",ar:"زر ضاغط",prefix:"S",interactive:1,momentary:1,pins:[[-30,0,"1"],[30,0,"2"]],bb:[-30,-16,30,6],props:{key:"B",type:"NO"},fields:[fSel("type","Type",["NO","NC"]),fTxt("key","Key")],
+ draw(c,st){L(c,-30,0,-12,0);L(c,12,0,30,0);CIR(c,-12,0,2,CV.part);CIR(c,12,0,2,CV.part);const pr=!!c._pressed;const nc=c.p.type==="NC";const y=(pr!==nc)?-2:-8;L(c,-13,y,13,y);L(c,0,y,0,y-7);L(c,-4,y-7,4,y-7)},
+ val(c){return ["Key = "+(c.p.key||"B")]},
+ build(c,n,E){E.Rf(n[0],n[1],()=>{const on=(!!c._pressed)!==(c.p.type==="NC");return on?1e-3:1e10})}});
+def("spdt",{name:"Switch SPDT",ar:"مفتاح ثنائي الاتجاه",prefix:"S",interactive:1,pins:[[-30,0,"COM"],[30,-10,"A"],[30,10,"B"]],bb:[-30,-14,30,14],props:{pos:"A",key:"S"},fields:[fSel("pos","Position",["A","B"]),fTxt("key","Key")],
+ draw(c){L(c,-30,0,-12,0);L(c,30,-10,12,-10);L(c,30,10,12,10);CIR(c,-12,0,2,CV.part);CIR(c,12,-10,2,CV.part);CIR(c,12,10,2,CV.part);if(c.p.pos==="A")L(c,-12,0,11,-9);else L(c,-12,0,11,9)},
+ val(c){return ["Key = "+(c.p.key||"S")]},toggle(c){c.p.pos=c.p.pos==="A"?"B":"A";c._pp=null},
+ build(c,n,E){E.Rf(n[0],n[1],()=>c.p.pos==="A"?1e-3:1e10);E.Rf(n[0],n[2],()=>c.p.pos==="B"?1e-3:1e10)}});
+def("relay",{name:"Relay (SPST-NO)",ar:"ريليه",prefix:"K",pins:[[-30,-20,"C1"],[-30,20,"C2"],[30,-20,"K1"],[30,20,"K2"]],bb:[-30,-22,30,22],props:{coilV:"5",coilR:"100"},fields:[fSI("coilV","Coil voltage","V"),fSI("coilR","Coil resistance","Ω")],
+ draw(c,st){L(c,-30,-20,-18,-20,-18,-10);L(c,-30,20,-18,20,-18,10);RECT(c,-25,-10,-11,10);L(c,-25,10,-11,-10);L(c,30,-20,14,-20,14,-8);L(c,30,20,14,20,14,8);CIR(c,14,8,2,CV.part);CIR(c,14,-8,2,CV.part);const on=st&&st.on;L(c,14,8,on?15:24,on?-7:-5);c.save();c.setLineDash([2,3]);L(c,-11,0,17,0);c.restore()},
+ val(c){return [si(PV(c,"coilV"),"V")]},
+ build(c,n,E){const st=E.st;st.on=false;E.Rf(n[0],n[1],()=>Math.max(1,P(c).coilR));E.Rf(n[2],n[3],()=>st.on?0.01:1e10);E.post(()=>{const v=Math.abs(E.v(n[0])-E.v(n[1])),vc=P(c).coilV;if(!st.on&&v>0.75*vc)st.on=true;else if(st.on&&v<0.35*vc)st.on=false})}});
+def("motor",{name:"DC Motor",ar:"موتور تيار مستمر",prefix:"M",pins:[[-30,0,"+"],[30,0,"-"]],bb:[-30,-14,30,14],props:{voltage:"12",res:"10"},fields:[fSI("voltage","Rated voltage","V"),fSI("res","Winding resistance","Ω")],
+ draw(c,st,tx){L(c,-30,0,-13,0);L(c,13,0,30,0);CIR(c,0,0,13,CV.bg);tx("M",0,4,11,"part","center");if(st&&st.spd){const a=st.ang||0;c.save();c.strokeStyle=CV.sel;c.lineWidth=1.5;c.beginPath();c.arc(0,0,17,a,a+1.2);c.stroke();c.beginPath();c.arc(0,0,17,a+PI,a+PI+1.2);c.stroke();c.restore()}},
+ val(c,st){return [si(PV(c,"voltage"),"V")+(st&&st.spd?" "+Math.round(st.spd*100)+"%":"")]},
+ build(c,n,E){const st=E.st;st.ang=0;st.spd=0;E.Rf(n[0],n[1],()=>Math.max(0.01,P(c).res));E.post(()=>{const v=E.v(n[0])-E.v(n[1]);st.spd=clamp(v/P(c).voltage,-1.5,1.5);if(Math.abs(st.spd)<0.02)st.spd=0})}});
+
+/* ---- diodes ---- */
+function diodeBuild(c,n,E,is,nf,vz){const st=E.st;const f=v=>{const vd=v[0]-v[1];let i=is*(lexp(vd/(nf*Vt))-1)+1e-12*vd;if(vz)i-=1e-3*lexp((-vd-vz)/Vt);return [i,-i]};E.NL([n[0],n[1]],f);E.post(()=>{st.i=f([E.v(n[0]),E.v(n[1])])[0]})}
+def("diode",{name:"Diode",ar:"دايود",prefix:"D",pins:[[-30,0,"A"],[30,0,"K"]],bb:[-30,-9,30,9],props:{model:"1N4148"},fields:[fSel("model","Model",Object.keys(MODELS.diode))],
+ draw(c){L(c,-30,0,-8,0);L(c,6,0,30,0);diodeSym(c,-8,6,0,CV.part)},val(c){return [c.p.model]},
+ build(c,n,E){const m=MODELS.diode[c.p.model]||MODELS.diode.Generic;diodeBuild(c,n,E,m.is,m.n)},spice(c,n){const m=MODELS.diode[c.p.model]||MODELS.diode.Generic;return `D${c.label} ${n[0]} ${n[1]} D_${c.label}\n.model D_${c.label} D(IS=${m.is} N=${m.n})`}});
+def("schottky",{name:"Schottky diode",ar:"دايود شوتكي",prefix:"D",pins:[[-30,0,"A"],[30,0,"K"]],bb:[-30,-9,30,9],props:{model:"1N5819"},fields:[fSel("model","Model",Object.keys(MODELS.schottky))],
+ draw(c){L(c,-30,0,-8,0);L(c,6,0,30,0);POLY(c,[-9,-8,-9,8,5,0],CV.part);L(c,9,-5,9,-8,5,-8,5,8,1,8,1,5)},val(c){return [c.p.model]},
+ build(c,n,E){const m=MODELS.schottky[c.p.model]||MODELS.schottky["1N5819"];diodeBuild(c,n,E,m.is,m.n)},spice(c,n){const m=MODELS.schottky[c.p.model]||MODELS.schottky["1N5819"];return `D${c.label} ${n[0]} ${n[1]} D_${c.label}\n.model D_${c.label} D(IS=${m.is} N=${m.n})`}});
+def("zener",{name:"Zener diode",ar:"دايود زينر",prefix:"D",pins:[[-30,0,"A"],[30,0,"K"]],bb:[-30,-9,30,9],props:{model:"1N4733A"},fields:[fSel("model","Model",Object.keys(ZENERS))],
+ draw(c){L(c,-30,0,-8,0);L(c,6,0,30,0);POLY(c,[-9,-8,-9,8,5,0],CV.part);L(c,9,-11,5,-8,5,8,1,11)},val(c){return [c.p.model,(ZENERS[c.p.model]||5.1)+"V"]},
+ build(c,n,E){diodeBuild(c,n,E,1e-14,1,ZENERS[c.p.model]||5.1)},spice(c,n){return `D${c.label} ${n[0]} ${n[1]} DZ_${c.label}\n.model DZ_${c.label} D(IS=1e-14 BV=${ZENERS[c.p.model]||5.1} IBV=1m)`}});
+def("led",{name:"LED",ar:"ثنائي باعث للضوء",prefix:"LED",pins:[[-30,0,"A"],[30,0,"K"]],bb:[-30,-16,30,9],props:{color:"red"},fields:[fSel("color","Color",Object.keys(LEDC))],
+ draw(c,st){const col=(LEDC[c.p.color]||LEDC.red).c;const b=st&&st.i>0?clamp(st.i/0.01,0,1):0;if(b>0.02){c.save();c.globalAlpha=0.25+0.5*b;c.fillStyle=col;c.beginPath();c.arc(-1,0,16,0,2*PI);c.fill();c.restore()}L(c,-30,0,-8,0);L(c,6,0,30,0);diodeSym(c,-8,6,0,b>0.02?col:CV.bg);L(c,0,-10,6,-17);arrowHead(c,0,-10,7,-18,4);L(c,5,-8,11,-15);arrowHead(c,5,-8,12,-16,4)},
+ val(c,st){return [c.p.color+(st&&st.i>1e-4?" "+si(st.i,"A",3):"")]},
+ build(c,n,E){const vf=(LEDC[c.p.color]||LEDC.red).vf;diodeBuild(c,n,E,0.01/Math.exp(vf/(2*Vt)),2)},spice(c,n){const vf=(LEDC[c.p.color]||LEDC.red).vf;return `D${c.label} ${n[0]} ${n[1]} DL_${c.label}\n.model DL_${c.label} D(IS=${(0.01/Math.exp(vf/(2*Vt))).toExponential(3)} N=2)`}});
+def("bridge",{name:"Bridge rectifier",ar:"قنطرة توحيد",prefix:"D",pins:[[0,-30,"~1"],[0,30,"~2"],[30,0,"+"],[-30,0,"-"]],bb:[-30,-30,30,30],props:{model:"1N4007"},fields:[fSel("model","Diodes",Object.keys(MODELS.diode))],
+ draw(c,st,tx){POLY(c,[0,-30,30,0,0,30,-30,0]);diodeAlong(c,0,-30,30,0);diodeAlong(c,0,30,30,0);diodeAlong(c,-30,0,0,-30);diodeAlong(c,-30,0,0,30);tx("+",22,-8,9,"part");tx("−",-26,-8,9,"part");tx("~",7,-22,9,"part");tx("~",7,26,9,"part")},
+ val(c){return [c.p.model]},
+ build(c,n,E){const m=MODELS.diode[c.p.model]||MODELS.diode.Generic;const d=(a,k)=>{const f=v=>{const vd=v[0]-v[1];const i=m.is*(lexp(vd/(m.n*Vt))-1)+1e-12*vd;return [i,-i]};E.NL([a,k],f)};d(n[0],n[2]);d(n[1],n[2]);d(n[3],n[0]);d(n[3],n[1])}});
+
+/* ---- transistors ---- */
+function bjtDraw(c,pnp){L(c,-30,0,-8,0);L(c,-8,-11,-8,11);L(c,-8,-5,10,-18,10,-30);L(c,-8,5,10,18,10,30);CIR(c,1,0,18);if(pnp)arrowHead(c,10,18,-6,6,6);else arrowHead(c,-8,5,9,17,6)}
+function bjtBuild(c,n,E,pol){const m=MODELS[pol>0?"npn":"pnp"][c.p.model]||{bf:100,is:1e-14,br:1};const bf=num(c.p.hfe)||m.bf,is=m.is,br=m.br;
+ const f=v=>{const vbe=pol*(v[0]-v[2]),vbc=pol*(v[0]-v[1]);const If=is*(lexp(vbe/Vt)-1),Ir=is*(lexp(vbc/Vt)-1);const ic=If-Ir-Ir/br+1e-12*(vbe-vbc)*0,ib=If/bf+Ir/br+1e-12*(vbe+vbc);const ie=-(ic+ib);return [pol*ib,pol*ic,pol*ie]};E.NL([n[0],n[1],n[2]],f)}
+def("npn",{name:"BJT NPN",ar:"ترانزستور NPN",prefix:"Q",pins:[[-30,0,"B"],[10,-30,"C"],[10,30,"E"]],bb:[-30,-30,20,30],props:{model:"2N2222A",hfe:""},fields:[fSel("model","Model",Object.keys(MODELS.npn)),fTxt("hfe","hFE override (blank = model)")],
+ draw(c){bjtDraw(c,0)},val(c){return [c.p.model]},build(c,n,E){bjtBuild(c,n,E,1)},spice(c,n){const m=MODELS.npn[c.p.model]||{};return `Q${c.label} ${n[1]} ${n[0]} ${n[2]} Q_${c.label}\n.model Q_${c.label} NPN(BF=${num(c.p.hfe)||m.bf} IS=${m.is} BR=${m.br})`}});
+def("pnp",{name:"BJT PNP",ar:"ترانزستور PNP",prefix:"Q",pins:[[-30,0,"B"],[10,-30,"C"],[10,30,"E"]],bb:[-30,-30,20,30],props:{model:"2N3906",hfe:""},fields:[fSel("model","Model",Object.keys(MODELS.pnp)),fTxt("hfe","hFE override (blank = model)")],
+ draw(c){bjtDraw(c,1)},val(c){return [c.p.model]},build(c,n,E){bjtBuild(c,n,E,-1)},spice(c,n){const m=MODELS.pnp[c.p.model]||{};return `Q${c.label} ${n[1]} ${n[0]} ${n[2]} Q_${c.label}\n.model Q_${c.label} PNP(BF=${num(c.p.hfe)||m.bf} IS=${m.is} BR=${m.br})`}});
+function mosDraw(c,p){L(c,-30,0,-10,0);L(c,-10,-12,-10,12);L(c,-5,-14,-5,-6);L(c,-5,-3,-5,3);L(c,-5,6,-5,14);L(c,-5,-10,10,-10,10,-30);L(c,-5,10,10,10,10,30);L(c,-5,0,10,0,10,10);if(p)arrowHead(c,-4,0,6,0,5);else arrowHead(c,6,0,-4,0,5)}
+function mosBuild(c,n,E,pol){const m=MODELS[pol>0?"nmos":"pmos"][c.p.model]||{vth:2,k:0.02,lam:0.01};
+ const ids=(vgs,vds)=>{const ov=vgs-m.vth;const sp=0.04*Math.log1p(Math.exp(clamp(ov/0.04,-50,50)));if(vds<sp)return m.k*(sp*vds-vds*vds/2)*(1+m.lam*vds);return 0.5*m.k*sp*sp*(1+m.lam*vds)};
+ const f=v=>{let vg=pol*v[0],vd=pol*v[1],vs=pol*v[2];let s=1;if(vd<vs){const t=vd;vd=vs;vs=t;s=-1}const i=s*ids(vg-vs,vd-vs)+1e-9*(v[1]-v[2])*pol;return [0,pol*i,-pol*i]};E.NL([n[0],n[1],n[2]],f)}
+def("nmos",{name:"MOSFET N-channel",ar:"موسفت N",prefix:"Q",pins:[[-30,0,"G"],[10,-30,"D"],[10,30,"S"]],bb:[-30,-30,14,30],props:{model:"2N7000"},fields:[fSel("model","Model",Object.keys(MODELS.nmos))],
+ draw(c){mosDraw(c,0)},val(c){return [c.p.model]},build(c,n,E){mosBuild(c,n,E,1)},spice(c,n){const m=MODELS.nmos[c.p.model]||{};return `M${c.label} ${n[1]} ${n[0]} ${n[2]} ${n[2]} M_${c.label}\n.model M_${c.label} NMOS(VTO=${m.vth} KP=${m.k} LAMBDA=${m.lam})`}});
+def("pmos",{name:"MOSFET P-channel",ar:"موسفت P",prefix:"Q",pins:[[-30,0,"G"],[10,-30,"D"],[10,30,"S"]],bb:[-30,-30,14,30],props:{model:"IRF9540N"},fields:[fSel("model","Model",Object.keys(MODELS.pmos))],
+ draw(c){mosDraw(c,1)},val(c){return [c.p.model]},build(c,n,E){mosBuild(c,n,E,-1)},spice(c,n){const m=MODELS.pmos[c.p.model]||{};return `M${c.label} ${n[1]} ${n[0]} ${n[2]} ${n[2]} M_${c.label}\n.model M_${c.label} PMOS(VTO=${-m.vth} KP=${m.k} LAMBDA=${m.lam})`}});
+
+/* ---- analog ---- */
+function opampBuild(c,n,E,db){const m=(db[c.p.model])||MODELS.opamp.Ideal;const st=E.st;st.vi=0;const hasP=E.conn(3),hasN=E.conn(4);
+ const nodes=[n[0],n[1],n[2],hasP?n[3]:0,hasN?n[4]:0];const wp=2*PI*m.gbw/m.a;
+ const core=v=>{const vp=hasP?v[3]:15,vn=hasN?v[4]:-15;const vd=v[0]-v[1];const dt=E.dt();let vi=(st.vi+dt*wp*m.a*vd)/(1+dt*wp);const mid=(vp+vn)/2,half=Math.max(0.05,(vp-vn)/2-m.drop);const vt=mid+half*Math.tanh((vi-mid)/half);return {vt,vi}};
+ E.NL(nodes,v=>{const {vt}=core(v);const io=(v[2]-vt)/1;return [0,0,io,0,0]});E.R(n[0],n[1],1e9);
+ E.post(()=>{const v=nodes.map(k=>E.v(k));const vp=hasP?v[3]:15,vn=hasN?v[4]:-15;const lim=m.sr*E.dt();st.vi=clamp(clamp(core(v).vi,st.vi-lim,st.vi+lim),vn-1,vp+1)})}
+function opampDraw(c,tx){POLY(c,[-20,-25,-20,25,25,0],CV.bg);L(c,-30,-10,-20,-10);L(c,-30,10,-20,10);L(c,25,0,30,0);L(c,0,-30,0,-14);L(c,0,30,0,14);tx("+",-15,-6,10,"part","center");tx("−",-15,14,10,"part","center")}
+def("opamp",{name:"Operational amplifier",ar:"مضخم عمليات",prefix:"U",pins:[[-30,-10,"+"],[-30,10,"−"],[30,0,"OUT"],[0,-30,"V+"],[0,30,"V−"]],bb:[-30,-30,30,30],props:{model:"uA741"},fields:[fSel("model","Model",Object.keys(MODELS.opamp))],
+ draw(c,st,tx){opampDraw(c,tx)},val(c){return [c.p.model]},build(c,n,E){opampBuild(c,n,E,MODELS.opamp)},labelSuffix:"A",labelRight:1,
+ spice(c,n){const m=MODELS.opamp[c.p.model]||MODELS.opamp.Ideal;return `* ${c.p.model} macro (gain ${m.a}, GBW ${m.gbw})\nE${c.label} ${n[2]} 0 ${n[0]} ${n[1]} ${m.a}`}});
+def("comparator",{name:"Comparator",ar:"مقارن",prefix:"U",pins:[[-30,-10,"+"],[-30,10,"−"],[30,0,"OUT"],[0,-30,"V+"],[0,30,"V−"]],bb:[-30,-30,30,30],props:{model:"LM339"},fields:[fSel("model","Model",Object.keys(MODELS.comparator))],
+ labelRight:1,draw(c,st,tx){opampDraw(c,tx);L(c,0,-6,4,-6,4,4,8,4)},val(c){return [c.p.model]},build(c,n,E){opampBuild(c,n,E,MODELS.comparator)}});
+def("timer555",{name:"555 Timer",ar:"مؤقت 555",prefix:"U",pins:[[-10,-50,"VCC"],[10,-50,"RST"],[-40,-20,"TRI"],[-40,0,"THR"],[-40,20,"DIS"],[40,-20,"OUT"],[40,20,"CON"],[0,50,"GND"]],bb:[-40,-50,40,50],props:{model:"NE555"},fields:[fSel("model","Model",["NE555","LM555","TLC555 (CMOS)","ICM7555"])],
+ draw(c,st,tx){RECT(c,-30,-40,30,40,CV.bg);L(c,-10,-50,-10,-40);L(c,10,-50,10,-40);L(c,-40,-20,-30,-20);L(c,-40,0,-30,0);L(c,-40,20,-30,20);L(c,40,-20,30,-20);L(c,40,20,30,20);L(c,0,50,0,40);
+  const lb=(s,x,y,a)=>tx(s,x,y,6.5,"pin",a);lb("VCC",-10,-31,"center");lb("RST",10,-31,"center");lb("TRI",-27,-17,"left");lb("THR",-27,3,"left");lb("DIS",-27,23,"left");lb("OUT",27,-17,"right");lb("CON",27,23,"right");lb("GND",0,37,"center");tx("555",0,4,10,"part","center")},
+ val(c){return [c.p.model]},
+ build(c,n,E){const st=E.st;st.q=1;const[vc,rs,tr,th,ds,ot,ct,gd]=n;E.R(vc,ct,5000);E.R(ct,gd,10000);E.R(vc,gd,20000);
+  E.pre(()=>{const G=E.v(gd),V=E.v(vc)-G,C=E.v(ct)-G;const rst=E.conn(1)?(E.v(rs)-G)>0.7:true;if(!rst)st.q=0;else if(E.v(tr)-G<C/2)st.q=1;else if(E.v(th)-G>C)st.q=0});
+  E.Th(ot,gd,()=>{const V=E.v(vc)-E.v(gd);const cm=/CMOS|7555/.test(c.p.model);return [st.q?Math.max(0,V-(cm?0.05:1.5)):0.05,cm?20:8]});E.Rf(ds,gd,()=>st.q?1e10:8)}});
+def("reg",{name:"Voltage regulator",ar:"منظم جهد",prefix:"U",pins:[[-40,0,"IN"],[40,0,"OUT"],[0,30,"GND"]],bb:[-40,-16,40,30],props:{model:"LM7805"},fields:[fSel("model","Model",Object.keys(MODELS.reg))],
+ draw(c,st,tx){RECT(c,-30,-16,30,16,CV.bg);L(c,-40,0,-30,0);L(c,30,0,40,0);L(c,0,16,0,30);tx("IN",-26,3,7,"pin","left");tx("OUT",26,3,7,"pin","right");tx("GND",0,13,7,"pin","center");tx(c.p.model.replace(/^LM/,""),0,-5,8,"part","center")},
+ val(c){return [c.p.model]},
+ build(c,n,E){const m=MODELS.reg[c.p.model]||MODELS.reg.LM7805;E.R(n[0],n[2],2e3);E.Th(n[1],n[2],()=>{const vin=E.v(n[0])-E.v(n[2]);let vo;if(m.v>0)vo=clamp(vin-m.drop,0,m.v);else vo=clamp(vin+m.drop,m.v,0);return [vo,0.05]})}});
+def("lm317",{name:"LM317 adjustable regulator",ar:"منظم جهد متغير LM317",prefix:"U",pins:[[-40,0,"IN"],[40,0,"OUT"],[0,30,"ADJ"]],bb:[-40,-16,40,30],props:{},
+ draw(c,st,tx){RECT(c,-30,-16,30,16,CV.bg);L(c,-40,0,-30,0);L(c,30,0,40,0);L(c,0,16,0,30);tx("IN",-26,3,7,"pin","left");tx("OUT",26,3,7,"pin","right");tx("ADJ",0,13,7,"pin","center");tx("LM317",0,-5,8,"part","center")},
+ val(){return ["1.25 V ref"]},build(c,n,E){E.Th(n[1],n[2],()=>{const head=E.v(n[0])-E.v(n[2])-1.5;return [clamp(head,0,1.25),0.05]});E.R(n[0],n[1],1e6)}});
+
+/* ---- digital ---- */
+const VH=5;
+function digIn(E,k){return E.v(k)>VH/2}
+function gateDef(t,name,ar,kind,inv,fn,nIn){
+ const pins=nIn===1?[[-30,0,"A"],[30,0,"Y"]]:[[-30,-10,"A"],[-30,10,"B"],[30,0,"Y"]];
+ def(t,{name,ar,prefix:"U",pins,bb:[-30,-16,30,16],props:{family:"74HC"},fields:[fSel("family","Logic family",["74HC","74LS","74HCT","CD4000"])],
+  draw(c){if(nIn===1){L(c,-30,0,-15,0);gateBody(c,"not");if(inv){bubble(c,13);L(c,16,0,30,0)}else L(c,10,0,30,0)}else{const off=kind==="and"?15:(kind==="xor"?20:13);L(c,-30,-10,-off,-10);L(c,-30,10,-off,10);gateBody(c,kind);if(inv){bubble(c,18);L(c,21,0,30,0)}else L(c,15,0,30,0)}},
+  val(c){const pn={and:"08",or:"32",not:"04",nand:"00",nor:"02",xor:"86",xnor:"266",buf:"07"}[t];return [(c.p.family==="CD4000"?"CD4":c.p.family)+pn]},
+  build(c,n,E){const st=E.st;st.o=0;const ins=n.slice(0,-1),o=n[n.length-1];ins.forEach(k=>E.R(k,0,1e6));E.pre(()=>{st.o=fn(ins.map(k=>digIn(E,k)))?1:0});E.Th(o,0,()=>[st.o?VH:0,10])}});
+}
+gateDef("and","AND gate","بوابة AND","and",0,b=>b[0]&&b[1],2);
+gateDef("or","OR gate","بوابة OR","or",0,b=>b[0]||b[1],2);
+gateDef("not","NOT gate (inverter)","بوابة NOT","not",1,b=>!b[0],1);
+gateDef("buf","Buffer","عازل منطقي","not",0,b=>b[0],1);
+gateDef("nand","NAND gate","بوابة NAND","and",1,b=>!(b[0]&&b[1]),2);
+gateDef("nor","NOR gate","بوابة NOR","or",1,b=>!(b[0]||b[1]),2);
+gateDef("xor","XOR gate","بوابة XOR","xor",0,b=>b[0]!==b[1],2);
+gateDef("xnor","XNOR gate","بوابة XNOR","xor",1,b=>b[0]===b[1],2);
+function boxPins(c,tx,L_,R_){for(const[nm,y]of L_){L(c,-40,y,-30,y);tx(nm,-27,y+3,7,"pin","left")}for(const[nm,y]of R_){L(c,30,y,40,y);tx(nm,27,y+3,7,"pin","right")}}
+def("dff",{name:"D flip-flop",ar:"قلاب D",prefix:"U",pins:[[-40,-10,"D"],[-40,10,"CLK"],[40,-10,"Q"],[40,10,"~Q"]],bb:[-40,-30,40,30],props:{},
+ draw(c,st,tx){RECT(c,-30,-30,30,30,CV.bg);boxPins(c,tx,[["D",-10],["",10]],[["Q",-10],["Q̅",10]]);L(c,-30,6,-24,10,-30,14);tx("74HC74",0,-21,7,"part","center")},
+ build(c,n,E){const st=E.st;st.q=0;st.pc=0;E.R(n[0],0,1e6);E.R(n[1],0,1e6);E.pre(()=>{const ck=digIn(E,n[1]);if(ck&&!st.pc)st.q=digIn(E,n[0])?1:0;st.pc=ck});E.Th(n[2],0,()=>[st.q?VH:0,10]);E.Th(n[3],0,()=>[st.q?0:VH,10])}});
+def("jkff",{name:"JK flip-flop",ar:"قلاب JK",prefix:"U",pins:[[-40,-20,"J"],[-40,0,"CLK"],[-40,20,"K"],[40,-20,"Q"],[40,20,"~Q"]],bb:[-40,-30,40,30],props:{},
+ draw(c,st,tx){RECT(c,-30,-30,30,30,CV.bg);boxPins(c,tx,[["J",-20],["",0],["K",20]],[["Q",-20],["Q̅",20]]);L(c,-30,-4,-24,0,-30,4);tx("74HC107",0,-8,7,"part","center")},
+ build(c,n,E){const st=E.st;st.q=0;st.pc=0;[0,1,2].forEach(i=>E.R(n[i],0,1e6));E.pre(()=>{const ck=digIn(E,n[1]);if(ck&&!st.pc){const j=digIn(E,n[0]),k=digIn(E,n[2]);if(j&&k)st.q^=1;else if(j)st.q=1;else if(k)st.q=0}st.pc=ck});E.Th(n[3],0,()=>[st.q?VH:0,10]);E.Th(n[4],0,()=>[st.q?0:VH,10])}});
+def("counter",{name:"4-bit binary counter",ar:"عداد ثنائي 4 بت",prefix:"U",pins:[[-40,-10,"CLK"],[-40,10,"CLR"],[40,-30,"Q0"],[40,-10,"Q1"],[40,10,"Q2"],[40,30,"Q3"]],bb:[-40,-40,40,40],props:{},
+ draw(c,st,tx){RECT(c,-30,-40,30,40,CV.bg);boxPins(c,tx,[["",-10],["CLR",10]],[["Q0",-30],["Q1",-10],["Q2",10],["Q3",30]]);L(c,-30,-14,-24,-10,-30,-6);tx("74HC161",0,-31,7,"part","center");if(st)tx(String(st.n||0),0,30,9,"value","center")},
+ build(c,n,E){const st=E.st;st.n=0;st.pc=0;E.R(n[0],0,1e6);E.R(n[1],0,1e6);E.pre(()=>{const ck=digIn(E,n[0]);if(digIn(E,n[1]))st.n=0;else if(ck&&!st.pc)st.n=(st.n+1)&15;st.pc=ck});for(let b=0;b<4;b++)E.Th(n[2+b],0,()=>[(st.n>>b)&1?VH:0,10])}});
+def("hexdisp",{name:"Hex display (decoded)",ar:"شاشة سداسية عشرية",prefix:"U",pins:[[-40,-30,"1"],[-40,-10,"2"],[-40,10,"4"],[-40,30,"8"]],bb:[-40,-40,30,40],props:{color:"red"},fields:[fSel("color","Color",["red","green","blue","yellow","white"])],
+ draw(c,st,tx){RECT(c,-30,-40,30,40,"#1a0f0f");for(const[nm,y]of[["1",-30],["2",-10],["4",10],["8",30]]){L(c,-40,y,-30,y)}const on=(LEDC[c.p.color]||LEDC.red).c;const v=st&&st.v!=null?st.v:-1;seven(c,-12,-26,24,52,v>=0?HEXSEG[v]:"",on,"rgba(127,127,127,.15)")},
+ build(c,n,E){const st=E.st;st.v=0;n.forEach(k=>E.R(k,0,1e6));E.post(()=>{let v=0;n.forEach((k,i)=>{if(digIn(E,k))v|=1<<i});st.v=v})}});
+def("seg7",{name:"7-segment display (common cathode)",ar:"شاشة سباعية",prefix:"U",pins:[["a",-30],["b",-20],["c",-10],["d",0],["e",10],["f",20],["g",30]].map(([n,y])=>[-40,y,n]),bb:[-40,-40,30,40],props:{color:"red"},fields:[fSel("color","Color",["red","green","blue","yellow","white"])],
+ draw(c,st,tx){RECT(c,-30,-40,30,40,"#1a0f0f");"abcdefg".split("").forEach((s,i)=>{L(c,-40,-30+i*10,-30,-30+i*10)});const on=(LEDC[c.p.color]||LEDC.red).c;seven(c,-10,-26,24,52,st&&st.s||"",on,"rgba(127,127,127,.15)")},
+ build(c,n,E){const st=E.st;st.s="";n.forEach(k=>E.R(k,0,1e5));E.post(()=>{st.s="abcdefg".split("").filter((s,i)=>E.v(n[i])>1.5).join("")})}});
+
+/* ---- indicators & meters ---- */
+def("probe",{name:"Voltage probe",ar:"مجس جهد",prefix:"PR",pins:[[0,0,"+"]],bb:[-2,-22,26,2],props:{},
+ draw(c,st,tx){L(c,0,0,8,-8);POLY(c,[8,-8,8,-20,26,-20,26,-8],CV.bg);c.save();c.fillStyle=CV.sel;c.fillRect(10,-18,4,8);c.restore()},
+ val(c,st){if(!st||st.v==null)return ["V: —"];return ["V: "+rd(st.v,"V"),"Vrms: "+rd(st.rms,"V")]},
+ build(c,n,E){const st=E.st;st.v=0;st.m=0;st.s=0;E.post(()=>{const v=E.v(n[0]);st.v=v;const a=Math.min(1,E.dt()/0.05);st.m+=(v-st.m)*a;st.s+=(v*v-st.s)*a;st.rms=Math.sqrt(Math.max(0,st.s))})}});
+function meterDraw(c,st,tx,u,comp){RECT(c,-26,-16,26,16,CV.bg);L(c,-30,0,-26,0);L(c,26,0,30,0);const vert=comp&&(comp.r&1);
+ const r=st&&st.r!=null?String(st.r):"—.— "+u;const sp=r.lastIndexOf(" ");const num=sp>0?r.slice(0,sp):r,unit=sp>0?r.slice(sp+1):u;
+ c.save();c.fillStyle="#0d1b14";c.beginPath();c.rect(-23,-13,46,26);c.fill();c.restore();
+ if(vert){tx("+",-31,-12,8,"part");tx("−",27,-12,8,"part");const fs=num.length>5?5.8:6.8;tx(num,-5,0,fs,"lcd","center");tx(unit,12,0,6.5,"lcdu","center")}
+ else{tx("+",-31,-9,8,"part");tx("−",27,-9,8,"part");const t=num+" "+unit;const fs=t.length>8?7.2:8.2;tx(t,0,1.5,fs,"lcd","center")}}
+def("voltmeter",{name:"Voltmeter",ar:"فولتميتر",prefix:"U",pins:[[-30,0,"+"],[30,0,"-"]],bb:[-30,-16,30,16],props:{mode:"DC",rin:"1G"},fields:[fSel("mode","Mode",["DC","AC"]),fSI("rin","Input resistance","Ω")],
+ draw(c,st,tx,comp){meterDraw(c,st,tx,"V",comp)},val(c){return [c.p.mode]},
+ build(c,n,E){const st=E.st;st.m=0;st.s=0;E.Rf(n[0],n[1],()=>P(c).rin||1e9);E.post(()=>{const v=E.v(n[0])-E.v(n[1]);const a=Math.min(1,E.dt()/0.05);st.m+=(v-st.m)*a;st.s+=(v*v-st.s)*a;st.r=c.p.mode==="AC"?rd(Math.sqrt(Math.max(0,st.s-st.m*st.m)),"V"):rd(st.m,"V")})}});
+def("ammeter",{name:"Ammeter",ar:"أميتر",prefix:"U",pins:[[-30,0,"+"],[30,0,"-"]],bb:[-30,-16,30,16],props:{mode:"DC"},fields:[fSel("mode","Mode",["DC","AC"])],
+ draw(c,st,tx,comp){meterDraw(c,st,tx,"A",comp)},val(c){return [c.p.mode]},
+ build(c,n,E){const st=E.st;st.m=0;st.s=0;const k=E.V(n[0],n[1],()=>0);E.post(()=>{const i=E.x(k);const a=Math.min(1,E.dt()/0.05);st.m+=(i-st.m)*a;st.s+=(i*i-st.s)*a;st.r=c.p.mode==="AC"?rd(Math.sqrt(Math.max(0,st.s-st.m*st.m)),"A"):rd(st.m,"A")})}});
+def("lamp",{name:"Lamp",ar:"لمبة",prefix:"X",pins:[[-30,0,"1"],[30,0,"2"]],bb:[-30,-13,30,13],props:{voltage:"12",power:"10"},fields:[fSI("voltage","Rated voltage","V"),fSI("power","Rated power","W")],
+ draw(c,st){const b=st&&st.b||0;if(b>0.03){c.save();c.globalAlpha=0.2+0.6*b;c.fillStyle="#ffd34d";c.beginPath();c.arc(0,0,12+8*b,0,2*PI);c.fill();c.restore()}L(c,-30,0,-12,0);L(c,12,0,30,0);CIR(c,0,0,12,b>0.03?"#fff3b0":CV.bg);L(c,-8,-8,8,8);L(c,-8,8,8,-8)},
+ val(c){const p=P(c);return [si(p.voltage,"V")+" "+si(p.power,"W")]},
+ build(c,n,E){const st=E.st;st.b=0;const R=()=>{const p=P(c);return Math.max(0.01,p.voltage*p.voltage/p.power)};E.Rf(n[0],n[1],R);E.post(()=>{const v=E.v(n[0])-E.v(n[1]);st.b=clamp(v*v/R()/P(c).power,0,1.3)})}});
+def("lprobe",{name:"Logic probe",ar:"مجس منطقي",prefix:"X",pins:[[0,0,"IN"]],bb:[-2,-26,22,2],props:{color:"red"},fields:[fSel("color","Color",Object.keys(LEDC))],
+ draw(c,st){const on=st&&st.on;const col=(LEDC[c.p.color]||LEDC.red).c;L(c,0,0,6,-6);if(on){c.save();c.globalAlpha=.35;c.fillStyle=col;c.beginPath();c.arc(12,-14,13,0,2*PI);c.fill();c.restore()}CIR(c,12,-14,8,on?col:CV.bg)},
+ build(c,n,E){const st=E.st;E.post(()=>{st.on=E.v(n[0])>2.5})}});
+def("buzzer",{name:"Buzzer",ar:"جرس (بزر)",prefix:"U",pins:[[-30,0,"+"],[30,0,"-"]],bb:[-30,-16,30,8],props:{voltage:"5",res:"100"},fields:[fSI("voltage","Rated voltage","V"),fSI("res","Coil resistance","Ω")],
+ draw(c,st){L(c,-30,0,-12,0);L(c,12,0,30,0);c.beginPath();c.moveTo(-12,4);c.lineTo(-12,-2);c.arc(0,-2,12,PI,0);c.lineTo(12,4);c.closePath();c.fillStyle=CV.bg;c.fill();c.stroke();if(st&&st.on){c.save();c.strokeStyle=CV.sel;const t=(performance.now()/120)%3;for(let i=0;i<2;i++){c.beginPath();c.arc(0,-2,16+i*4+t,-PI*0.8,-PI*0.2);c.stroke()}c.restore()}},
+ val(c){return [si(PV(c,"voltage"),"V")]},build(c,n,E){const st=E.st;E.Rf(n[0],n[1],()=>Math.max(1,P(c).res));E.post(()=>{st.on=Math.abs(E.v(n[0])-E.v(n[1]))>0.5*P(c).voltage})}});
+
+/* ---- annotations ---- */
+const _mc=document.createElement("canvas").getContext("2d");
+function textW(str,size,bold){_mc.font=(bold?"600 ":"400 ")+size+"px IBM Plex Sans, Arial";return Math.max(...String(str||" ").split("\n").map(l=>_mc.measureText(l).width))}
+def("text",{name:"Text / note",ar:"نص",prefix:"",noLabel:1,pins:[],props:{text:"Note",size:"14",bold:"no",color:"#1b2230",frame:"no"},fields:[fTxt("text","Text (use \\n for a new line)"),fSel("size","Size",["10","12","14","16","20","24","32","40"]),fSel("bold","Bold",["no","yes"]),fCol("color","Color"),fSel("frame","Frame",["no","yes"])],
+ bbFn(c){const sz=+c.p.size||14;const lines=String(c.p.text||"").split("\\n");const w=textW(lines.join("\n"),sz,c.p.bold==="yes");return[-4,-sz-2,w+4,(lines.length-1)*sz*1.25+6]},bb:[-4,-16,80,6],
+ draw(c){const sz=+c.p.size||14;c.font=(c.p.bold==="yes"?"600 ":"400 ")+sz+"px "+CV.font;c.fillStyle=c.p.color||CV.value;c.textAlign="left";c.textBaseline="alphabetic";const lines=String(c.p.text||"").split("\\n");lines.forEach((l,i)=>c.fillText(l,0,i*sz*1.25));if(c.p.frame==="yes"){const w=Math.max(...lines.map(l=>c.measureText(l).width));c.strokeRect(-6,-sz-4,w+12,(lines.length-1)*sz*1.25+sz+10)}}});
+def("netlabel",{name:"Net label",ar:"اسم توصيلة",prefix:"",noLabel:1,pins:[[0,0,"NET"]],props:{name:"SIG1"},fields:[fTxt("name","Net name")],
+ bbFn(c){const w=textW(c.p.name,11,1);return[0,-9,w+22,9]},bb:[0,-9,60,9],
+ draw(c){const w=textW(c.p.name,11,1);c.beginPath();c.moveTo(0,0);c.lineTo(8,-8);c.lineTo(w+18,-8);c.lineTo(w+18,8);c.lineTo(8,8);c.closePath();c.fillStyle=CV.bg;c.fill();c.stroke();c.font="600 11px "+CV.font;c.fillStyle=CV.wire;c.textBaseline="middle";c.textAlign="left";c.fillText(c.p.name||"",12,0.5)},
+ spice(){return ""}});
+
+/* ---- instruments ---- */
+def("xmm",{name:"Multimeter",ar:"ملتيميتر",prefix:"XMM",instrument:1,pins:[[-10,30,"+"],[10,30,"-"]],bb:[-20,-26,20,30],props:{mode:"V",ac:"DC"},
+ draw(c,st,tx){RECT(c,-20,-26,20,20,CV.bg);RECT(c,-15,-21,15,-9,"#0d1b14");tx(st&&st.r?st.r.replace(/ /,""):"0.000",0,-12,6,"lcd","center");CIR(c,-10,12,3);CIR(c,10,12,3);L(c,-10,20,-10,30);L(c,10,20,10,30);tx("+",-10,-1,7,"part","center");tx("−",10,-1,7,"part","center")},
+ build(c,n,E){const st=E.st;st.m=0;st.s=0;const mode=c.p.mode;let k=-1;if(mode==="A")k=E.V(n[0],n[1],()=>0);else if(mode==="Ω")E.I(n[0],n[1],()=>1e-3);else E.R(n[0],n[1],1e9);
+  E.post(()=>{const a=Math.min(1,E.dt()/0.05);let x;if(mode==="A")x=E.x(k);else x=E.v(n[0])-E.v(n[1]);st.m+=(x-st.m)*a;st.s+=(x*x-st.s)*a;const ac=c.p.ac==="AC";const val=ac?Math.sqrt(Math.max(0,st.s-st.m*st.m)):st.m;
+   if(mode==="Ω"){const R=st.m/1e-3;st.r=R>2e8||R<0?"OL":rd(R,"Ω")}else st.r=rd(val,mode)})}});
+def("xfg",{name:"Function generator",ar:"مولد إشارات",prefix:"XFG",instrument:1,pins:[[-20,30,"+"],[0,30,"COM"],[20,30,"-"]],bb:[-28,-26,28,30],props:{wave:"sine",freq:"1k",amp:"1",offset:"0",duty:"50"},
+ fields:[fSel("wave","Waveform",["sine","triangle","square"]),fSI("freq","Frequency","Hz"),fSI("amp","Amplitude (Vp)","V"),fSI("offset","Offset","V"),fSI("duty","Duty cycle","%")],
+ draw(c,st,tx){RECT(c,-28,-26,28,20,CV.bg);RECT(c,-22,-21,22,-5,"#0b1620");c.save();c.strokeStyle="#7CFFB2";c.beginPath();for(let i=0;i<=30;i++){const x=-19+i*38/30,y=-13-5*Math.sin(i/30*4*PI);i?c.lineTo(x,y):c.moveTo(x,y)}c.stroke();c.restore();[-20,0,20].forEach(x=>{CIR(c,x,12,3);L(c,x,15,x,30)});tx("+",-20,3,7,"part","center");tx("C",0,3,7,"part","center");tx("−",20,3,7,"part","center")},
+ val(c){const p=P(c);return [c.p.wave+" "+si(p.freq,"Hz")]},
+ build(c,n,E){const w=()=>{const p=P(c);const ph=(E.t()*p.freq)%1;let s;if(c.p.wave==="square")s=ph<p.duty/100?1:-1;else if(c.p.wave==="triangle")s=ph<0.5?4*ph-1:3-4*ph;else s=Math.sin(2*PI*ph);return p.amp*s};
+  E.V(n[0],n[1],()=>w()+P(c).offset);E.V(n[1],n[2],()=>w()-P(c).offset);E.R(n[1],0,1e7)},fmax(c){return P(c).freq*(c.p.wave==="sine"?1:4)}});
+def("xsc",{name:"Oscilloscope (2-channel)",ar:"راسم إشارة",prefix:"XSC",instrument:1,pins:[[-20,30,"A"],[0,30,"B"],[20,30,"Ext/−"]],bb:[-30,-26,30,30],props:{tb:"1m",va:"1",vb:"1",pa:"0",pb:"0",trig:"0",tmode:"Auto",tsrc:"A"},
+ draw(c,st,tx){RECT(c,-30,-26,30,20,CV.bg);RECT(c,-25,-22,25,-2,"#081018");c.save();c.strokeStyle="#ffcc3d";c.beginPath();for(let i=0;i<=40;i++){const x=-22+i*44/40,y=-12-6*Math.sin(i/40*4*PI);i?c.lineTo(x,y):c.moveTo(x,y)}c.stroke();c.strokeStyle="#4cc9ff";c.beginPath();for(let i=0;i<=40;i++){const x=-22+i*44/40,y=-12+4*Math.cos(i/40*4*PI);i?c.lineTo(x,y):c.moveTo(x,y)}c.stroke();c.restore();[-20,0,20].forEach(x=>{CIR(c,x,12,3);L(c,x,15,x,30)});tx("A",-20,5,7,"part","center");tx("B",0,5,7,"part","center");tx("G",20,5,7,"part","center")},
+ build(c,n,E){const st=E.st;const N=24000;st.buf=new Float64Array(N*3);st.len=0;st.head=0;st.last=-1;const ref=E.conn(2)?n[2]:0;
+  E.post(()=>{const t=E.t();const win=num(c.p.tb)*10;const minDt=win/1200;if(t-st.last<minDt)return;st.last=t;const i=st.head;st.buf[i*3]=t;st.buf[i*3+1]=E.conn(0)?E.v(n[0])-E.v(ref):0;st.buf[i*3+2]=E.conn(1)?E.v(n[1])-E.v(ref):0;st.head=(i+1)%N;st.len=Math.min(N,st.len+1);st.N=N})}});
+def("xwm",{name:"Wattmeter",ar:"واطميتر",prefix:"XWM",instrument:1,pins:[[-30,30,"V+"],[-10,30,"V−"],[10,30,"I+"],[30,30,"I−"]],bb:[-38,-26,38,30],props:{},
+ draw(c,st,tx){RECT(c,-38,-26,38,20,CV.bg);RECT(c,-32,-21,32,-7,"#0d1b14");tx(st&&st.r?st.r:"0 W",0,-11,7,"lcd","center");[-30,-10,10,30].forEach(x=>{CIR(c,x,12,3);L(c,x,15,x,30)});tx("V",-20,3,7,"part","center");tx("I",20,3,7,"part","center")},
+ build(c,n,E){const st=E.st;st.p=0;const k=E.V(n[2],n[3],()=>0);E.R(n[0],n[1],1e9);E.post(()=>{const v=E.v(n[0])-E.v(n[1]),i=E.x(k);const a=Math.min(1,E.dt()/0.1);st.p+=(v*i-st.p)*a;st.r=rd(st.p,"W")})}});
+
+/* ---- component database (Group → Family → Component) ---- */
+const DB=[
+ {g:"Sources",icon:"src",fams:[["POWER_SOURCES","gnd",()=>[{n:"GROUND"}]],["POWER_RAILS","vcc",()=>[3.3,5,9,12,15,24,-5,-12,-15].map(v=>({n:(v<0?"VEE ":"VCC ")+v+"V",p:{voltage:String(v),net:v<0?"VEE":(v===3.3?"VDD":"VCC")}}))],
+   ["DC_POWER","dcv",()=>[1.5,3,3.7,5,6,9,12,15,18,24,48].map(v=>({n:"DC_POWER "+v+"V",p:{voltage:String(v)}}))],
+   ["AC_POWER","acv",()=>[["AC_POWER 1Vpk 1kHz","1","1k"],["AC_POWER 10Vpk 50Hz","10","50"],["AC_MAINS 230Vrms 50Hz","325","50"],["AC_MAINS 120Vrms 60Hz","170","60"],["AC_POWER 5Vpk 100Hz","5","100"],["AC_POWER 1Vpk 10kHz","1","10k"]].map(([n,a,f])=>({n,p:{amp:a,freq:f}}))],
+   ["SIGNAL_CURRENT","idc",()=>[["DC_CURRENT 1mA","1m"],["DC_CURRENT 10mA","10m"],["DC_CURRENT 100mA","100m"],["DC_CURRENT 1A","1"]].map(([n,v])=>({n,p:{current:v}}))],
+   ["AC_CURRENT","iac",()=>[{n:"AC_CURRENT 1mA 1kHz"}]],
+   ["CLOCK_PULSE","clock",()=>[["CLOCK 1Hz 5V","1"],["CLOCK 2Hz 5V","2"],["CLOCK 10Hz 5V","10"],["CLOCK 1kHz 5V","1k"],["CLOCK 10kHz 5V","10k"],["CLOCK 100kHz 5V","100k"]].map(([n,f])=>({n,p:{freq:f}}))],
+   ["CONTROLLED_SOURCES","vcvs",()=>[{n:"VOLTAGE_CONTROLLED_VOLTAGE_SOURCE"}]],["CONTROLLED_SOURCES ","vccs",()=>[{n:"VOLTAGE_CONTROLLED_CURRENT_SOURCE"}]]]},
+ {g:"Basic",icon:"res",fams:[
+   ["RESISTOR","res",()=>decades(24,1,10e6).map(v=>({n:si(v,"Ω"),p:{resistance:si(v)}}))],
+   ["RESISTOR_1% (E96)","res",()=>{const e96=[100,102,105,107,110,113,115,118,121,124,127,130,133,137,140,143,147,150,154,158,162,165,169,174,178,182,187,191,196,200,205,210,215,221,226,232,237,243,249,255,261,267,274,280,287,294,301,309,316,324,332,340,348,357,365,374,383,392,402,412,422,432,442,453,464,475,487,499,511,523,536,549,562,576,590,604,619,634,649,665,681,698,715,732,750,768,787,806,825,845,866,887,909,931,953,976];const o=[];for(const d of[0.1,1,10,100,1000,10000])for(const b of e96)o.push(+(b*d).toPrecision(3));return o.map(v=>({n:si(v,"Ω")+" 1%",p:{resistance:si(v),tol:"1%"}}))}],
+   ["CAPACITOR","cap",()=>decades(12,1e-12,10e-6).map(v=>({n:si(v,"F"),p:{capacitance:si(v)}}))],
+   ["CAP_ELECTROLIT","ecap",()=>decades(6,0.1e-6,10e-3).map(v=>({n:si(v,"F"),p:{capacitance:si(v)}}))],
+   ["INDUCTOR","ind",()=>decades(12,1e-6,1).map(v=>({n:si(v,"H"),p:{inductance:si(v)}}))],
+   ["POTENTIOMETER","pot",()=>[100,200,500,1e3,2e3,5e3,10e3,20e3,50e3,100e3,200e3,500e3,1e6].map(v=>({n:si(v,"Ω"),p:{resistance:si(v)}}))],
+   ["TRANSFORMER","xfmr",()=>[1,2,5,10,15,20,50].map(r=>({n:"TS_IDEAL "+r+":1",p:{ratio:String(r)}}))],
+   ["SWITCH","spst",()=>[{n:"SPST"}]],["SWITCH ","spdt",()=>[{n:"SPDT"}]],["SWITCH  ","push",()=>[{n:"PB_DPST (NO)",p:{type:"NO"}},{n:"PB (NC)",p:{type:"NC"}}]],
+   ["RELAY","relay",()=>[5,12,24].map(v=>({n:"RELAY_"+v+"V",p:{coilV:String(v),coilR:String(v*v/0.36|0)}}))]]},
+ {g:"Diodes",icon:"dio",fams:[["DIODE","diode",()=>Object.keys(MODELS.diode).map(m=>({n:m,p:{model:m}}))],["SCHOTTKY_DIODE","schottky",()=>Object.keys(MODELS.schottky).map(m=>({n:m,p:{model:m}}))],["ZENER","zener",()=>Object.keys(ZENERS).map(m=>({n:m+" ("+ZENERS[m]+"V)",p:{model:m}}))],["LED","led",()=>Object.keys(LEDC).map(m=>({n:"LED_"+m,p:{color:m}}))],["FWB (bridge)","bridge",()=>["1N4001","1N4007","1N5408"].map(m=>({n:"FWB_"+m,p:{model:m}}))]]},
+ {g:"Transistors",icon:"bjt",fams:[["BJT_NPN","npn",()=>Object.keys(MODELS.npn).map(m=>({n:m,p:{model:m}}))],["BJT_PNP","pnp",()=>Object.keys(MODELS.pnp).map(m=>({n:m,p:{model:m}}))],["MOS_N","nmos",()=>Object.keys(MODELS.nmos).map(m=>({n:m,p:{model:m}}))],["MOS_P","pmos",()=>Object.keys(MODELS.pmos).map(m=>({n:m,p:{model:m}}))]]},
+ {g:"Analog",icon:"opa",fams:[["OPAMP","opamp",()=>Object.keys(MODELS.opamp).map(m=>({n:m,p:{model:m}}))],["COMPARATOR","comparator",()=>Object.keys(MODELS.comparator).map(m=>({n:m,p:{model:m}}))]]},
+ {g:"TTL / CMOS",icon:"gate",fams:["and","or","not","buf","nand","nor","xor","xnor"].map(t=>[t.toUpperCase()+"_GATES",t,()=>["74HC","74LS","74HCT","CD4000"].map(f=>({n:LIB[t].val({p:{family:f}})[0],p:{family:f}}))]).concat([["FLIP_FLOPS","dff",()=>[{n:"74HC74 (D)"}]],["FLIP_FLOPS ","jkff",()=>[{n:"74HC107 (JK)"}]],["COUNTERS","counter",()=>[{n:"74HC161 (4-bit)"}]]])},
+ {g:"Mixed",icon:"chip",fams:[["TIMER","timer555",()=>["NE555","LM555","TLC555 (CMOS)","ICM7555"].map(m=>({n:m,p:{model:m}}))]]},
+ {g:"Indicators",icon:"ind",fams:[["VOLTMETER","voltmeter",()=>[{n:"VOLTMETER_DC",p:{mode:"DC"}},{n:"VOLTMETER_AC",p:{mode:"AC"}}]],["AMMETER","ammeter",()=>[{n:"AMMETER_DC",p:{mode:"DC"}},{n:"AMMETER_AC",p:{mode:"AC"}}]],["PROBE","probe",()=>[{n:"VOLTAGE_PROBE"}]],["LOGIC_PROBE","lprobe",()=>Object.keys(LEDC).slice(0,6).map(m=>({n:"PROBE_DIG_"+m.toUpperCase(),p:{color:m}}))],
+   ["LAMP","lamp",()=>[[6,1],[12,5],[12,10],[24,10],[120,40],[230,60]].map(([v,w])=>({n:"LAMP "+v+"V "+w+"W",p:{voltage:String(v),power:String(w)}}))],["BUZZER","buzzer",()=>[{n:"BUZZER 5V"},{n:"BUZZER 12V",p:{voltage:"12",res:"300"}}]],["HEX_DISPLAY","hexdisp",()=>["red","green","blue","yellow"].map(m=>({n:"DCD_HEX_"+m.toUpperCase(),p:{color:m}}))],["SEVEN_SEG","seg7",()=>["red","green","blue"].map(m=>({n:"SEVEN_SEG_COM_K_"+m.toUpperCase(),p:{color:m}}))]]},
+ {g:"Power",icon:"pwr",fams:[["VOLTAGE_REGULATOR","reg",()=>Object.keys(MODELS.reg).map(m=>({n:m,p:{model:m}}))],["ADJ_REGULATOR","lm317",()=>[{n:"LM317"}]],["FUSE","fuse",()=>[0.1,0.25,0.5,1,2,3,5,10].map(a=>({n:"FUSE "+a+"A",p:{rating:String(a)}}))]]},
+ {g:"Electromechanical",icon:"mot",fams:[["MOTOR","motor",()=>[[5,5],[6,4],[12,10],[24,20]].map(([v,r])=>({n:"DC_MOTOR "+v+"V",p:{voltage:String(v),res:String(r)}}))],["RELAY","relay",()=>[5,12,24].map(v=>({n:"RELAY_"+v+"V",p:{coilV:String(v),coilR:String(v*v/0.36|0)}}))]]},
+ {g:"Annotation",icon:"txt",fams:[["TEXT","text",()=>[{n:"Text / note"},{n:"Heading",p:{text:"Title",size:"24",bold:"yes"}},{n:"Framed note",p:{text:"Note",frame:"yes"}}]],["NET_LABEL","netlabel",()=>["VIN","VOUT","SIG1","CLK","DATA","GND"].map(n=>({n:"Net label "+n,p:{name:n}}))]]},
+ {g:"Instruments",icon:"xsc",fams:[["MULTIMETER","xmm",()=>[{n:"XMM (Multimeter)"}]],["FUNCTION_GENERATOR","xfg",()=>[{n:"XFG (Function generator)"}]],["WATTMETER","xwm",()=>[{n:"XWM (Wattmeter)"}]],["OSCILLOSCOPE","xsc",()=>[{n:"XSC (2-channel)"}]]]}
+];
+let DBCOUNT=0;DB.forEach(g=>g.fams.forEach(f=>{f.items=null}));
+function famItems(f){if(!f.items)f.items=f[2]();return f.items}
+function countDB(){let n=0;DB.forEach(g=>g.fams.forEach(f=>n+=famItems(f).length));return n}
+
+/* ================= document model ================= */
+const docs=[];let D=null;
+function newDoc(name){return {name,meta:{author:"",rev:"1",date:"",desc:""},comps:[],wires:[],cnt:{},view:{x:80,y:60,z:1.4},undo:[],redo:[],dirty:false}}
+function rotP(x,y,r,f){if(f)y=-y;switch(r&3){case 1:return[-y,x];case 2:return[-x,-y];case 3:return[y,-x]}return[x,y]}
+function pinPos(c,i){const p=LIB[c.t].pins[i];const[dx,dy]=rotP(p[0],p[1],c.r,c.f);return{x:c.x+dx,y:c.y+dy}}
+function wbbox(c){const b=LIB[c.t].bbFn?LIB[c.t].bbFn(c):LIB[c.t].bb;const pts=[rotP(b[0],b[1],c.r,c.f),rotP(b[2],b[3],c.r,c.f),rotP(b[0],b[3],c.r,c.f),rotP(b[2],b[1],c.r,c.f)];let x1=1e9,y1=1e9,x2=-1e9,y2=-1e9;for(const[x,y]of pts){x1=Math.min(x1,x);y1=Math.min(y1,y);x2=Math.max(x2,x);y2=Math.max(y2,y)}return[c.x+x1,c.y+y1,c.x+x2,c.y+y2]}
+function nextLabel(doc,t){const L_=LIB[t];if(!L_.prefix)return "";const k=L_.prefix;doc.cnt[k]=(doc.cnt[k]||0)+1;return k+doc.cnt[k]}
+function mkComp(doc,t,x,y,props){const L_=LIB[t];const c={id:uid(),t,x,y,r:0,f:0,label:nextLabel(doc,t),p:Object.assign({},L_.props,props||{})};return c}
+function snap(v){return Math.round(v/10)*10}
+const K=(x,y)=>x+","+y;
+function serialize(doc){return JSON.stringify({format:"CEsim",version:2,name:doc.name,meta:doc.meta||{},cnt:doc.cnt,comps:doc.comps.map(c=>Object.assign({id:c.id,t:c.t,x:c.x,y:c.y,r:c.r,f:c.f,label:c.label,p:c.p},c.lo?{lo:c.lo}:{},c.lc?{lc:c.lc}:{})),wires:doc.wires.map(w=>({pts:w.pts.map(p=>[p.x,p.y])}))})}
+function deserialize(s,name){const o=typeof s==="string"?JSON.parse(s):s;if(o.format!=="CEsim")throw new Error("Not a CEsim design");const d=newDoc(name||o.name||"Design");d.cnt=o.cnt||{};d.meta=Object.assign(d.meta,o.meta||{});d.comps=o.comps.filter(c=>LIB[c.t]).map(c=>({id:c.id||uid(),t:c.t,x:c.x,y:c.y,r:c.r||0,f:c.f||0,label:c.label||"",p:Object.assign({},LIB[c.t].props,c.p),lo:c.lo||null,lc:c.lc||null}));d.wires=o.wires.map(w=>({id:uid(),pts:w.pts.map(([x,y])=>({x,y}))}));if((o.version||1)<2){splitAtPins(d);d.comps.forEach(c=>{if(c.t==="voltmeter"&&c.p.rin==="10M")c.p.rin="1G"})}return d}
+function snapshot(){return serialize(D)}
+function pushUndo(){D.undo.push(snapshot());if(D.undo.length>100)D.undo.shift();D.redo=[];D.dirty=true;netCache=null;autosave()}
+function restore(s){const d=deserialize(s,D.name);D.comps=d.comps;D.wires=d.wires;D.cnt=d.cnt;sel.clear();netCache=null}
+function undo(){if(!D.undo.length)return;D.redo.push(snapshot());restore(D.undo.pop());structural()}
+function redo(){if(!D.redo.length)return;D.undo.push(snapshot());restore(D.redo.pop());structural()}
+
+/* ================= netlist builder ================= */
+function onSeg(p,a,b){if(a.x===b.x&&p.x===a.x)return p.y>Math.min(a.y,b.y)&&p.y<Math.max(a.y,b.y);if(a.y===b.y&&p.y===a.y)return p.x>Math.min(a.x,b.x)&&p.x<Math.max(a.x,b.x);
+ const cr=(b.x-a.x)*(p.y-a.y)-(b.y-a.y)*(p.x-a.x);if(Math.abs(cr)>1e-6)return false;const dt=(p.x-a.x)*(b.x-a.x)+(p.y-a.y)*(b.y-a.y),l2=(b.x-a.x)**2+(b.y-a.y)**2;return dt>0&&dt<l2}
+let netCache=null;
+function buildNets(doc){
+ const par=new Map();const add=k=>{if(!par.has(k))par.set(k,k)};const find=k=>{let r=k;while(par.get(r)!==r)r=par.get(r);while(par.get(k)!==r){const n=par.get(k);par.set(k,r);k=n}return r};const uni=(a,b)=>{a=find(a);b=find(b);if(a!==b)par.set(a,b)};
+ const cnt=new Map(),wireTouch=new Set(),pts=new Map();const inc=(k,v)=>cnt.set(k,(cnt.get(k)||0)+v);
+ add("GND");const pinK=new Map();
+ for(const c of doc.comps){const ks=[];LIB[c.t].pins.forEach((_,i)=>{const p=pinPos(c,i),k=K(p.x,p.y);add(k);inc(k,1);ks.push(k);pts.set(k,p)});pinK.set(c.id,ks);if(c.t==="gnd")uni(ks[0],"GND");if(c.t==="netlabel"&&c.p.name){const nk="NET:"+String(c.p.name).trim().toUpperCase();if(/^(GND|0)$/.test(String(c.p.name).trim().toUpperCase()))uni(ks[0],"GND");else{add(nk);uni(ks[0],nk)}}}
+ for(const w of doc.wires){const P_=w.pts;for(let j=0;j<P_.length;j++){const k=K(P_[j].x,P_[j].y);add(k);inc(k,(j===0||j===P_.length-1)?1:2);wireTouch.add(k);pts.set(k,P_[j]);if(j>0)uni(K(P_[j-1].x,P_[j-1].y),k)}}
+ const wpts=new Map();for(const w of doc.wires)for(const q of w.pts)wpts.set(K(q.x,q.y),q);
+ for(const w of doc.wires){const P_=w.pts;for(let j=1;j<P_.length;j++){const a=P_[j-1],b=P_[j];for(const[k,p]of wpts){if(onSeg(p,a,b)){uni(k,K(a.x,a.y));inc(k,2);wireTouch.add(k)}}}}
+ const root=new Map();const g=find("GND");root.set(g,0);let n=1;
+ const nodeOf=k=>{const r=find(k);if(!root.has(r))root.set(r,n++);return root.get(r)};
+ const pinNodes=new Map(),conn=new Map();
+ const nlCount={};for(const c of doc.comps)if(c.t==="netlabel")nlCount[String(c.p.name).trim().toUpperCase()]=(nlCount[String(c.p.name).trim().toUpperCase()]||0)+1;
+ for(const c of doc.comps){const ks=pinK.get(c.id);pinNodes.set(c.id,ks.map(nodeOf));conn.set(c.id,ks.map(k=>(cnt.get(k)||0)>1||(c.t==="gnd")||(c.t==="netlabel"&&nlCount[String(c.p.name).trim().toUpperCase()]>1)))}
+ const keyNode=new Map();for(const k of pts.keys())keyNode.set(k,nodeOf(k));
+ const junc=[];for(const[k,v]of cnt)if(v>=3&&wireTouch.has(k))junc.push(pts.get(k));
+ return {n,pinNodes,conn,keyNode,junc,hasGnd:doc.comps.some(c=>c.t==="gnd")};
+}
+function nets(){if(!netCache)netCache=buildNets(D);return netCache}
+
+/* ================= simulation engine (MNA, backward Euler, Newton-Raphson) ================= */
+class Sim{
+ constructor(doc){this.doc=doc;this.t=0;this.tn=0;this.dt=1e-5;this.err=null;this.warn=0;this.compile()}
+ compile(){const net=buildNets(this.doc);this.net=net;const n=net.n;this.n=n;this.lin=[];this.nlin=[];this.pres=[];this.posts=[];this.nb=0;this.state={};
+  this.x=new Float64Array(0);
+  for(const c of this.doc.comps){const L_=LIB[c.t];if(!L_.build)continue;const st=this.state[c.id]={};const E=this.mkE(c,net.pinNodes.get(c.id),net.conn.get(c.id),st);L_.build(c,net.pinNodes.get(c.id),E)}
+  const N=n-1+this.nb;this.N=N;this.A=new Float64Array(N*N);this.b=new Float64Array(N);this.x=new Float64Array(N);this.xg=new Float64Array(N);this.xn=new Float64Array(N);
+  for(const f of this.inits||[])f();this.inits=null}
+ mkE(c,nodes,conn,st){const S=this;return{st,conn:i=>!!conn[i],v:k=>k>0?S.x[k-1]:0,x:k=>S.x[k],t:()=>S.tn,dt:()=>S.dt,
+  R(a,b,r){const g=1/r;S.lin.push(()=>S.g(a,b,g))},Rf(a,b,f){S.lin.push(()=>S.g(a,b,1/f()))},
+  C(a,b,cf,ic){const s={v:ic||0};S.lin.push(()=>{const g=cf()/S.dt;S.g(a,b,g);S.i(a,b,-g*s.v)});S.posts.push(()=>{s.v=S.vv(a)-S.vv(b)});if(ic){(S.inits=S.inits||[])}return s},
+  Lx(a,b,lf){const s={i:0};S.lin.push(()=>{const g=S.dt/lf();S.g(a,b,g);S.i(a,b,s.i)});S.posts.push(()=>{s.i+=S.dt/lf()*(S.vv(a)-S.vv(b))});return s},
+  V(a,b,f){const k=S.n-1+S.nb++;S.lin.push(()=>S.vs(a,b,k,f()));return k},
+  I(a,b,f){S.lin.push(()=>S.i(b,a,f()))},
+  Th(a,b,f){S.lin.push(()=>{const[V,R]=f();const g=1/R;S.g(a,b,g);S.i(a,b,-V*g)})},
+  VCVS(op,on,cp,cn,gf){const k=S.n-1+S.nb++;S.lin.push(()=>{S.vs(op,on,k,0);const g=gf(),N=S.N;if(cp>0)S.A[k*N+cp-1]-=g;if(cn>0)S.A[k*N+cn-1]+=g});return k},
+  VCCS(op,on,cp,cn,gf){S.lin.push(()=>{const g=gf(),N=S.N,A=S.A;const add=(r,c_,v)=>{if(r>0&&c_>0)A[(r-1)*N+c_-1]+=v};add(op,cp,g);add(op,cn,-g);add(on,cp,-g);add(on,cn,g)})},
+  XF(p1,p2,s1,s2,kf){const k=S.n-1+S.nb++;S.lin.push(()=>{const kk=kf(),N=S.N,A=S.A;const st_=(r,c_,v)=>{if(r>0)A[(r-1)*N+c_]+=v};const rw=(c_,v)=>{if(c_>0)A[k*N+c_-1]+=v};st_(s1,k,1);st_(s2,k,-1);st_(p1,k,-kk);st_(p2,k,kk);rw(s1,1);rw(s2,-1);rw(p1,-kk);rw(p2,kk)})},
+  NL(ns,fn){S.nlin.push({ns,fn})},pre(f){S.pres.push(f)},post(f){S.posts.push(f)}}}
+ vv(k){return k>0?this.x[k-1]:0}
+ g(a,b,G){const N=this.N,A=this.A,ia=a-1,ib=b-1;if(ia>=0){A[ia*N+ia]+=G;if(ib>=0){A[ia*N+ib]-=G;A[ib*N+ia]-=G}}if(ib>=0)A[ib*N+ib]+=G}
+ i(a,b,I){if(a>0)this.b[a-1]-=I;if(b>0)this.b[b-1]+=I}
+ vs(a,b,k,V){const N=this.N,A=this.A;if(a>0){A[(a-1)*N+k]+=1;A[k*N+a-1]+=1}if(b>0){A[(b-1)*N+k]-=1;A[k*N+b-1]-=1}this.b[k]+=V}
+ stampNL(e,x){const ns=e.ns,m=ns.length,V=new Array(m);for(let j=0;j<m;j++)V[j]=ns[j]>0?x[ns[j]-1]:0;const I0=e.fn(V);const N=this.N,A=this.A,b=this.b;
+  const J=[];for(let j=0;j<m;j++){if(ns[j]<=0){J.push(null);continue}const h=1e-6*Math.max(1,Math.abs(V[j]));const v2=V.slice();v2[j]+=h;const I1=e.fn(v2);const col=new Array(m);for(let i=0;i<m;i++)col[i]=(I1[i]-I0[i])/h;J.push(col)}
+  for(let i=0;i<m;i++){const r=ns[i];if(r<=0)continue;let rhs=I0[i];for(let j=0;j<m;j++){if(!J[j])continue;const d=J[j][i];A[(r-1)*N+ns[j]-1]+=d;rhs-=d*V[j]}b[r-1]-=rhs}}
+ solve(){const N=this.N,A=this.A,b=this.b,x=this.xn;for(let c=0;c<N;c++){let p=c,mx=Math.abs(A[c*N+c]);for(let r=c+1;r<N;r++){const v=Math.abs(A[r*N+c]);if(v>mx){mx=v;p=r}}if(mx<1e-18)return false;if(p!==c){for(let k=c;k<N;k++){const t=A[c*N+k];A[c*N+k]=A[p*N+k];A[p*N+k]=t}const t=b[c];b[c]=b[p];b[p]=t}const d=A[c*N+c];for(let r=c+1;r<N;r++){const f=A[r*N+c]/d;if(f===0)continue;for(let k=c;k<N;k++)A[r*N+k]-=f*A[c*N+k];b[r]-=f*b[c]}}
+  for(let r=N-1;r>=0;r--){let s=b[r];for(let k=r+1;k<N;k++)s-=A[r*N+k]*x[k];x[r]=s/A[r*N+r]}return true}
+ step(dt){this.dt=dt;this.tn=this.t+dt;for(const f of this.pres)f();const N=this.N,n1=this.n-1,x=this.xg;x.set(this.x);const hasNL=this.nlin.length>0;const maxIt=hasNL?(this.t===0?200:80):1;let ok=false;
+  for(let it=0;it<maxIt;it++){this.A.fill(0);this.b.fill(0);for(let i=0;i<n1;i++)this.A[i*N+i]+=1e-9;for(const f of this.lin)f();for(const e of this.nlin)this.stampNL(e,x);
+   if(!this.solve()){this.err="The circuit matrix is singular. Check for a loop of voltage sources, a short across a source, or an inductor across a voltage source.";return false}
+   const xn=this.xn;if(!hasNL){x.set(xn);ok=true;break}let conv=true;
+   for(let i=0;i<N;i++){let d=xn[i]-x[i];if(!isFinite(d)){this.err="The simulation diverged (values became infinite). Check component values and connections.";return false}
+    if(it>12)d*=it>40?0.25:0.5;if(i<n1){if(d>3)d=3;else if(d<-3)d=-3;if(Math.abs(d)>1e-6+1e-6*Math.abs(x[i]))conv=false}else if(Math.abs(d)>1e-9+1e-5*Math.abs(x[i]))conv=false;x[i]+=d}
+   if(conv){ok=true;break}}
+  if(!ok)this.warn++;this.x.set(x);this.t=this.tn;for(const f of this.posts)f();return true}
+}
+
+/* ================= canvas, view & rendering ================= */
+const cv=$("#cv"),ctx=cv.getContext("2d");let W=0,H=0,DPR=1;const CV={};
+function readTheme(){const s=getComputedStyle(document.documentElement);for(const k of["bg","dot","part","wire","label","value","sel","border","pin"])CV[k]=s.getPropertyValue("--cv-"+k).trim();CV.font=s.getPropertyValue("--font-ui").trim();CV.mono=s.getPropertyValue("--font-mono").trim();dirty=1}
+function resize(){const r=cv.getBoundingClientRect();DPR=window.devicePixelRatio||1;W=r.width;H=r.height;cv.width=Math.round(W*DPR);cv.height=Math.round(H*DPR);dirty=1}
+let dirty=1;const sel=new Set();let showGrid=true,showBorder=true;
+const SHEET={w:1400,h:900};
+function w2s(x,y){const v=D.view;return[(x*v.z+v.x),(y*v.z+v.y)]}
+function s2w(x,y){const v=D.view;return[(x-v.x)/v.z,(y-v.y)/v.z]}
+function textCol(k){return k==="part"?CV.part:k==="value"?CV.value:k==="pin"?CV.pin:k==="mono"?CV.value:k==="lcd"?"#7CFFB2":k==="lcdu"?"#b8f5d2":k==="wire"?CV.wire:CV.label}
+function drawComp(c,st,g=ctx,ghost){const L_=LIB[c.t];const texts=[];
+ const tx=(s,x,y,size,col,align)=>{texts.push([s,x,y,size,col,align])};
+ g.save();g.translate(c.x,c.y);g.rotate((c.r&3)*PI/2);if(c.f)g.scale(1,-1);g.strokeStyle=ghost?CV.sel:CV.part;g.fillStyle=CV.part;g.lineWidth=1.6;g.lineJoin="round";g.lineCap="round";
+ g.p=c.p;g.t=c.t;g._pressed=c._pressed;g._pp=P(c);L_.draw(g,st,tx,c);g.p=g._pp=null;g.restore();
+ for(const[s,x,y,size,col,align]of texts){const[dx,dy]=rotP(x,y-size*0.35,c.r,c.f);g.save();g.font=(col==="mono"||col==="lcd"||col==="lcdu"?"500 ":"600 ")+size+"px "+(col==="mono"||col==="lcd"||col==="lcdu"?CV.mono:CV.font);g.fillStyle=ghost?CV.sel:textCol(col);g.textAlign=align==="center"?"center":align==="right"?"right":"left";g.textBaseline="middle";
+  let ax=c.x+dx;if((c.r&3)!==0&&align!=="center"){g.textAlign="center"}g.fillText(s,ax,c.y+dy);g.restore()}}
+function drawLabels(c,st,g0=ctx){const L_=LIB[c.t];const lines=[];if(!L_.noLabel&&c.label)lines.push([c.label+(L_.labelSuffix||""),"label"]);if(L_.val){for(const s of L_.val(c,st))lines.push([s,L_.valColor||"value"])}if(!lines.length){c._lb=null;return}
+ const[x1,y1,x2,y2]=wbbox(c);const horiz=(x2-x1)>=(y2-y1);const ox=c.lo?c.lo.x:0,oy=c.lo?c.lo.y:0;const lb=[1e9,1e9,-1e9,-1e9];
+ const g=new Proxy(g0,{get(t,k){if(k==="fillText")return(s,x,y)=>{if(c.lc&&t.fillStyle!==undefined&&!g._keep)t.fillStyle=c.lc;t.fillText(s,x+ox,y+oy);const w=t.measureText(s).width;const a=t.textAlign;const lx=a==="center"?x-w/2:a==="right"||a==="end"?x-w:x;lb[0]=Math.min(lb[0],lx+ox);lb[2]=Math.max(lb[2],lx+w+ox);lb[1]=Math.min(lb[1],y-11+oy);lb[3]=Math.max(lb[3],y+3+oy)};const v=t[k];return typeof v==="function"?v.bind(t):v},set(t,k,v){t[k]=v;return true}});
+ const fin=()=>{c._lb=lb[0]<1e8?lb:null};
+ g.save();g.textBaseline="alphabetic";const lh=12;
+ if(c.t==="vcc"){g.font="600 11px "+CV.font;g.fillStyle=CV.wire;g.textAlign="center";const top=y1-4;g.fillText(lines[0][0],c.x,top);g.restore();fin();return}
+ if(horiz&&!LIB[c.t].instrument&&!L_.labelRight){g.textAlign="center";let y=y1-4-(lines.length-1)*lh;for(const[s,k]of lines){g.font=(k==="label"?"600 ":"400 ")+"11px "+CV.font;g.fillStyle=textCol(k);g.fillText(s,(x1+x2)/2,y);y+=lh}}
+ else{g.textAlign="left";let y=(y1+y2)/2-(lines.length*lh)/2+10;if(LIB[c.t].instrument){g.textAlign="center";y=y1-4-(lines.length-1)*lh;for(const[s,k]of lines){g.font=(k==="label"?"600 ":"400 ")+"11px "+CV.font;g.fillStyle=textCol(k);g.fillText(s,(x1+x2)/2,y);y+=lh}g.restore();fin();return}
+  for(const[s,k]of lines){g.font=(k==="label"?"600 ":"400 ")+"11px "+CV.font;g.fillStyle=textCol(k);g.fillText(s,x2+6,y);y+=lh}}
+ g.restore();fin()}
+function drawTitleBlock(g){const m=D.meta||{};const x=SHEET.w-300,y=SHEET.h-78;g.lineWidth=1/(g===ctx?D.view.z:1);g.strokeStyle=CV.border;g.strokeRect(x,y,300,78);g.beginPath();g.moveTo(x,y+30);g.lineTo(x+300,y+30);g.moveTo(x,y+54);g.lineTo(x+300,y+54);g.moveTo(x+150,y+30);g.lineTo(x+150,y+78);g.stroke();g.textAlign="left";g.textBaseline="alphabetic";g.font="600 14px "+CV.font;g.fillStyle=CV.label;g.fillText(D.name,x+8,y+20);g.font="10px "+CV.font;g.fillStyle=CV.border;g.fillText("Designed by",x+8,y+40);g.fillText("Date",x+158,y+40);g.fillText("Revision",x+8,y+64);g.fillText("CEsim · Sheet 1 of 1",x+158,y+70);g.font="500 11px "+CV.font;g.fillStyle=CV.value;g.fillText(m.author||"—",x+8,y+51);g.fillText(m.date||new Date().toISOString().slice(0,10),x+158,y+51);g.fillText(m.rev||"1",x+60,y+64);if(m.desc){g.font="italic 11px "+CV.font;g.fillStyle=CV.value;g.fillText(m.desc.slice(0,60),x,y-6)}}
+function editTitleBlock(){const m=D.meta=D.meta||{};const body=el(`<div class="form" style="min-width:380px"><label for="tb-t">Title</label><input id="tb-t" value="${esc(D.name)}"><span></span><label for="tb-a">Designed by</label><input id="tb-a" value="${esc(m.author||"")}"><span></span><label for="tb-d">Date</label><input id="tb-d" value="${esc(m.date||new Date().toISOString().slice(0,10))}"><span></span><label for="tb-r">Revision</label><input id="tb-r" value="${esc(m.rev||"1")}"><span></span><label for="tb-x">Description</label><input id="tb-x" value="${esc(m.desc||"")}"><span></span></div>`);const foot=document.createElement("div");foot.className="foot";foot.innerHTML='<button class="btn">Cancel</button><button class="btn pri">OK</button>';const w=makeWin("Title block",body,{modal:true,foot});foot.children[0].onclick=()=>w.close();foot.children[1].onclick=()=>{pushUndo();D.name=body.querySelector("#tb-t").value.trim()||D.name;m.author=body.querySelector("#tb-a").value;m.date=body.querySelector("#tb-d").value;m.rev=body.querySelector("#tb-r").value;m.desc=body.querySelector("#tb-x").value;renderTabs();dirty=1;w.close()}}
+function render(){
+ ctx.setTransform(DPR,0,0,DPR,0,0);ctx.fillStyle=CV.bg;ctx.fillRect(0,0,W,H);const v=D.view;
+ if(showGrid){const step=v.z*10<5?50:10;const[wx1,wy1]=s2w(0,0),[wx2,wy2]=s2w(W,H);ctx.fillStyle=CV.dot;const sz=Math.max(1,Math.min(1.6,v.z*0.9));for(let x=Math.floor(wx1/step)*step;x<=wx2;x+=step)for(let y=Math.floor(wy1/step)*step;y<=wy2;y+=step){const[sx,sy]=w2s(x,y);ctx.fillRect(sx-sz/2,sy-sz/2,sz,sz)}}
+ ctx.setTransform(DPR*v.z,0,0,DPR*v.z,DPR*v.x,DPR*v.y);
+ if(showBorder){ctx.strokeStyle=CV.border;ctx.lineWidth=1/v.z;ctx.strokeRect(0,0,SHEET.w,SHEET.h);ctx.strokeRect(-24,-24,SHEET.w+48,SHEET.h+48);ctx.fillStyle=CV.border;ctx.font="11px "+CV.font;ctx.textAlign="center";ctx.textBaseline="middle";
+  for(let i=0;i<4;i++){const y=SHEET.h*(i+0.5)/4;const ch="ABCD"[i];ctx.fillText(ch,-12,y);ctx.fillText(ch,SHEET.w+12,y);ctx.beginPath();ctx.moveTo(-24,SHEET.h*i/4);ctx.lineTo(0,SHEET.h*i/4);ctx.moveTo(SHEET.w,SHEET.h*i/4);ctx.lineTo(SHEET.w+24,SHEET.h*i/4);ctx.stroke()}
+  for(let i=0;i<6;i++){const x=SHEET.w*(i+0.5)/6;ctx.fillText(String(i+1),x,-12);ctx.fillText(String(i+1),x,SHEET.h+12);ctx.beginPath();ctx.moveTo(SHEET.w*i/6,-24);ctx.lineTo(SHEET.w*i/6,0);ctx.moveTo(SHEET.w*i/6,SHEET.h);ctx.lineTo(SHEET.w*i/6,SHEET.h+24);ctx.stroke()}
+  drawTitleBlock(ctx)}
+ const S=sim&&sim.doc===D?sim.state:null;
+ ctx.lineCap="round";ctx.lineJoin="round";
+ for(const w of D.wires){ctx.strokeStyle=sel.has(w)?CV.sel:CV.wire;ctx.lineWidth=sel.has(w)?2.6:1.6;ctx.beginPath();w.pts.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.stroke()}
+ for(const c of D.comps){const st=S?S[c.id]:null;drawComp(c,st);drawLabels(c,st)}
+ ctx.fillStyle=CV.wire;for(const p of nets().junc){ctx.beginPath();ctx.arc(p.x,p.y,3,0,2*PI);ctx.fill()}
+ // unconnected pin markers
+ const net=nets();for(const c of D.comps){const cn=net.conn.get(c.id);LIB[c.t].pins.forEach((_,i)=>{if(cn&&!cn[i]){const p=pinPos(c,i);ctx.strokeStyle=CV.pin;ctx.lineWidth=1;ctx.beginPath();ctx.arc(p.x,p.y,2.2,0,2*PI);ctx.stroke()}})}
+ for(const c of D.comps)if(sel.has(c)){const[x1,y1,x2,y2]=wbbox(c);ctx.save();ctx.strokeStyle=CV.sel;ctx.lineWidth=1.2/v.z;ctx.setLineDash([4/v.z,3/v.z]);ctx.strokeRect(x1-4,y1-4,x2-x1+8,y2-y1+8);ctx.restore()}
+ if(hoverPin){ctx.strokeStyle=CV.sel;ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(hoverPin.x,hoverPin.y,5,0,2*PI);ctx.stroke()}
+ if(mode==="place"&&ghost){ctx.globalAlpha=0.65;drawComp(ghost,null,ctx,true);ctx.globalAlpha=1}
+ if(mode==="wire"&&wireDraft){ctx.strokeStyle=CV.sel;ctx.lineWidth=1.6;ctx.setLineDash([5,4]);const pts=wireDraft.pts.concat(routePts(wireDraft.pts[wireDraft.pts.length-1],wireDraft.cur));ctx.beginPath();pts.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.stroke();ctx.setLineDash([])}
+ if(boxSel){ctx.save();ctx.strokeStyle=CV.sel;ctx.fillStyle=CV.sel;ctx.globalAlpha=0.12;const[x,y,x2,y2]=boxSel;ctx.fillRect(Math.min(x,x2),Math.min(y,y2),Math.abs(x2-x),Math.abs(y2-y));ctx.globalAlpha=1;ctx.lineWidth=1/v.z;ctx.strokeRect(Math.min(x,x2),Math.min(y,y2),Math.abs(x2-x),Math.abs(y2-y));ctx.restore()}
+ $("#hint").style.display=D.comps.length||D.wires.length?"none":"block";
+}
+
+/* ================= interaction ================= */
+let mode="select",ghost=null,wireDraft=null,drag=null,boxSel=null,hoverPin=null,pan=null,mouse={x:0,y:0,wx:0,wy:0},clip=null,placeMulti=false;
+function hitPin(wx,wy){const r=7/Math.max(D.view.z,0.6);for(const c of D.comps){const pins=LIB[c.t].pins;for(let i=0;i<pins.length;i++){const p=pinPos(c,i);if(Math.abs(p.x-wx)<=r&&Math.abs(p.y-wy)<=r)return{c,i,x:p.x,y:p.y}}}return null}
+function hitComp(wx,wy){for(let j=D.comps.length-1;j>=0;j--){const c=D.comps[j];const[x1,y1,x2,y2]=wbbox(c);if(wx>=x1-3&&wx<=x2+3&&wy>=y1-3&&wy<=y2+3)return c}return null}
+function segDist(p,a,b){const dx=b.x-a.x,dy=b.y-a.y,l=dx*dx+dy*dy;let t=l?((p.x-a.x)*dx+(p.y-a.y)*dy)/l:0;t=clamp(t,0,1);return Math.hypot(p.x-a.x-t*dx,p.y-a.y-t*dy)}
+function hitWire(wx,wy){const r=5/Math.max(D.view.z,0.6);for(const w of D.wires)for(let j=1;j<w.pts.length;j++)if(segDist({x:wx,y:wy},w.pts[j-1],w.pts[j])<=r)return w;return null}
+function wireEndAt(wx,wy){const r=6/D.view.z;for(const w of D.wires){const a=w.pts[0],b=w.pts[w.pts.length-1];if(Math.hypot(a.x-wx,a.y-wy)<r)return{x:a.x,y:a.y};if(Math.hypot(b.x-wx,b.y-wy)<r)return{x:b.x,y:b.y}}return null}
+function routeScore(seq){let sc=0;const pts=[];for(const c of D.comps){const bb=wbbox(c);for(let i=1;i<seq.length;i++){const p=seq[i-1],q=seq[i];const x1=bb[0]+1,x2=bb[2]-1,y1=bb[1]+1,y2=bb[3]-1;if(p.y===q.y&&p.y>y1&&p.y<y2&&Math.max(p.x,q.x)>x1&&Math.min(p.x,q.x)<x2)sc+=10;if(p.x===q.x&&p.x>x1&&p.x<x2&&Math.max(p.y,q.y)>y1&&Math.min(p.y,q.y)<y2)sc+=10}LIB[c.t].pins.forEach((_,i)=>pts.push(pinPos(c,i)))}for(const w of D.wires){pts.push(w.pts[0],w.pts[w.pts.length-1])}for(let i=1;i<seq.length;i++)for(const p of pts)if(onSeg(p,seq[i-1],seq[i]))sc+=25;return sc}
+function routePts(a,b){if(a.x===b.x||a.y===b.y)return[b];const h=[{x:b.x,y:a.y},b],v=[{x:a.x,y:b.y},b];const sh=routeScore([a].concat(h)),sv=routeScore([a].concat(v));if(sh!==sv)return sh<sv?h:v;const dx=Math.abs(b.x-a.x),dy=Math.abs(b.y-a.y);return dx>=dy?h:v}
+function cleanWire(w){const p=[];for(const q of w.pts){const l=p[p.length-1];if(l&&l.x===q.x&&l.y===q.y)continue;p.push({x:q.x,y:q.y})}for(let i=1;i<p.length-1;){const a=p[i-1],b=p[i],c=p[i+1];if((a.x===b.x&&b.x===c.x)||(a.y===b.y&&b.y===c.y)){p.splice(i,1)}else i++}w.pts=p;return p.length>=2}
+function finishWire(end){if(!wireDraft)return;const pts=wireDraft.pts.concat(end?routePts(wireDraft.pts[wireDraft.pts.length-1],end):[]);const w={id:uid(),pts};if(cleanWire(w)){pushUndo();D.wires.push(w);structural()}wireDraft=null;mode="select";dirty=1}
+function startPlace(t,props){cancelModes();mode="place";ghost={id:"ghost",t,x:snap(mouse.wx),y:snap(mouse.wy),r:0,f:0,label:"",p:Object.assign({},LIB[t].props,props||{})};cv.focus();setHint("Click to place "+LIB[t].name+". Ctrl+R rotates, Esc cancels, hold Shift to place several.");dirty=1}
+function cancelModes(){mode="select";ghost=null;wireDraft=null;boxSel=null;drag=null;dirty=1;setHint("For Help, press F1")}
+function hitLabel(wx,wy){for(let i=D.comps.length-1;i>=0;i--){const c=D.comps[i];const b=c._lb;if(b&&wx>=b[0]-2&&wx<=b[2]+2&&wy>=b[1]-1&&wy<=b[3]+1&&hitComp(wx,wy)!==c)return c}return null}
+function placeGhost(){pushUndo();const c=mkComp(D,ghost.t,ghost.x,ghost.y,ghost.p);c.r=ghost.r;c.f=ghost.f;D.comps.push(c);splitAtPins(D,[c]);sel.clear();sel.add(c);structural();if(!placeMulti){cancelModes()}}
+function moveSel(dx,dy){if(!dx&&!dy)return;const moved=new Set();for(const it of sel)if(it.t){LIB[it.t].pins.forEach((_,i)=>{const p=pinPos(it,i);moved.add(K(p.x,p.y))})}
+ for(const it of sel)if(it.t){it.x+=dx;it.y+=dy}
+ for(const w of D.wires){const n=w.pts.length;if(sel.has(w)){w.pts.forEach(p=>{p.x+=dx;p.y+=dy});continue}const s=moved.has(K(w.pts[0].x,w.pts[0].y)),e=moved.has(K(w.pts[n-1].x,w.pts[n-1].y));if(s&&e){w.pts.forEach(p=>{p.x+=dx;p.y+=dy});continue}if(s)dragEnd(w,0,dx,dy);if(e)dragEnd(w,w.pts.length-1,dx,dy)}
+ netCache=null;dirty=1}
+function dragEnd(w,i,dx,dy){const P_=w.pts,j=i===0?1:P_.length-2,p=P_[i],q=P_[j];const hz=p.y===q.y,vt=p.x===q.x;p.x+=dx;p.y+=dy;
+ if(P_.length===2){if(p.x!==q.x&&p.y!==q.y){const m=hz?{x:p.x,y:q.y}:{x:q.x,y:p.y};P_.splice(i===0?1:1,0,m)}return}
+ if(j===0||j===P_.length-1){return}if(hz)q.y+=dy;else if(vt)q.x+=dx}
+function deleteSel(){if(!sel.size)return;pushUndo();D.comps=D.comps.filter(c=>!sel.has(c));D.wires=D.wires.filter(w=>!sel.has(w));for(const c of sel)if(c.t)closeInstWin(c.id);sel.clear();structural()}
+function rotateSel(dir){if(mode==="place"&&ghost){ghost.r=(ghost.r+dir+4)&3;dirty=1;return}const cs=[...sel].filter(x=>x.t);if(!cs.length)return;pushUndo();for(const c of cs)c.r=(c.r+dir+4)&3;structural()}
+function flipSel(h){if(mode==="place"&&ghost){if(h){ghost.r=(ghost.r+2)&3}ghost.f^=1;dirty=1;return}const cs=[...sel].filter(x=>x.t);if(!cs.length)return;pushUndo();for(const c of cs){if(h)c.r=(c.r+2)&3;c.f^=1}structural()}
+function copySel(){const cs=[...sel].filter(x=>x.t),ws=[...sel].filter(x=>x.pts);if(!cs.length&&!ws.length)return false;clip={comps:cs.map(c=>JSON.parse(JSON.stringify({t:c.t,x:c.x,y:c.y,r:c.r,f:c.f,p:c.p}))),wires:ws.map(w=>w.pts.map(p=>({x:p.x,y:p.y})))};return true}
+function paste(){if(!clip)return;pushUndo();sel.clear();const dx=40,dy=40;for(const o of clip.comps){const c=mkComp(D,o.t,o.x+dx,o.y+dy,o.p);c.r=o.r;c.f=o.f;D.comps.push(c);sel.add(c)}for(const pts of clip.wires){const w={id:uid(),pts:pts.map(p=>({x:p.x+dx,y:p.y+dy}))};D.wires.push(w);sel.add(w)}structural()}
+function selectAll(){sel.clear();D.comps.forEach(c=>sel.add(c));D.wires.forEach(w=>sel.add(w));dirty=1}
+function structural(){netCache=null;dirty=1;updateInUse();if(sim&&sim.doc===D&&running){rebuildSim()}}
+function setHint(s){$("#st-hint").textContent=s}
+cv.addEventListener("contextmenu",e=>e.preventDefault());
+cv.addEventListener("mousedown",e=>{cv.focus();closeMenus();const r=cv.getBoundingClientRect();const sx=e.clientX-r.left,sy=e.clientY-r.top;const[wx,wy]=s2w(sx,sy);mouse={x:sx,y:sy,wx,wy};
+ if(e.button===1||(e.button===0&&e.altKey)){pan={sx,sy,vx:D.view.x,vy:D.view.y};return}
+ if(e.button===2){e.stopPropagation();if(mode!=="select"){if(mode==="wire"&&wireDraft&&wireDraft.pts.length>1){finishWire(null)}else cancelModes();return}const c=hitComp(wx,wy),w=c?null:hitWire(wx,wy);if(c||w){if(!sel.has(c||w)){sel.clear();sel.add(c||w)}dirty=1}showCtx(e.clientX,e.clientY,c,w);return}
+ if(mode==="place"){placeGhost();return}
+ if(mode==="wire"){const pin=hitPin(wx,wy);const last=wireDraft.pts[wireDraft.pts.length-1];const pt={x:snap(wx),y:snap(wy)};
+  if(pin){finishWire({x:pin.x,y:pin.y});return}
+  const onW=hitWire(wx,wy);if(onW&&!(pt.x===wireDraft.pts[0].x&&pt.y===wireDraft.pts[0].y)){let q=pt;for(let j=1;j<onW.pts.length;j++){const a=onW.pts[j-1],b=onW.pts[j];if(a.x===b.x&&Math.abs(wx-a.x)<6)q={x:a.x,y:snap(wy)};else if(a.y===b.y&&Math.abs(wy-a.y)<6)q={x:snap(wx),y:a.y}}finishWire(q);return}
+  wireDraft.pts.push(...routePts(last,pt));if(e.detail>=2)finishWire(null);dirty=1;return}
+ const pin=hitPin(wx,wy);
+ if(pin&&!(running&&LIB[pin.c.t].interactive&&hitComp(wx,wy)===pin.c&&false)){mode="wire";wireDraft={pts:[{x:pin.x,y:pin.y}],cur:{x:pin.x,y:pin.y}};setHint("Click to add a corner; click a pin or wire to connect; double-click to end; Esc cancels.");dirty=1;return}
+ {const lc=hitLabel(wx,wy);if(lc&&!e.shiftKey){sel.clear();sel.add(lc);drag={label:lc,sx:wx,sy:wy,lo0:Object.assign({x:0,y:0},lc.lo),moved:false,snap:snapshot()};setHint("Drag to move the label. Double-click the part to reset its position.");dirty=1;showSelInfo();return}}
+ const c=hitComp(wx,wy);
+ if(c){if(running&&LIB[c.t].interactive){if(LIB[c.t].momentary){c._pressed=true;drag={press:c};return}if(LIB[c.t].toggle){LIB[c.t].toggle(c);dirty=1;return}}
+  if(e.shiftKey||e.ctrlKey||e.metaKey){sel.has(c)?sel.delete(c):sel.add(c)}else if(!sel.has(c)){sel.clear();sel.add(c)}drag={sx:snap(wx),sy:snap(wy),lx:snap(wx),ly:snap(wy),moved:false,snap:snapshot()};dirty=1;showSelInfo();return}
+ const end=wireEndAt(wx,wy);if(end&&!e.shiftKey){mode="wire";wireDraft={pts:[end],cur:end};dirty=1;return}
+ const w=hitWire(wx,wy);if(w){if(e.ctrlKey||e.metaKey){mode="wire";let q={x:snap(wx),y:snap(wy)};for(let j=1;j<w.pts.length;j++){const a=w.pts[j-1],b=w.pts[j];if(a.x===b.x&&Math.abs(wx-a.x)<6)q={x:a.x,y:snap(wy)};else if(a.y===b.y&&Math.abs(wy-a.y)<6)q={x:snap(wx),y:a.y}}wireDraft={pts:[q],cur:q};dirty=1;return}
+  if(e.shiftKey)sel.has(w)?sel.delete(w):sel.add(w);else{sel.clear();sel.add(w)}drag={sx:snap(wx),sy:snap(wy),lx:snap(wx),ly:snap(wy),moved:false,snap:snapshot()};dirty=1;return}
+ if(e.shiftKey){boxSel=[wx,wy,wx,wy];return}
+ sel.clear();showSelInfo();pan={sx,sy,vx:D.view.x,vy:D.view.y,click:true};dirty=1});
+window.addEventListener("mousemove",e=>{const r=cv.getBoundingClientRect();const sx=e.clientX-r.left,sy=e.clientY-r.top;const[wx,wy]=s2w(sx,sy);mouse={x:sx,y:sy,wx,wy};
+ if(pan){D.view.x=pan.vx+(sx-pan.sx);D.view.y=pan.vy+(sy-pan.sy);if(Math.abs(sx-pan.sx)+Math.abs(sy-pan.sy)>3)pan.click=false;dirty=1;return}
+ if(boxSel){boxSel[2]=wx;boxSel[3]=wy;dirty=1;return}
+ if(drag&&drag.label){const dx=Math.round(wx-drag.sx),dy=Math.round(wy-drag.sy);if(dx||dy||drag.moved){drag.label.lo={x:drag.lo0.x+dx,y:drag.lo0.y+dy};drag.moved=true;dirty=1}return}
+ if(drag&&!drag.press){const nx=snap(wx),ny=snap(wy);const dx=nx-drag.lx,dy=ny-drag.ly;if(dx||dy){moveSel(dx,dy);drag.lx=nx;drag.ly=ny;drag.moved=true}return}
+ if(mode==="place"&&ghost){ghost.x=snap(wx);ghost.y=snap(wy);dirty=1}
+ if(mode==="wire"&&wireDraft){const pin=hitPin(wx,wy);wireDraft.cur=pin?{x:pin.x,y:pin.y}:{x:snap(wx),y:snap(wy)};hoverPin=pin;dirty=1;return}
+ if(e.target!==cv)return;
+ const hp=hitPin(wx,wy);if((hp&&hp!==hoverPin)||(!hp&&hoverPin)){hoverPin=hp;dirty=1}
+ hoverInfo(wx,wy,hp)});
+window.addEventListener("mouseup",e=>{if(pan){pan=null}if(boxSel){const[x1,y1,x2,y2]=boxSel;const a=Math.min(x1,x2),b=Math.min(y1,y2),c_=Math.max(x1,x2),d=Math.max(y1,y2);if(!e.shiftKey)sel.clear();for(const c of D.comps){const[bx1,by1,bx2,by2]=wbbox(c);if(bx1>=a&&bx2<=c_&&by1>=b&&by2<=d)sel.add(c)}for(const w of D.wires)if(w.pts.every(p=>p.x>=a&&p.x<=c_&&p.y>=b&&p.y<=d))sel.add(w);boxSel=null;dirty=1;showSelInfo()}
+ if(drag){if(drag.press){drag.press._pressed=false;dirty=1}else if(drag.label){if(drag.moved){D.undo.push(drag.snap);D.redo=[];autosave()}dirty=1}else if(drag.moved){D.undo.push(drag.snap);D.redo=[];splitAtPins(D,D.comps.filter(c=>sel.has(c)));D.wires.forEach(cleanWire);D.wires=D.wires.filter(w=>w.pts.length>=2);structural();autosave()}drag=null}});
+cv.addEventListener("dblclick",e=>{const[wx,wy]=s2w(mouse.x,mouse.y);if(mode!=="select")return;const c=hitComp(wx,wy)||hitLabel(wx,wy);if(c){if(LIB[c.t].instrument)openInstWin(c);else openProps(c)}});
+cv.addEventListener("wheel",e=>{e.preventDefault();if(e.ctrlKey||e.metaKey||Math.abs(e.deltaY)>=Math.abs(e.deltaX)){const z0=D.view.z;const f=Math.exp(-e.deltaY*(e.ctrlKey?0.01:0.0018));const z=clamp(z0*f,0.2,6);const r=cv.getBoundingClientRect();const sx=e.clientX-r.left,sy=e.clientY-r.top;D.view.x=sx-(sx-D.view.x)*z/z0;D.view.y=sy-(sy-D.view.y)*z/z0;D.view.z=z}else{D.view.x-=e.deltaX}dirty=1},{passive:false});
+function hoverInfo(wx,wy,hp){let s="";const net=nets();const S=sim&&sim.doc===D?sim:null;
+ if(hp){const nd=net.pinNodes.get(hp.c.id)[hp.i];s=hp.c.label+" pin "+LIB[hp.c.t].pins[hp.i][2]+" · net "+(nd===0?"GND":nd)+(S?" · "+rd(S.vv(nd),"V"):"")}
+ else{const w=hitWire(wx,wy);if(w){const nd=net.keyNode.get(K(w.pts[0].x,w.pts[0].y));s="Wire · net "+(nd===0?"GND":nd)+(S?" · "+rd(S.vv(nd),"V"):"")}else{const c=hitComp(wx,wy);if(c)s=(c.label?c.label+" · ":"")+LIB[c.t].name+(LIB[c.t].val?" · "+LIB[c.t].val(c,S&&S.state[c.id]).join(" "):"")}}
+ $("#st-mid").textContent=s}
+function showSelInfo(){}
+/* keyboard */
+const keyHeld=new Set();
+window.addEventListener("keydown",e=>{const tag=(e.target&&e.target.tagName)||"";if(/INPUT|TEXTAREA|SELECT/.test(tag))return;const k=e.key,ctrl=e.ctrlKey||e.metaKey;
+ if(ctrl&&k.toLowerCase()==="z"){e.preventDefault();e.shiftKey?redo():undo();return}if(ctrl&&k.toLowerCase()==="y"){e.preventDefault();redo();return}
+ if(ctrl&&k.toLowerCase()==="c"){copySel();return}if(ctrl&&k.toLowerCase()==="x"){if(copySel())deleteSel();return}if(ctrl&&k.toLowerCase()==="v"){paste();return}if(ctrl&&k.toLowerCase()==="a"){e.preventDefault();selectAll();return}
+ if(ctrl&&k.toLowerCase()==="r"){e.preventDefault();rotateSel(e.shiftKey?-1:1);return}if(ctrl&&k.toLowerCase()==="w"){e.preventDefault();openBrowser();return}if(ctrl&&k.toLowerCase()==="t"){e.preventDefault();startPlace("text");return}if(ctrl&&k.toLowerCase()==="l"){e.preventDefault();startPlace("netlabel");return}if(ctrl&&k.toLowerCase()==="q"){e.preventDefault();toast("Drag from any pin to draw a wire. Ctrl+click a wire to branch from it.");return}
+ if(ctrl&&k.toLowerCase()==="s"){e.preventDefault();saveLocal(true);return}if(ctrl&&k.toLowerCase()==="o"){e.preventDefault();$("#fileIn").click();return}if(ctrl&&k.toLowerCase()==="n"){e.preventDefault();addDoc();return}if(ctrl&&k.toLowerCase()==="e"){e.preventDefault();openExportDlg();return}if(ctrl&&k.toLowerCase()==="m"){e.preventDefault();const c=[...sel].find(x=>x.t);if(c)openProps(c);return}
+ if(e.altKey&&k.toLowerCase()==="y"){e.preventDefault();flipSel(false);return}if(e.altKey&&k.toLowerCase()==="x"){e.preventDefault();flipSel(true);return}
+ if(k==="F5"){e.preventDefault();running?stopSim():runSim();return}if(k==="F6"){e.preventDefault();pauseSim();return}if(k==="F7"){e.preventDefault();zoomFit();return}if(k==="F1"){e.preventDefault();showHelp();return}
+ if(k==="Escape"){if(mode==="wire"&&wireDraft&&wireDraft.pts.length>1)finishWire(null);else cancelModes();closeMenus();return}
+ if((k==="Delete"||k==="Backspace")&&sel.size){e.preventDefault();deleteSel();return}
+ if(k==="+"||k==="="){zoomBy(1.25);return}if(k==="-"){zoomBy(0.8);return}
+ // interactive keys
+ const name=k===" "?"Space":k.length===1?k.toUpperCase():k;let hit=false;
+ for(const c of D.comps){const L_=LIB[c.t];if(!L_.interactive)continue;const ck=(c.p.key||"").toString();
+  if(c.t==="pot"){if(ck.toUpperCase()===name){const w=num(c.p.wiper)||0;c.p.wiper=String(clamp(w+(e.shiftKey?-5:5),0,100));c._pp=null;hit=true}continue}
+  if(ck.toLowerCase()===name.toLowerCase()||(ck==="Space"&&name==="Space")){if(L_.momentary){c._pressed=true;keyHeld.add(c)}else L_.toggle(c);hit=true}}
+ if(hit){e.preventDefault();dirty=1}});
+window.addEventListener("keyup",e=>{for(const c of keyHeld){c._pressed=false}keyHeld.clear();dirty=1});
+function zoomBy(f,cx,cy){const z0=D.view.z,z=clamp(z0*f,0.2,6);cx=cx??W/2;cy=cy??H/2;D.view.x=cx-(cx-D.view.x)*z/z0;D.view.y=cy-(cy-D.view.y)*z/z0;D.view.z=z;dirty=1}
+function zoomFit(){let x1=1e9,y1=1e9,x2=-1e9,y2=-1e9;for(const c of D.comps){const b=wbbox(c);x1=Math.min(x1,b[0]);y1=Math.min(y1,b[1]);x2=Math.max(x2,b[2]);y2=Math.max(y2,b[3])}for(const w of D.wires)for(const p of w.pts){x1=Math.min(x1,p.x);y1=Math.min(y1,p.y);x2=Math.max(x2,p.x);y2=Math.max(y2,p.y)}if(x1>x2){x1=0;y1=0;x2=SHEET.w;y2=SHEET.h}x1-=60;y1-=60;x2+=60;y2+=60;const z=clamp(Math.min(W/(x2-x1),H/(y2-y1)),0.2,3);D.view.z=z;D.view.x=W/2-(x1+x2)/2*z;D.view.y=H/2-(y1+y2)/2*z;dirty=1}
+
+/* ================= simulation control ================= */
+let sim=null,running=false,paused=false,speed=1,dtUser=0,lastTs=0,simRate=0;
+function autoDt(doc){let f=0;for(const c of doc.comps){const L_=LIB[c.t];if(L_.fmax)f=Math.max(f,L_.fmax(c)||0)}if(dtUser>0)return dtUser;if(f>0)return clamp(1/(f*200),2e-9,2e-4);return 1e-4}
+function rebuildSim(){const t=sim?sim.t:0;try{sim=new Sim(D);sim.t=t;sim.dt=autoDt(D)}catch(err){console.error(err);simError("Could not build the circuit: "+err.message)}refreshInstWins();dirty=1}
+function runSim(){if(paused&&sim&&sim.doc===D){paused=false;updMode();return}const net=nets();if(!D.comps.length){toast("Place some components first.");return}
+ if(!net.hasGnd)toast("No ground in the circuit. Add a Ground symbol so voltages have a reference.",true);
+ try{sim=new Sim(D)}catch(err){console.error(err);simError("Could not build the circuit: "+err.message);return}sim.dt=autoDt(D);running=true;paused=false;lastTs=performance.now();updMode();refreshInstWins()}
+function pauseSim(){if(!running)return;paused=!paused;updMode()}
+function stopSim(){running=false;paused=false;updMode();dirty=1}
+function simError(msg){stopSim();toast(msg,true)}
+function updMode(){const m=$("#modebox");m.className="mode"+(running?(paused?" paused":" running"):"");$("#modetxt").textContent=running?(paused?"Paused":"Running"):"Interactive";$("#bRun").classList.toggle("on",running&&!paused);$("#bPause").classList.toggle("on",paused)}
+function simFrame(ts){const wall=Math.min(0.1,(ts-lastTs)/1000);lastTs=ts;if(!(running&&!paused&&sim))return;if(sim.doc!==D)return;const t0=performance.now();const target=speed>0?wall*speed:Infinity;let adv=0,steps=0;const dt=sim.dt;
+ while(adv<target-dt*0.5){if(!sim.step(dt)){simError(sim.err);break}adv+=dt;steps++;if((steps&15)===0&&performance.now()-t0>14)break}
+ simRate=adv/Math.max(wall,1e-3);dirty=1}
+function loop(ts){simFrame(ts);if(dirty||running){render();updateInstWins();dirty=0}$("#st-time").textContent=sim&&sim.doc===D?rd(sim.t,"s"):"0 s";requestAnimationFrame(loop)}
+
+/* ================= icons ================= */
+const IC={
+ new:'<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/>',open:'<path d="M3 7h6l2 2h10v10H3z"/>',save:'<path d="M5 3h12l2 2v16H5z"/><path d="M8 3v6h8V3M8 21v-7h8v7"/>',print:'<path d="M7 8V3h10v5M7 17H4V9h16v8h-3"/><path d="M7 14h10v7H7z"/>',
+ cut:'<circle cx="6" cy="18" r="3"/><circle cx="18" cy="18" r="3"/><path d="M8 16 18 4M16 16 6 4"/>',copy:'<rect x="8" y="8" width="12" height="12"/><path d="M4 16V4h12"/>',paste:'<path d="M8 4h8v3H8z"/><path d="M6 6H4v15h16V6h-2"/>',
+ undo:'<path d="M9 7 4 12l5 5"/><path d="M4 12h11a5 5 0 0 1 0 10h-3"/>',redo:'<path d="m15 7 5 5-5 5"/><path d="M20 12H9a5 5 0 0 0 0 10h3"/>',
+ zin:'<circle cx="10" cy="10" r="6"/><path d="m15 15 6 6M10 7v6M7 10h6"/>',zout:'<circle cx="10" cy="10" r="6"/><path d="m15 15 6 6M7 10h6"/>',zfit:'<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/><rect x="8" y="8" width="8" height="8"/>',
+ rot:'<path d="M20 11a8 8 0 1 0-3 6"/><path d="M20 4v7h-7"/>',rotl:'<path d="M4 11a8 8 0 1 1 3 6"/><path d="M4 4v7h7"/>',flip:'<path d="M12 3v18M4 7l5 5-5 5zM20 7l-5 5 5 5z"/>',del:'<path d="M4 7h16M9 7V4h6v3M6 7l1 14h10l1-14"/>',
+ wire:'<path d="M3 18h7V6h11"/><circle cx="3" cy="18" r="1.5"/><circle cx="21" cy="6" r="1.5"/>',props:'<path d="M4 6h16M4 12h16M4 18h10"/>',help:'<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .8-1 1.5V14M12 17.5v.5"/>',
+ run:'<path d="M7 4l13 8-13 8z" fill="currentColor"/>',pause:'<path d="M7 4h4v16H7zM13 4h4v16h-4z" fill="currentColor"/>',stop:'<rect x="5" y="5" width="14" height="14" fill="currentColor"/>',
+ src:'<circle cx="12" cy="12" r="7"/><path d="M12 2v3M12 19v3M9 12h6M12 9v6"/>',gnd:'<path d="M12 3v9M5 12h14M8 16h8M10.5 20h3"/>',res:'<path d="M2 12h4l2-4 3 8 3-8 3 8 2-4h3"/>',dio:'<path d="M2 12h6M16 12h6M8 6v12l8-6zM16 6v12"/>',
+ bjt:'<circle cx="13" cy="12" r="8"/><path d="M3 12h6M9 7v10M9 10l6-5V2M9 14l6 5v3"/><path d="m13 17 2 2-3 .5"/>',opa:'<path d="M5 4v16l15-8z"/><path d="M2 9h3M2 15h3M20 12h2M7 9h3M8.5 13.5v3"/>',gate:'<path d="M5 5h7a7 7 0 0 1 0 14H5z"/><path d="M2 9h3M2 15h3M19 12h3"/>',
+ chip:'<rect x="6" y="5" width="12" height="14"/><path d="M3 8h3M3 12h3M3 16h3M18 8h3M18 12h3M18 16h3"/>',ind:'<circle cx="12" cy="10" r="6"/><path d="M9 16v4h6v-4M8 7l8 6M16 7l-8 6"/>',pwr:'<path d="M13 2 5 14h6l-1 8 8-12h-6z"/>',
+ mot:'<circle cx="12" cy="12" r="8"/><path d="M8 15V9l4 4 4-4v6"/>',sw:'<circle cx="5" cy="15" r="1.5"/><circle cx="19" cy="15" r="1.5"/><path d="M2 15h1.5M20.5 15H22M6 14l11-7"/>',
+ xmm:'<rect x="5" y="2" width="14" height="20" rx="2"/><rect x="8" y="5" width="8" height="5"/><circle cx="12" cy="15" r="2.5"/>',xfg:'<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M5 12c2-5 4-5 5 0s3 5 5 0M17 9h3M17 12h3"/>',
+ xsc:'<rect x="2" y="4" width="20" height="16" rx="2"/><path d="M5 14c2-7 3-7 5 0s3 7 5 0 2-5 4-3"/>',xwm:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 15l3-6 2 4 2-4 3 6"/>',probe:'<path d="M4 20l6-6M10 14l3 3 8-8-3-3z"/>',amm:'<circle cx="12" cy="12" r="8"/><path d="M9 16l3-8 3 8M10 13.5h4"/>',vm:'<circle cx="12" cy="12" r="8"/><path d="M8.5 8l3.5 8 3.5-8"/>',
+ design:'<path d="M5 3h9l5 5v13H5z"/><path d="M8 13h3l1.5-3 2 6 1-3H17"/>',txt:'<path d="M5 6h14M12 6v13M9 19h6"/>',net:'<path d="M3 12h4l3-4h11v8H10l-3-4"/>',cam:'<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',exp:'<path d="M12 3v12M7 10l5 5 5-5M5 21h14"/>'
+};
+function svg(n){return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">'+(IC[n]||"")+"</svg>"}
+
+/* ================= menus & toolbars ================= */
+const MENUS=[
+ ["File",[["New design","Ctrl+N",()=>addDoc()],["Open…","Ctrl+O",()=>$("#fileIn").click()],["Save","Ctrl+S",()=>saveLocal(true)],["Save as… (.cesim)","",()=>exportDesign()],"-",["Open example",null,null,()=>EXAMPLES.map(([n])=>[n,"",()=>openExample(n)])],"-",["Export…","Ctrl+E",()=>openExportDlg()],["Export SPICE netlist (.cir)…","",()=>exportCir()],["Export image (PNG)…","",()=>exportPngFile()],["Export SVG…","",()=>doExportC({fmt:"svg",area:"all",bg:"theme"})],["Export PDF…","",()=>exportPdfFile()],["Export Bill of Materials (CSV)…","",()=>bomCsv()],["Export node voltages (CSV)…","",()=>voltsCsv()],"-",["Screenshot to clipboard","",()=>copyShot()],"-",["Close design","",()=>closeDoc(docs.indexOf(D))]]],
+ ["Edit",[["Undo","Ctrl+Z",undo],["Redo","Ctrl+Y",redo],"-",["Cut","Ctrl+X",()=>{if(copySel())deleteSel()}],["Copy","Ctrl+C",copySel],["Paste","Ctrl+V",paste],["Delete","Del",deleteSel],["Select all","Ctrl+A",selectAll],"-",["Rotate 90° clockwise","Ctrl+R",()=>rotateSel(1)],["Rotate 90° counter-clockwise","Ctrl+Shift+R",()=>rotateSel(-1)],["Flip vertically","Alt+Y",()=>flipSel(false)],["Flip horizontally","Alt+X",()=>flipSel(true)],"-",["Properties","Ctrl+M",()=>{const c=[...sel].find(x=>x.t);if(c)openProps(c);else toast("Select a component first.")}]]],
+ ["View",[["Zoom in","+",()=>zoomBy(1.25)],["Zoom out","−",()=>zoomBy(0.8)],["Zoom to fit","F7",zoomFit],"-",["Show grid","",()=>{showGrid=!showGrid;dirty=1},()=>showGrid],["Show sheet border","",()=>{showBorder=!showBorder;dirty=1},()=>showBorder]]],
+ ["Place",[["Component…","Ctrl+W",()=>openBrowser()],["Wire","Ctrl+Q",()=>toast("Drag from any pin to draw a wire. Ctrl+click a wire to branch from it.")],"-",["Ground","",()=>startPlace("gnd")],["VCC rail","",()=>startPlace("vcc")],["Voltage probe","",()=>startPlace("probe")],"-",["Text / note","Ctrl+T",()=>startPlace("text")],["Net label","Ctrl+L",()=>startPlace("netlabel")],["Title block…","",editTitleBlock]]],
+ ["Simulate",[["Run","F5",runSim],["Pause","F6",pauseSim],["Stop","",stopSim],"-",["Instruments",null,null,()=>[["Multimeter","",()=>startPlace("xmm")],["Function generator","",()=>startPlace("xfg")],["Wattmeter","",()=>startPlace("xwm")],["Oscilloscope","",()=>startPlace("xsc")]]],"-",["Simulation settings…","",openSimSettings]]],
+ ["Transfer",[["Export SPICE netlist (.cir)…","",()=>exportCir()],["Import SPICE netlist (.cir)…","",()=>$("#fileIn").click()]]],
+ ["Tools",[["Circuit from image…","",()=>openImageTool()],["Electrical rules check","",erc],["Database info","",()=>toast(countDB().toLocaleString()+" components in the CEsim master database across "+DB.reduce((a,g)=>a+g.fams.length,0)+" families.")]]],
+ ["Reports",[["Bill of Materials","",bom],["Bill of Materials (CSV)…","",bomCsv],["Netlist report","",()=>exportCir()]]],
+ ["Options",[["Theme",null,null,()=>[["Classic White","",()=>setTheme("white"),()=>theme==="white"],["Dark","",()=>setTheme("dark"),()=>theme==="dark"],["Blueprint","",()=>setTheme("blueprint"),()=>theme==="blueprint"],["Graphite","",()=>setTheme("graphite"),()=>theme==="graphite"]]],["Simulation settings…","",openSimSettings]]],
+ ["Window",[["Designs",null,null,()=>docs.map((d,i)=>[d.name,"",()=>switchDoc(i),()=>d===D])]]],
+ ["Help",[["Keyboard shortcuts","F1",showHelp],["About CEsim","",about]]]
+];
+let openMenu=null;
+function buildMenus(){const mb=$("#menubar");mb.innerHTML="";MENUS.forEach(([name,items])=>{const m=document.createElement("div");m.className="mitem";m.innerHTML="<u>"+name[0]+"</u>"+name.slice(1);m.onmousedown=e=>{e.stopPropagation();if(openMenu&&openMenu.owner===m){closeMenus();return}closeMenus();const r=m.getBoundingClientRect();showMenu(items,r.left,r.bottom,m)};m.onmouseenter=()=>{if(openMenu&&openMenu.owner!==m&&openMenu.owner.classList.contains("mitem")){closeMenus();const r=m.getBoundingClientRect();showMenu(items,r.left,r.bottom,m)}};mb.appendChild(m)})}
+function showMenu(items,x,y,owner,sub){const d=document.createElement("div");d.className="menu";if(owner&&owner.classList)owner.classList.add("open");
+ for(const it of items){if(it==="-"){const s=document.createElement("div");s.className="sep";d.appendChild(s);continue}const[label,key,fn,subOrCheck]=it;const r=document.createElement("div");r.className="mi";const isSub=fn===null&&typeof subOrCheck==="function";const checked=!isSub&&typeof subOrCheck==="function"&&subOrCheck();
+  r.innerHTML='<span class="ck">'+(checked?"✓":"")+"</span><span>"+esc(label)+'</span><span class="k">'+(isSub?"▸":esc(key||""))+"</span>";
+  if(isSub){r.onmouseenter=()=>{d.querySelectorAll(".menu.sub").forEach(x=>x.remove());const rr=r.getBoundingClientRect();const sm=showMenu(subOrCheck(),rr.right-2,rr.top-4,null,true);sm.classList.add("sub");d.appendChild(sm)}}
+  else{r.onmouseenter=()=>d.querySelectorAll(".menu.sub").forEach(x=>x.remove());r.onmousedown=e=>{e.stopPropagation();closeMenus();fn&&fn()}}d.appendChild(r)}
+ if(!sub){document.body.appendChild(d);openMenu={el:d,owner:owner||d}}else{d.style.left=x+"px";d.style.top=y+"px"}
+ d.style.left=Math.min(x,innerWidth-250)+"px";d.style.top=y+"px";if(sub){document.body.appendChild(d);openMenu.subs=(openMenu.subs||[]);openMenu.subs.push(d)}return d}
+function closeMenus(){if(openMenu){openMenu.el.remove();(openMenu.subs||[]).forEach(s=>s.remove());if(openMenu.owner&&openMenu.owner.classList)openMenu.owner.classList.remove("open");openMenu=null}document.querySelectorAll(".menu").forEach(m=>m.remove());document.querySelectorAll(".mitem.open").forEach(m=>m.classList.remove("open"))}
+document.addEventListener("mousedown",e=>{if(!e.target.closest(".menu"))closeMenus()});
+function tb(icon,title,fn,cls){const b=document.createElement("button");b.className="tb"+(cls?" "+cls:"");b.innerHTML=svg(icon);b.title=title;b.setAttribute("aria-label",title);b.onclick=fn;return b}
+function sep(){const s=document.createElement("div");s.className="tsep";return s}
+function buildToolbars(){const t1=$("#tb1");t1.innerHTML="";
+ [tb("new","New (Ctrl+N)",()=>addDoc()),tb("open","Open (Ctrl+O)",()=>$("#fileIn").click()),tb("save","Save (Ctrl+S)",()=>saveLocal(true)),tb("exp","Export… (Ctrl+E)",()=>openExportDlg()),tb("cam","Screenshot",e=>openShotMenu(e)),sep(),
+  tb("cut","Cut",()=>{if(copySel())deleteSel()}),tb("copy","Copy",copySel),tb("paste","Paste",paste),sep(),tb("undo","Undo (Ctrl+Z)",undo),tb("redo","Redo (Ctrl+Y)",redo),sep(),
+  tb("zin","Zoom in",()=>zoomBy(1.25)),tb("zout","Zoom out",()=>zoomBy(0.8)),tb("zfit","Zoom to fit (F7)",zoomFit),sep(),
+  tb("rot","Rotate 90° clockwise (Ctrl+R)",()=>rotateSel(1)),tb("rotl","Rotate 90° counter-clockwise",()=>rotateSel(-1)),tb("flip","Flip horizontally (Alt+X)",()=>flipSel(true)),tb("del","Delete",deleteSel),sep()].forEach(x=>t1.appendChild(x));
+ const s=document.createElement("select");s.className="inuse";s.id="inuse";s.title="In-Use List";s.setAttribute("aria-label","In-Use List");s.onchange=()=>{const v=s.value;s.value="";if(v){const o=JSON.parse(v);startPlace(o.t,o.p)}};t1.appendChild(s);
+ [sep(),tb("wire","Wire (drag from a pin)",()=>toast("Drag from any pin to draw a wire. Ctrl+click a wire to branch from it.")),tb("props","Properties (Ctrl+M)",()=>{const c=[...sel].find(x=>x.t);if(c)openProps(c);else toast("Select a component first.")}),tb("help","Help (F1)",showHelp)].forEach(x=>t1.appendChild(x));
+ const t2=$("#tb2");t2.innerHTML="";
+ const grpBtn=(icon,g,quick)=>tb(icon,"Place "+g+(quick?"":""),()=>openBrowser(g));
+ t2.appendChild(tb("src","Place Source",()=>openBrowser("Sources")));t2.appendChild(tb("gnd","Place Ground",()=>startPlace("gnd")));t2.appendChild(tb("res","Place Basic",()=>openBrowser("Basic")));t2.appendChild(tb("dio","Place Diode",()=>openBrowser("Diodes")));t2.appendChild(tb("bjt","Place Transistor",()=>openBrowser("Transistors")));t2.appendChild(tb("opa","Place Analog",()=>openBrowser("Analog")));t2.appendChild(tb("gate","Place TTL / CMOS",()=>openBrowser("TTL / CMOS")));t2.appendChild(tb("chip","Place Mixed",()=>openBrowser("Mixed")));t2.appendChild(tb("ind","Place Indicator",()=>openBrowser("Indicators")));t2.appendChild(tb("pwr","Place Power component",()=>openBrowser("Power")));t2.appendChild(tb("sw","Place Switch",()=>openBrowser("Basic","SWITCH")));t2.appendChild(tb("mot","Place Electromechanical",()=>openBrowser("Electromechanical")));t2.appendChild(tb("probe","Place Probe",()=>startPlace("probe")));t2.appendChild(tb("txt","Place text (Ctrl+T)",()=>startPlace("text")));t2.appendChild(tb("net","Place net label (Ctrl+L)",()=>startPlace("netlabel")));
+ t2.appendChild(sep());t2.appendChild(tb("run","Run (F5)",runSim,"run"));t2.lastChild.id="bRun";t2.appendChild(tb("pause","Pause (F6)",pauseSim,"pause"));t2.lastChild.id="bPause";t2.appendChild(tb("stop","Stop",stopSim,"stop"));
+ const m=document.createElement("div");m.className="mode";m.id="modebox";m.innerHTML='<span class="dot"></span><span id="modetxt">Interactive</span>';t2.appendChild(m);
+ const sp=document.createElement("select");sp.className="speed";sp.title="Simulation speed";sp.setAttribute("aria-label","Simulation speed");[["1","Real time ×1"],["0.1","Slow ×0.1"],["0.01","Slower ×0.01"],["0.001","×0.001"],["10","Fast ×10"],["0","Max speed"]].forEach(([v,l])=>{const o=document.createElement("option");o.value=v;o.textContent=l;sp.appendChild(o)});sp.onchange=()=>{speed=+sp.value};t2.appendChild(sp);
+ const ib=$("#instbar");ib.innerHTML="";[["xmm","Multimeter"],["xfg","Function generator"],["xwm","Wattmeter"],["xsc","Oscilloscope"],["vm","Voltmeter","voltmeter"],["amm","Ammeter","ammeter"],["probe","Voltage probe","probe"]].forEach(([ic,t,type])=>ib.appendChild(tb(ic,t,()=>startPlace(type||ic))))}
+function updateInUse(){const s=$("#inuse");if(!s)return;const seen=new Map();for(const c of D.comps){if(c.t==="gnd")continue;const v=LIB[c.t].val?LIB[c.t].val(c)[0]:"";const key=c.t+"|"+v;if(!seen.has(key))seen.set(key,{t:c.t,p:c.p,label:LIB[c.t].name+(v?" · "+v:"")})}s.innerHTML='<option value="">--- In-Use List ---</option>'+[...seen.values()].map(o=>`<option value='${esc(JSON.stringify({t:o.t,p:o.p}))}'>${esc(o.label)}</option>`).join("")}
+
+/* ================= windows & dialogs ================= */
+function makeWin(title,bodyEl,opts={}){const w=document.createElement("div");w.className="win";const tt=document.createElement("div");tt.className="wt";tt.innerHTML="<span>"+esc(title)+'</span><span class="sp"></span><button aria-label="Close">×</button>';w.appendChild(tt);const wb=document.createElement("div");wb.className="wb";wb.appendChild(bodyEl);w.appendChild(wb);
+ let bg=null;if(opts.modal){w.classList.add("modal");bg=document.createElement("div");bg.className="modal-bg";document.body.appendChild(bg);bg.onmousedown=()=>close()}
+ document.body.appendChild(w);const r=w.getBoundingClientRect();w.style.left=(opts.x??Math.max(10,(innerWidth-r.width)/2))+"px";w.style.top=(opts.y??Math.max(10,(innerHeight-r.height)/2-30))+"px";
+ const close=()=>{w.remove();bg&&bg.remove();opts.onclose&&opts.onclose()};tt.querySelector("button").onclick=close;
+ tt.onmousedown=e=>{if(e.target.tagName==="BUTTON")return;const sx=e.clientX,sy=e.clientY,l=w.offsetLeft,t=w.offsetTop;const mv=ev=>{w.style.left=(l+ev.clientX-sx)+"px";w.style.top=Math.max(0,t+ev.clientY-sy)+"px"};const up=()=>{removeEventListener("mousemove",mv);removeEventListener("mouseup",up)};addEventListener("mousemove",mv);addEventListener("mouseup",up)};
+ w.close=close;if(opts.foot){w.appendChild(opts.foot)}return w}
+function el(h){const d=document.createElement("div");d.innerHTML=h;return d}
+function openProps(c){const L_=LIB[c.t];const body=document.createElement("div");body.style.minWidth="340px";
+ let h='<div class="form">'+(L_.noLabel?'<input type="hidden" id="pf-label" value="'+esc(c.label)+'">':'<label for="pf-label">RefDes</label><input id="pf-label" value="'+esc(c.label)+'"><span></span>');
+ L_.fields.forEach(([k,lab,ty,u],i)=>{const id="pf-"+i;h+='<label for="'+id+'">'+esc(lab)+"</label>";if(ty==="col")h+=colField(id,c.p[k])+"<span></span>";else if(ty==="sel")h+='<select id="'+id+'">'+u.map(o=>'<option'+(String(c.p[k])===String(o)?" selected":"")+">"+esc(o)+"</option>").join("")+"</select><span></span>";else h+='<input id="'+id+'" value="'+esc(c.p[k]??"")+'"><span class="u">'+esc(u||"")+"</span>"});
+ if(!L_.noLabel&&c.t!=="vcc"&&c.t!=="gnd"){h+='<label>Label color</label>'+colField("pf-lc",c.lc||(CV.label))+'<span></span><label></label><span style="font-size:11.5px;color:var(--ui-dim)">Tip: drag the label on the sheet to move it.'+(c.lo&&(c.lo.x||c.lo.y)?' <a href="#" id="pf-lreset">Reset position</a>':'')+'</span><span></span>'}
+ h+='</div><p style="color:var(--ui-dim);font-size:11.5px;margin:10px 0 0">'+esc(L_.name)+" · "+esc(L_.ar||"")+(L_.fields.some(f=>f[2]==="si")?"<br>Values accept SI prefixes: p n u m k M G (e.g. 4.7k, 100n).":"")+"</p>";body.innerHTML=h;wireColFields(body);{const lr=body.querySelector("#pf-lreset");if(lr)lr.onclick=ev=>{ev.preventDefault();pushUndo();c.lo=null;dirty=1;autosave();lr.remove()}}
+ if(c.t==="pot"){const r=document.createElement("input");r.type="range";r.min=0;r.max=100;r.value=num(c.p.wiper)||0;r.style.width="100%";r.style.marginTop="10px";r.setAttribute("aria-label","Wiper position");r.oninput=()=>{c.p.wiper=r.value;c._pp=null;dirty=1;const i=L_.fields.findIndex(f=>f[0]==="wiper");body.querySelector("#pf-"+i).value=r.value};body.appendChild(r)}
+ const foot=document.createElement("div");foot.className="foot";const ok=document.createElement("button");ok.className="btn pri";ok.textContent="OK";const ca=document.createElement("button");ca.className="btn";ca.textContent="Cancel";foot.append(ca,ok);
+ const w=makeWin(c.label?c.label+" — "+L_.name:L_.name,body,{modal:true,foot});
+ const apply=()=>{for(let i=0;i<L_.fields.length;i++){const[k,lab,ty]=L_.fields[i];const v=body.querySelector("#pf-"+i).value;if(ty==="si"&&!isFinite(num(v))){toast(lab+": enter a number, e.g. 4.7k",true);return false}}pushUndo();c.label=body.querySelector("#pf-label").value.trim()||c.label;L_.fields.forEach(([k],i)=>c.p[k]=body.querySelector("#pf-"+i).value);{const lc=body.querySelector("#pf-lc");if(lc)c.lc=lc.value.toLowerCase()===String(CV.label).toLowerCase()?null:lc.value}c._pp=null;structural();return true};
+ ok.onclick=()=>{if(apply())w.close()};ca.onclick=()=>w.close();body.addEventListener("keydown",e=>{if(e.key==="Enter"){if(apply())w.close()}if(e.key==="Escape")w.close()});setTimeout(()=>{const f=body.querySelector("input,select");f&&f.focus()},20)}
+/* component browser */
+let cbState={g:"Basic",f:0,i:0,q:""};
+function openBrowser(group,famName){if(group){cbState.g=group;cbState.f=0;cbState.i=0;if(famName){const g=DB.find(x=>x.g===group);const fi=g.fams.findIndex(f=>f[0].trim().startsWith(famName));if(fi>=0)cbState.f=fi}}
+ const body=document.createElement("div");body.innerHTML=`<div class="row" style="margin-bottom:8px;gap:12px"><label style="color:var(--ui-dim);font-size:12px" for="cb-db">Database</label><select id="cb-db" class="inp" style="width:150px"><option>Master Database</option></select><label for="cb-q" style="color:var(--ui-dim);font-size:12px">Search</label><input id="cb-q" class="inp" style="flex:1" placeholder="e.g. 2N2222, 4.7k, LM358, 7805" value="${esc(cbState.q)}"></div>
+ <div class="cb"><div class="col"><span class="lbl">Group</span><div class="list" id="cb-g"></div><span class="lbl">Family</span><div class="list" id="cb-f" style="flex:1.3"></div></div><div class="col"><span class="lbl">Component <span id="cb-n" style="text-transform:none;letter-spacing:0"></span></span><div class="list" id="cb-i"></div></div><div class="col"><span class="lbl">Symbol (ANSI)</span><canvas class="prev" id="cb-prev"></canvas><span class="lbl">Function</span><div class="info" id="cb-info"></div></div></div>`;
+ const foot=document.createElement("div");foot.className="foot";foot.innerHTML='<span style="margin-right:auto;color:var(--ui-dim);font-size:12px;align-self:center">'+countDB().toLocaleString()+' components in database</span><button class="btn" id="cb-close">Close</button><button class="btn pri" id="cb-ok">OK</button>';
+ const w=makeWin("Select a Component",body,{modal:true,foot});
+ const gl=body.querySelector("#cb-g"),fl=body.querySelector("#cb-f"),il=body.querySelector("#cb-i"),pv=body.querySelector("#cb-prev"),info=body.querySelector("#cb-info"),q=body.querySelector("#cb-q");
+ let results=null;
+ const cur=()=>{if(results){return results[cbState.i]||null}const g=DB.find(x=>x.g===cbState.g)||DB[0];const f=g.fams[cbState.f]||g.fams[0];const it=famItems(f)[cbState.i]||famItems(f)[0];return it?{t:f[1],it,fam:f[0],g:g.g}:null};
+ function draw(){gl.innerHTML=DB.map(g=>`<div class="${g.g===cbState.g&&!results?"on":""}" data-g="${esc(g.g)}">${esc(g.g)}</div>`).join("");
+  const g=DB.find(x=>x.g===cbState.g)||DB[0];fl.innerHTML=results?'<div class="on">Search results</div>':g.fams.map((f,i)=>`<div class="${i===cbState.f?"on":""}" data-f="${i}">${esc(f[0].trim())}<span class="ar">${esc(LIB[f[1]].ar||"")}</span></div>`).join("");
+  const items=results?results:famItems(g.fams[cbState.f]||g.fams[0]).map(it=>({it}));body.querySelector("#cb-n").textContent="("+items.length+")";
+  il.innerHTML=items.slice(0,2000).map((r,i)=>`<div class="${i===cbState.i?"on":""}" data-i="${i}">${esc(r.it.n)}${results?'<span class="ar">'+esc(r.fam.trim())+"</span>":""}</div>`).join("");
+  const sel_=il.querySelector(".on");sel_&&sel_.scrollIntoView({block:"nearest"});preview()}
+ function preview(){const c_=cur();const r=pv.getBoundingClientRect();const dpr=devicePixelRatio||1;pv.width=r.width*dpr;pv.height=r.height*dpr;const g=pv.getContext("2d");g.setTransform(dpr,0,0,dpr,0,0);g.fillStyle=CV.bg;g.fillRect(0,0,r.width,r.height);if(!c_){info.textContent="";return}
+  const L_=LIB[c_.t];const comp={id:"pv",t:c_.t,x:0,y:0,r:0,f:0,label:L_.prefix?L_.prefix+"?":"",p:Object.assign({},L_.props,c_.it.p||{})};const b=L_.bb;const s=Math.min(2.4,Math.min((r.width-40)/(b[2]-b[0]+20),(r.height-40)/(b[3]-b[1]+20)));g.translate(r.width/2-(b[0]+b[2])/2*s,r.height/2-(b[1]+b[3])/2*s+6);g.scale(s,s);drawComp(comp,null,g);drawLabels(comp,null,g);
+  const fl_=L_.fields.map(f=>f[1]+": "+(comp.p[f[0]]??"")).join("\n");const pins=L_.pins.map(p=>p[2]).join(", ");
+  info.innerHTML=`<b>${esc(c_.it.n)}</b><br>${esc(L_.name)} · <span dir="rtl">${esc(L_.ar||"")}</span><br><span style="color:var(--ui-dim)">Family:</span> ${esc(c_.fam.trim())}<br><span style="color:var(--ui-dim)">Pins:</span> ${esc(pins)}<div class="mono" style="margin-top:6px">${esc(fl_)}</div>`}
+ function doSearch(){const s=q.value.trim().toLowerCase();cbState.q=q.value;if(!s){results=null;cbState.i=0;draw();return}results=[];for(const g of DB)for(const f of g.fams){const fam=f[0].toLowerCase(),nm=LIB[f[1]].name.toLowerCase(),ar=LIB[f[1]].ar||"";for(const it of famItems(f)){if(it.n.toLowerCase().includes(s)||fam.includes(s)||nm.includes(s)||ar.includes(s))results.push({t:f[1],it,fam:f[0],g:g.g});if(results.length>3000)break}}cbState.i=0;draw()}
+ gl.onclick=e=>{const d=e.target.closest("[data-g]");if(!d)return;cbState.g=d.dataset.g;cbState.f=0;cbState.i=0;results=null;q.value="";cbState.q="";draw()};
+ fl.onclick=e=>{const d=e.target.closest("[data-f]");if(!d)return;cbState.f=+d.dataset.f;cbState.i=0;draw()};
+ il.onclick=e=>{const d=e.target.closest("[data-i]");if(!d)return;cbState.i=+d.dataset.i;il.querySelectorAll(".on").forEach(x=>x.classList.remove("on"));d.classList.add("on");preview()};
+ const ok=()=>{const c_=cur();if(!c_)return;w.close();startPlace(c_.t,c_.it.p)};il.ondblclick=ok;foot.querySelector("#cb-ok").onclick=ok;foot.querySelector("#cb-close").onclick=()=>w.close();
+ q.oninput=doSearch;body.addEventListener("keydown",e=>{if(e.key==="Enter")ok();if(e.key==="Escape")w.close();if(e.key==="ArrowDown"||e.key==="ArrowUp"){e.preventDefault();const n=il.children.length;cbState.i=clamp(cbState.i+(e.key==="ArrowDown"?1:-1),0,n-1);draw()}});
+ if(cbState.q)doSearch();else draw();setTimeout(()=>q.focus(),30)}
+/* instrument windows */
+const instWins=new Map();
+function closeInstWin(id){const w=instWins.get(id);if(w){w.win.close()}}
+function openInstWin(c){if(instWins.has(c.id)){const w=instWins.get(c.id).win;w.style.zIndex=31;return}let o;if(c.t==="xmm")o=dmmWin(c);else if(c.t==="xfg")o=fgWin(c);else if(c.t==="xsc")o=scopeWin(c);else if(c.t==="xwm")o=wmWin(c);if(o){o.win=makeWin(c.label+" — "+LIB[c.t].name,o.body,{x:Math.max(10,innerWidth-(c.t==="xsc"?780:340)),y:110,onclose:()=>instWins.delete(c.id)});instWins.set(c.id,o)}}
+function refreshInstWins(){for(const[id,o]of instWins){if(!D.comps.find(c=>c.id===id)){o.win.close()}}}
+function updateInstWins(){for(const[id,o]of instWins)o.update&&o.update()}
+function getSt(c){return sim&&sim.doc===D&&sim.state[c.id]}
+function dmmWin(c){const body=el(`<div class="dmm" id="d">0.000</div><div class="seg" role="group" aria-label="Function">${["A","V","Ω"].map(m=>`<button data-m="${m}" class="${c.p.mode===m?"on":""}">${m}</button>`).join("")}</div><div class="seg" role="group" aria-label="Signal">${["DC","AC"].map(m=>`<button data-a="${m}" class="${c.p.ac===m?"on":""}">${m==="AC"?"∿ AC":"⎓ DC"}</button>`).join("")}</div><p style="font-size:11.5px;color:var(--ui-dim);margin:8px 0 0">A mode puts the meter in series. V and Ω measure across the + and − terminals.</p>`);
+ body.onclick=e=>{const b=e.target.closest("button");if(!b)return;if(b.dataset.m)c.p.mode=b.dataset.m;if(b.dataset.a)c.p.ac=b.dataset.a;body.querySelectorAll("button").forEach(x=>x.classList.toggle("on",x.dataset.m===c.p.mode||x.dataset.a===c.p.ac));if(sim&&running)rebuildSim();dirty=1};
+ return{body,update(){const st=getSt(c);body.querySelector("#d").textContent=st&&st.r?st.r:"0.000 "+c.p.mode}}}
+function wmWin(c){const body=el(`<div class="dmm" id="d">0.000 W</div><p style="font-size:11.5px;color:var(--ui-dim);margin:8px 0 0">Connect V+/V− across the load and I+/I− in series with it. Shows average power.</p>`);return{body,update(){const st=getSt(c);body.querySelector("#d").textContent=st&&st.r?st.r:"0.000 W"}}}
+function fgWin(c){const body=el(`<div class="seg" role="group" aria-label="Waveform" style="margin-top:0">${["sine","triangle","square"].map(m=>`<button data-w="${m}" class="${c.p.wave===m?"on":""}" style="font-size:16px">${m==="sine"?"∿":m==="triangle"?"⋀":"⊓"}</button>`).join("")}</div>
+ <div class="form" style="margin-top:12px">${[["freq","Frequency","Hz"],["duty","Duty cycle","%"],["amp","Amplitude","Vp"],["offset","Offset","V"]].map(([k,l,u])=>`<label for="fg-${k}">${l}</label><input id="fg-${k}" data-k="${k}" value="${esc(c.p[k])}"><span class="u">${u}</span>`).join("")}</div>
+ <p style="font-size:11.5px;color:var(--ui-dim);margin:10px 0 0">Signal appears between + and COM, and inverted between COM and −.</p>`);
+ body.onclick=e=>{const b=e.target.closest("button[data-w]");if(!b)return;c.p.wave=b.dataset.w;c._pp=null;body.querySelectorAll("button[data-w]").forEach(x=>x.classList.toggle("on",x.dataset.w===c.p.wave));if(sim&&running)sim.dt=autoDt(D);dirty=1};
+ body.oninput=e=>{const k=e.target.dataset.k;if(!k)return;if(isFinite(num(e.target.value))){c.p[k]=e.target.value;c._pp=null;if(sim&&running&&k==="freq")sim.dt=autoDt(D);dirty=1}};return{body}}
+const TB=[1e-6,2e-6,5e-6,10e-6,20e-6,50e-6,100e-6,200e-6,500e-6,1e-3,2e-3,5e-3,10e-3,20e-3,50e-3,100e-3,200e-3,500e-3,1];
+const VD=[1e-3,2e-3,5e-3,10e-3,20e-3,50e-3,0.1,0.2,0.5,1,2,5,10,20,50,100];
+function scopeWin(c){const body=el(`<div class="scope"><div><canvas id="sc" width="520" height="340" aria-label="Oscilloscope screen"></canvas><div class="meas" id="ms" style="margin-top:8px"></div></div><div class="ctl">
+ <div class="grp"><h4>Timebase</h4><label for="s-tb">Scale</label><select id="s-tb">${TB.map(v=>`<option value="${v}" ${Math.abs(num(c.p.tb)-v)<v*1e-6?"selected":""}>${si(v,"s")}/Div</option>`).join("")}</select></div>
+ <div class="grp"><h4 style="color:#d9a400">Channel A</h4><label for="s-va">Scale</label><select id="s-va">${VD.map(v=>`<option value="${v}" ${Math.abs(num(c.p.va)-v)<v*1e-6?"selected":""}>${si(v,"V")}/Div</option>`).join("")}</select><label for="s-pa">Y pos.</label><input id="s-pa" type="number" step="0.2" value="${esc(c.p.pa)}"></div>
+ <div class="grp"><h4 style="color:#1f9fd6">Channel B</h4><label for="s-vb">Scale</label><select id="s-vb">${VD.map(v=>`<option value="${v}" ${Math.abs(num(c.p.vb)-v)<v*1e-6?"selected":""}>${si(v,"V")}/Div</option>`).join("")}</select><label for="s-pb">Y pos.</label><input id="s-pb" type="number" step="0.2" value="${esc(c.p.pb)}"></div>
+ <div class="grp"><h4>Data</h4><button class="btn" id="s-csv" style="grid-column:1/-1">Export CSV</button></div><div class="grp"><h4>Trigger</h4><label for="s-tm">Mode</label><select id="s-tm">${["Auto","None"].map(m=>`<option ${c.p.tmode===m?"selected":""}>${m}</option>`).join("")}</select><label for="s-ts">Source</label><select id="s-ts">${["A","B"].map(m=>`<option ${c.p.tsrc===m?"selected":""}>${m}</option>`).join("")}</select><label for="s-tl">Level (V)</label><input id="s-tl" type="number" step="0.1" value="${esc(c.p.trig)}"></div>
+ </div></div>`);
+ const map={"s-tb":"tb","s-va":"va","s-vb":"vb","s-pa":"pa","s-pb":"pb","s-tm":"tmode","s-ts":"tsrc","s-tl":"trig"};body.oninput=body.onchange=e=>{const k=map[e.target.id];if(k){c.p[k]=e.target.value;c._pp=null}};
+ const cvs=body.querySelector("#sc"),g=cvs.getContext("2d"),ms=body.querySelector("#ms");
+ body.querySelector("#s-csv").onclick=()=>{const st=getSt(c);if(!st||!st.len){toast("Run the simulation first.");return}const N=st.N,len=st.len,buf=st.buf,head=st.head;let out="time_s,channel_A_V,channel_B_V\n";for(let j=0;j<len;j++){const i=((head-len+j)%N+N)%N;out+=buf[i*3].toPrecision(8)+","+buf[i*3+1].toPrecision(6)+","+buf[i*3+2].toPrecision(6)+"\n"}tryDownload(c.label+"_scope.csv",out,"text/csv")};
+ return{body,update(){const Wd=520,Ht=340;g.fillStyle="#081018";g.fillRect(0,0,Wd,Ht);g.strokeStyle="rgba(120,160,190,.18)";g.lineWidth=1;for(let i=0;i<=10;i++){g.beginPath();g.moveTo(i*Wd/10+.5,0);g.lineTo(i*Wd/10+.5,Ht);g.stroke()}for(let i=0;i<=8;i++){g.beginPath();g.moveTo(0,i*Ht/8+.5);g.lineTo(Wd,i*Ht/8+.5);g.stroke()}g.strokeStyle="rgba(120,160,190,.4)";g.beginPath();g.moveTo(0,Ht/2+.5);g.lineTo(Wd,Ht/2+.5);g.moveTo(Wd/2+.5,0);g.lineTo(Wd/2+.5,Ht);g.stroke();
+  const st=getSt(c);g.font="11px "+CV.mono;g.fillStyle="#7d93a8";g.fillText(si(num(c.p.tb),"s")+"/Div",8,Ht-8);
+  if(!st||!st.len){ms.innerHTML='<span style="color:var(--ui-dim)">Run the simulation to see traces.</span>';return}
+  const N=st.N,len=st.len,buf=st.buf,head=st.head;const at=j=>((head-len+j)%N+N)%N;const tb=num(c.p.tb),win=tb*10;const tEnd=buf[at(len-1)*3];let tStart=tEnd-win;
+  if(c.p.tmode==="Auto"){const ch=c.p.tsrc==="B"?2:1,lvl=+c.p.trig||0;for(let j=len-2;j>0;j--){const t=buf[at(j)*3];if(t>tEnd-win)continue;if(t<tEnd-win*6)break;const a=buf[at(j-1)*3+ch],b=buf[at(j)*3+ch];if(a<lvl&&b>=lvl){tStart=t;break}}}
+  const draw=(ch,col,vd,pos)=>{g.strokeStyle=col;g.lineWidth=1.6;g.beginPath();let first=true;for(let j=0;j<len;j++){const i=at(j);const t=buf[i*3];if(t<tStart)continue;if(t>tStart+win)break;const x=(t-tStart)/win*Wd,y=Ht/2-(buf[i*3+ch]/vd+pos)*Ht/8;first?g.moveTo(x,y):g.lineTo(x,y);first=false}g.stroke()};
+  const va=num(c.p.va),vb=num(c.p.vb);const cA=E_conn(c,0),cB=E_conn(c,1);if(cA)draw(1,"#ffcc3d",va,+c.p.pa||0);if(cB)draw(2,"#4cc9ff",vb,+c.p.pb||0);
+  const stat=ch=>{let mn=1e9,mx=-1e9,s2=0,n=0;for(let j=0;j<len;j++){const i=at(j);const t=buf[i*3];if(t<tEnd-win)continue;const v=buf[i*3+ch];mn=Math.min(mn,v);mx=Math.max(mx,v);s2+=v*v;n++}return n?{pp:mx-mn,rms:Math.sqrt(s2/n),mx,mn}:null};
+  const A=stat(1),B=stat(2);ms.innerHTML=`<span></span><span style="color:#d9a400">Channel A</span><span style="color:#1f9fd6">Channel B</span><span style="color:var(--ui-dim)">Vpp</span><span>${cA&&A?rd(A.pp,"V"):"—"}</span><span>${cB&&B?rd(B.pp,"V"):"—"}</span><span style="color:var(--ui-dim)">Vrms</span><span>${cA&&A?rd(A.rms,"V"):"—"}</span><span>${cB&&B?rd(B.rms,"V"):"—"}</span><span style="color:var(--ui-dim)">Max</span><span>${cA&&A?rd(A.mx,"V"):"—"}</span><span>${cB&&B?rd(B.mx,"V"):"—"}</span>`}}}
+function E_conn(c,i){const n=nets();const cn=n.conn.get(c.id);return cn&&cn[i]}
+function openSimSettings(){const body=el(`<div class="form" style="min-width:360px"><label for="ss-dt">Time step</label><input id="ss-dt" value="${dtUser?si(dtUser,""):"auto"}"><span class="u">s</span><label for="ss-sp">Speed</label><select id="ss-sp">${[["1","Real time ×1"],["0.1","×0.1"],["0.01","×0.01"],["0.001","×0.001"],["10","×10"],["0","Max speed"]].map(([v,l])=>`<option value="${v}" ${+v===speed?"selected":""}>${l}</option>`).join("")}</select><span></span></div>
+ <p style="font-size:11.5px;color:var(--ui-dim);margin:10px 0 0;max-width:380px">"auto" picks 200 steps per period of the fastest source (current: ${si(autoDt(D),"s")}). Use a smaller step for fast RC or LC circuits.</p>`);
+ const foot=document.createElement("div");foot.className="foot";foot.innerHTML='<button class="btn">Cancel</button><button class="btn pri">OK</button>';const w=makeWin("Simulation settings",body,{modal:true,foot});
+ foot.children[0].onclick=()=>w.close();foot.children[1].onclick=()=>{const v=body.querySelector("#ss-dt").value.trim();dtUser=/^auto$/i.test(v)||!v?0:num(v);if(!(dtUser>=0))dtUser=0;speed=+body.querySelector("#ss-sp").value;document.querySelector(".speed").value=String(speed);if(sim)sim.dt=autoDt(D);w.close()}}
+function textWin(title,text,note){const body=el(`${note?`<p style="font-size:12px;color:var(--ui-dim);margin:0 0 8px;max-width:620px">${note}</p>`:""}<textarea class="code" spellcheck="false" aria-label="${esc(title)}"></textarea>`);body.querySelector("textarea").value=text;body.style.width="640px";const foot=document.createElement("div");foot.className="foot";foot.innerHTML='<button class="btn">Close</button><button class="btn pri">Copy to clipboard</button>';const w=makeWin(title,body,{modal:true,foot});foot.children[0].onclick=()=>w.close();
+ foot.children[1].onclick=async()=>{const ta=body.querySelector("textarea");try{await navigator.clipboard.writeText(ta.value);toast("Copied.")}catch(e){ta.select();try{document.execCommand("copy");toast("Copied.")}catch(_){toast("Select the text and press Ctrl+C.",true)}}};return w}
+function tryDownload(name,text,mime){try{if(window.cesimNative&&window.cesimNative.save){window.cesimNative.save(name,text);return true}const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([text],{type:mime||"text/plain"}));a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500);return true}catch(e){return false}}
+function exportDesign(){if(window.cesimNative){saveFileNative(true);return}const s=serialize(D);const fname=D.name.replace(/[^\w.-]+/g,"_")+".cesim";tryDownload(fname,s,"application/json");textWin("Save as file — "+fname,s,"If your browser blocked the download, copy this text into a file named <b>"+esc(fname)+"</b>. Open it later with File → Open.")}
+function toCir(){const net=nets();const lines=["* "+D.name+" — exported from CEsim","* SPICE netlist — opens in SPICE-compatible simulators"];for(const c of D.comps){const L_=LIB[c.t];if(!L_.spice)continue;const n=net.pinNodes.get(c.id).map(k=>k===0?"0":String(k));lines.push(L_.spice(c,n))}
+ const dt=autoDt(D);lines.push(".tran "+si(dt,"")+" "+si(dt*2000,""));lines.push(".end");return lines.join("\n")}
+function exportCir(){const s=toCir();const fname=D.name.replace(/[^\w.-]+/g,"_")+".cir";tryDownload(fname,s);if(window.cesimNative)return;textWin("SPICE netlist — "+fname,s,"Most circuit simulators open SPICE netlists (.cir) with File → Open. Parts with custom models may be replaced by generic parts.")}
+function schematicBounds(includeSheet){if(includeSheet)return[-30,-30,SHEET.w+30,SHEET.h+30];let x1=1e9,y1=1e9,x2=-1e9,y2=-1e9;for(const c of D.comps){const b=wbbox(c);x1=Math.min(x1,b[0]);y1=Math.min(y1,b[1]);x2=Math.max(x2,b[2]+60);y2=Math.max(y2,b[3]+20)}for(const w of D.wires)for(const p of w.pts){x1=Math.min(x1,p.x);y1=Math.min(y1,p.y);x2=Math.max(x2,p.x);y2=Math.max(y2,p.y)}if(x1>x2){x1=0;y1=0;x2=400;y2=300}return[x1-40,y1-50,x2+40,y2+30]}
+function paintSchematic(g,o){const S_=sim&&sim.doc===D?sim.state:null;g.lineCap="round";g.lineJoin="round";if(o.grid){g.fillStyle=CV.dot;const[x1,y1,x2,y2]=o.b;for(let x=Math.ceil(x1/10)*10;x<x2;x+=10)for(let y=Math.ceil(y1/10)*10;y<y2;y+=10)g.fillRect(x-.6,y-.6,1.2,1.2)}if(o.sheet){g.strokeStyle=CV.border;g.lineWidth=1;g.strokeRect(0,0,SHEET.w,SHEET.h);drawTitleBlock(g)}for(const w of D.wires){g.strokeStyle=CV.wire;g.lineWidth=1.6;g.beginPath();w.pts.forEach((p,i)=>i?g.lineTo(p.x,p.y):g.moveTo(p.x,p.y));g.stroke()}for(const c of D.comps){const st=S_?S_[c.id]:null;drawComp(c,st,g);drawLabels(c,st,g)}g.fillStyle=CV.wire;for(const p of nets().junc){g.beginPath();g.arc(p.x,p.y,3,0,2*PI);g.fill()}}
+function renderExport(o){const saveSel=new Set(sel);sel.clear();let b;if(o.area==="view"){const[a,c]=s2w(0,0),[d,e]=s2w(W,H);b=[a,c,d,e]}else b=schematicBounds(o.area==="sheet");o.b=b;const Wd=b[2]-b[0],Ht=b[3]-b[1];let out;
+ if(o.fmt==="svg"){const g=new C2S(Math.ceil(Wd),Math.ceil(Ht));if(o.bg!=="transparent"){g.fillStyle=o.bg==="white"?"#ffffff":CV.bg;g.fillRect(0,0,Wd,Ht)}g.translate(-b[0],-b[1]);paintSchematic(g,o);out=g.getSerializedSvg(true)}
+ else{const sc=o.scale||2;const off=document.createElement("canvas");off.width=Math.ceil(Wd*sc);off.height=Math.ceil(Ht*sc);const g=off.getContext("2d");if(o.bg!=="transparent"||o.fmt==="jpg"){g.fillStyle=o.bg==="white"||o.fmt==="jpg"&&o.bg==="transparent"?"#ffffff":CV.bg;g.fillRect(0,0,off.width,off.height)}g.setTransform(sc,0,0,sc,-b[0]*sc,-b[1]*sc);paintSchematic(g,o);out=off.toDataURL(o.fmt==="jpg"?"image/jpeg":o.fmt==="webp"?"image/webp":"image/png",0.93)}
+ saveSel.forEach(x=>sel.add(x));dirty=1;return{data:out,w:Wd,h:Ht}}
+let lastCx={fmt:"png",area:"all",scale:2,bg:"theme",grid:false,sheet:false};
+function openExportDlg(){const o=lastCx;const body=el(`<div class="form" style="min-width:400px"><label for="ex-f">Format</label><select id="ex-f">${[["png","PNG image"],["jpg","JPG image"],["webp","WebP image"],["svg","SVG vector"],["pdf","PDF document"],["cir","SPICE netlist (.cir)"],["cesim","CEsim design (.cesim)"],["bom","Bill of Materials (.csv)"],["volts","Node voltages (.csv)"]].map(([v,n])=>`<option value="${v}" ${v===o.fmt?"selected":""}>${n}</option>`).join("")}</select><span></span>
+ <label for="ex-a">Area</label><select id="ex-a"><option value="all">Whole circuit</option><option value="view" ${o.area==="view"?"selected":""}>Visible area</option><option value="sheet" ${o.area==="sheet"?"selected":""}>Full sheet with title block</option></select><span></span>
+ <label for="ex-s">Scale</label><select id="ex-s">${[1,2,3,4].map(v=>`<option value="${v}" ${v==o.scale?"selected":""}>${v}×</option>`).join("")}</select><span></span>
+ <label for="ex-b">Background</label><select id="ex-b"><option value="theme">Current theme</option><option value="white" ${o.bg==="white"?"selected":""}>White</option><option value="transparent" ${o.bg==="transparent"?"selected":""}>Transparent (PNG, WebP, SVG)</option></select><span></span>
+ <label for="ex-g">Grid dots</label><input type="checkbox" id="ex-g" ${o.grid?"checked":""} style="justify-self:start;height:16px"><span></span></div><p id="ex-i" style="font-size:11.5px;color:var(--ui-dim);margin:10px 0 0;max-width:420px"></p>`);
+ const foot=document.createElement("div");foot.className="foot";foot.innerHTML='<button class="btn">Cancel</button><button class="btn pri">Export</button>';const w=makeWin("Export",body,{modal:true,foot});
+ const info={png:"Sharp image for reports and slides.",jpg:"Smaller image; white background.",webp:"Modern compressed image.",svg:"Vector drawing; zooms without blur and edits in vector apps.",pdf:"Print-ready page.",cir:"SPICE netlist for other simulators.",cesim:"Full design file.",bom:"Parts list for spreadsheets.",volts:"Voltage at every net from the last simulation run."};
+ const upd=()=>{const f=body.querySelector("#ex-f").value;body.querySelector("#ex-i").textContent=info[f];const img=["png","jpg","webp","svg","pdf"].includes(f);["#ex-a","#ex-b","#ex-g"].forEach(q=>body.querySelector(q).disabled=!img);body.querySelector("#ex-s").disabled=!["png","jpg","webp","pdf"].includes(f)};body.querySelector("#ex-f").onchange=upd;upd();
+ foot.children[0].onclick=()=>w.close();foot.children[1].onclick=()=>{const o2={fmt:body.querySelector("#ex-f").value,area:body.querySelector("#ex-a").value,scale:+body.querySelector("#ex-s").value,bg:body.querySelector("#ex-b").value,grid:body.querySelector("#ex-g").checked};o2.sheet=o2.area==="sheet";lastCx=o2;w.close();doExportC(o2)}}
+function fname(ext){return D.name.replace(/[^\w.\u0600-\u06FF-]+/g,"_")+"."+ext}
+function saveDataUrl(name,url){if(window.cesimNative&&window.cesimNative.saveBinary){window.cesimNative.saveBinary(name,url.split(",")[1]);return}const a=document.createElement("a");a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove()}
+function doExportC(o){try{if(o.fmt==="cir"){exportCir();return}if(o.fmt==="cesim"){exportDesign();return}if(o.fmt==="bom"){bomCsv();return}if(o.fmt==="volts"){voltsCsv();return}
+ if(o.fmt==="svg"){const r=renderExport(o);tryDownload(fname("svg"),r.data,"image/svg+xml");return}
+ if(o.fmt==="pdf"){const r=renderExport(Object.assign({},o,{fmt:"png",scale:Math.max(2,o.scale)}));const svgW=`<svg xmlns="http://www.w3.org/2000/svg" width="${Math.ceil(r.w)}" height="${Math.ceil(r.h)}"><image href="${r.data}" width="${Math.ceil(r.w)}" height="${Math.ceil(r.h)}"/></svg>`;if(window.cesimNative&&window.cesimNative.pdf)window.cesimNative.pdf(fname("pdf"),svgW);else toast("PDF export works in the desktop app. Use PNG or SVG here.");return}
+ const r=renderExport(o);saveDataUrl(fname(o.fmt),r.data)}catch(err){console.error(err);toast("Export failed: "+err.message,true)}}
+function voltsCsv(){if(!sim||sim.doc!==D){toast("Run the simulation first; voltages come from the last run.");return}const net=nets();const names={};for(const c of D.comps){const ns=net.pinNodes.get(c.id);LIB[c.t].pins.forEach((p,i)=>{const n=ns[i];(names[n]=names[n]||[]).push((c.label||LIB[c.t].name)+"."+p[2])})}const rows=[["Net","Voltage (V)","Connected pins","Time (s)"]];Object.keys(names).sort((a,b)=>a-b).forEach(n=>rows.push([n==0?"GND":"N"+n,sim.vv(+n).toPrecision(6),names[n].join(" "),sim.t.toPrecision(6)]));tryDownload(D.name.replace(/[^\w.-]+/g,"_")+"_voltages.csv",rows.map(r=>r.map(x=>'"'+String(x).replace(/"/g,'""')+'"').join(",")).join("\n"),"text/csv")}
+function openShotMenu(e){const r=e&&e.currentTarget?e.currentTarget.getBoundingClientRect():{left:200,bottom:80};closeMenus();showMenu([["Save visible area as image…","",()=>doExportC({fmt:"png",area:"view",scale:2,bg:"theme"})],["Save whole circuit as image…","",()=>doExportC({fmt:"png",area:"all",scale:2,bg:"theme"})],["Copy visible area to clipboard","",()=>copyShot()],...(window.cesimNative&&window.cesimNative.capture?[["Capture the whole window…","",()=>window.cesimNative.capture(fname("png").replace(".png","_window.png"))]]:[])],r.left,r.bottom,null)}
+async function copyShot(){try{const r=renderExport({fmt:"png",area:"view",scale:2,bg:"theme"});const blob=await (await fetch(r.data)).blob();await navigator.clipboard.write([new ClipboardItem({"image/png":blob})]);toast("Copied. Paste it into Word or a slide.")}catch(err){toast("Copy failed: "+err.message,true)}}
+function schematicPng(scale=2){const saveSel=new Set(sel);sel.clear();const z0=D.view.z,x0=D.view.x,y0=D.view.y;let x1=1e9,y1=1e9,x2=-1e9,y2=-1e9;for(const c of D.comps){const b=wbbox(c);x1=Math.min(x1,b[0]);y1=Math.min(y1,b[1]);x2=Math.max(x2,b[2]+60);y2=Math.max(y2,b[3]+20)}for(const w of D.wires)for(const p of w.pts){x1=Math.min(x1,p.x);y1=Math.min(y1,p.y);x2=Math.max(x2,p.x);y2=Math.max(y2,p.y)}if(x1>x2){x1=0;y1=0;x2=400;y2=300}x1-=40;y1-=50;x2+=40;y2+=30;
+ const Wd=Math.ceil((x2-x1)*scale),Ht=Math.ceil((y2-y1)*scale);const off=document.createElement("canvas");off.width=Wd;off.height=Ht;const g=off.getContext("2d");g.fillStyle=CV.bg;g.fillRect(0,0,Wd,Ht);g.setTransform(scale,0,0,scale,-x1*scale,-y1*scale);g.lineCap="round";g.lineJoin="round";
+ const S_=sim&&sim.doc===D?sim.state:null;for(const w of D.wires){g.strokeStyle=CV.wire;g.lineWidth=1.6;g.beginPath();w.pts.forEach((p,i)=>i?g.lineTo(p.x,p.y):g.moveTo(p.x,p.y));g.stroke()}for(const c of D.comps){const st=S_?S_[c.id]:null;drawComp(c,st,g);drawLabels(c,st,g)}g.fillStyle=CV.wire;for(const p of nets().junc){g.beginPath();g.arc(p.x,p.y,3,0,2*PI);g.fill()}
+ saveSel.forEach(x=>sel.add(x));return {url:off.toDataURL("image/png"),w:Wd/scale,h:Ht/scale}}
+function exportPngFile(){const {url}=schematicPng(3);const fname=D.name.replace(/[^\w.-]+/g,"_")+".png";if(window.cesimNative&&window.cesimNative.saveBinary){window.cesimNative.saveBinary(fname,url.split(",")[1]);return}exportPng()}
+function exportPdfFile(){const {url,w,h}=schematicPng(3);const fname=D.name.replace(/[^\w.-]+/g,"_")+".pdf";const svgW=`<svg xmlns="http://www.w3.org/2000/svg" width="${Math.ceil(w)}" height="${Math.ceil(h)}"><image href="${url}" width="${Math.ceil(w)}" height="${Math.ceil(h)}"/></svg>`;if(window.cesimNative&&window.cesimNative.pdf){window.cesimNative.pdf(fname,svgW);return}toast("PDF export works in the desktop app. Use PNG here.")}
+function bomCsv(){const rows=[["Qty","Component","Value / Model","RefDes"]];const m=new Map();for(const c of D.comps){if(c.t==="gnd")continue;const v=LIB[c.t].val?LIB[c.t].val(c)[0]:"";const k=LIB[c.t].name+"|"+v;if(!m.has(k))m.set(k,{n:LIB[c.t].name,v,refs:[]});m.get(k).refs.push(c.label||"")}for(const r of m.values())rows.push([r.refs.length,r.n,r.v,r.refs.join(" ")]);const csv=rows.map(r=>r.map(x=>'"'+String(x).replace(/"/g,'""')+'"').join(",")).join("\n");tryDownload(D.name.replace(/[^\w.-]+/g,"_")+"_BOM.csv",csv,"text/csv")}
+function exportPng(){const url=schematicPng(2).url;const body=el(`<p style="font-size:12px;color:var(--ui-dim);margin:0 0 8px">Right-click the image and choose "Save image as…".</p><img alt="Schematic image" src="${url}" style="max-width:70vw;max-height:60vh;border:1px solid var(--ui-border)">`);makeWin("Export image",body,{modal:true})}
+function bom(){const m=new Map();for(const c of D.comps){if(c.t==="gnd")continue;const v=LIB[c.t].val?LIB[c.t].val(c)[0]:"";const k=LIB[c.t].name+"|"+v;if(!m.has(k))m.set(k,{n:LIB[c.t].name,v,refs:[]});m.get(k).refs.push(c.label||"—")}
+ const rows=[...m.values()].map(r=>`<tr><td>${r.refs.length}</td><td>${esc(r.n)}</td><td>${esc(r.v)}</td><td>${esc(r.refs.join(", "))}</td></tr>`).join("");makeWin("Bill of Materials — "+D.name,el(`<table class="bom"><tr><th>Qty</th><th>Component</th><th>Value / Model</th><th>RefDes</th></tr>${rows||'<tr><td colspan="4">No components.</td></tr>'}</table>`),{modal:true})}
+function erc(){const net=nets();const issues=[];if(!net.hasGnd)issues.push("No ground symbol. Add Ground so voltages have a reference.");for(const c of D.comps){const cn=net.conn.get(c.id);LIB[c.t].pins.forEach((p,i)=>{if(!cn[i]&&!(c.t==="opamp"||c.t==="comparator")&&!(c.t==="timer555"&&(i===1||i===6))&&!(c.t==="xsc")&&!(c.t==="netlabel")&&!(c.t==="xfg"&&i!==0))issues.push(`${c.label||LIB[c.t].name}: pin ${p[2]} is not connected.`)})}
+ makeWin("Electrical rules check",el(issues.length?"<ul style='margin:0;padding-left:18px;max-width:480px'>"+issues.map(s=>"<li>"+esc(s)+"</li>").join("")+"</ul>":"<p style='margin:0'>No problems found.</p>"),{modal:true})}
+function showHelp(){makeWin("Keyboard shortcuts",el(`<table class="bom" style="min-width:420px">${[["Place component","Ctrl+W"],["Draw wire","Drag from a pin · Ctrl+click a wire to branch"],["Rotate","Ctrl+R / Ctrl+Shift+R"],["Flip","Alt+X / Alt+Y"],["Properties","Double-click · Ctrl+M"],["Delete","Del"],["Undo / Redo","Ctrl+Z / Ctrl+Y"],["Run / Stop","F5"],["Pause","F6"],["Zoom","Mouse wheel · + / −"],["Zoom to fit","F7"],["Pan","Drag empty space · middle mouse"],["Box select","Shift+drag"],["Toggle a switch","Its key (Space by default) or click while running"],["Potentiometer","Its key (A) increases · Shift+key decreases"]].map(([a,b])=>`<tr><td>${a}</td><td>${b}</td></tr>`).join("")}</table>`),{modal:true})}
+function about(){makeWin("About CEsim",el(`<div style="max-width:420px;line-height:1.55"><b style="font-size:15px">CEsim</b> — circuit simulator<br>Schematic capture with an interactive transient engine (modified nodal analysis, Newton-Raphson, backward Euler).<br><br>${countDB().toLocaleString()} components in the master database. Designs save in the browser and as .cesim files; netlists export to SPICE (.cir).</div>`),{modal:true})}
+function showCtx(x,y,c,w){closeMenus();const items=c?[["Properties","Ctrl+M",()=>LIB[c.t].instrument?openInstWin(c):openProps(c)],"-",["Rotate 90° clockwise","Ctrl+R",()=>rotateSel(1)],["Rotate 90° counter-clockwise","Ctrl+Shift+R",()=>rotateSel(-1)],["Flip horizontally","Alt+X",()=>flipSel(true)],["Flip vertically","Alt+Y",()=>flipSel(false)],"-",["Cut","Ctrl+X",()=>{if(copySel())deleteSel()}],["Copy","Ctrl+C",copySel],["Delete","Del",deleteSel]]:w?[["Delete wire","Del",deleteSel]]:[["Place component…","Ctrl+W",()=>openBrowser()],["Paste","Ctrl+V",paste],["Zoom to fit","F7",zoomFit]];showMenu(items,x,y,null)}
+
+/* ================= designs, tabs, storage ================= */
+let theme="white";
+function setTheme(t){theme=t;if(t==="white")document.documentElement.removeAttribute("data-cetheme");else document.documentElement.setAttribute("data-cetheme",t);try{localStorage.setItem("cesim.theme",t)}catch(e){}readTheme()}
+document.querySelectorAll(".swatch").forEach(b=>b.onclick=()=>setTheme(b.dataset.th));
+function renderTabs(){const tb_=$("#tabs");tb_.innerHTML="";docs.forEach((d,i)=>{const t=document.createElement("div");t.className="tab"+(d===D?" on":"");t.innerHTML=svg("design")+"<span>"+esc(d.name)+"</span>"+(d===D?'<span class="x" title="Close">×</span>':"");t.onclick=e=>{if(e.target.classList.contains("x")){closeDoc(i);return}switchDoc(i)};t.ondblclick=()=>renameDoc(i);tb_.appendChild(t)});
+ const a=document.createElement("div");a.className="tab add";a.textContent="+";a.title="New design";a.onclick=()=>addDoc();tb_.appendChild(a);$("#ttl").textContent=D.name+" - CEsim Circuit";document.title=D.name+" — CEsim Circuit";$("#hint").querySelector("h2").textContent=D.name}
+function switchDoc(i){if(docs[i]===D)return;if(running)stopSim();for(const[,o]of instWins)o.win.close();D=docs[i];sel.clear();netCache=null;renderTabs();updateInUse();dirty=1}
+function addDoc(d){let n=1;while(docs.some(x=>x.name==="Design"+n))n++;d=d||newDoc("Design"+n);docs.push(d);switchDoc(docs.length-1);if(d.comps.length)setTimeout(zoomFit,0);autosave();return d}
+function closeDoc(i){if(docs.length===1){D.comps=[];D.wires=[];D.cnt={};D.undo=[];netCache=null;dirty=1;return}if(docs[i]===D&&running)stopSim();docs.splice(i,1);D=docs[Math.min(i,docs.length-1)];sel.clear();netCache=null;renderTabs();updateInUse();dirty=1;autosave()}
+function renameDoc(i){const d=docs[i];const body=el(`<div class="form"><label for="rn">Name</label><input id="rn" value="${esc(d.name)}"><span></span></div>`);const foot=document.createElement("div");foot.className="foot";foot.innerHTML='<button class="btn">Cancel</button><button class="btn pri">Rename</button>';const w=makeWin("Rename design",body,{modal:true,foot});const inp=body.querySelector("input");setTimeout(()=>{inp.focus();inp.select()},20);const go=()=>{const v=inp.value.trim();if(v){d.name=v;renderTabs();autosave()}w.close()};foot.children[1].onclick=go;foot.children[0].onclick=()=>w.close();inp.onkeydown=e=>{if(e.key==="Enter")go()}}
+let saveT=0;function autosave(){clearTimeout(saveT);saveT=setTimeout(()=>saveLocal(false),600)}
+async function saveFileNative(asNew){const N_=window.cesimNative;if(!N_)return false;const text=serialize(D);const native=D.filePath&&/\.cesim$/i.test(D.filePath);if(native&&!asNew){const r=await N_.write(D.filePath,text);if(r){toast("Saved "+D.filePath.split(/[\\/]/).pop());return true}}const r=await N_.save(D.name.replace(/[^\w.-]+/g,"_")+".cesim",text);if(r){D.filePath=r;D.name=r.split(/[\\/]/).pop().replace(/\.cesim$/i,"");renderTabs();toast("Saved "+r.split(/[\\/]/).pop())}return true}
+function saveLocal(show){if(show&&window.cesimNative){saveFileNative(false);try{localStorage.setItem("cesim.docs",JSON.stringify(docs.map(d=>serialize(d))))}catch(e){}return}try{localStorage.setItem("cesim.docs",JSON.stringify(docs.map(d=>serialize(d))));localStorage.setItem("cesim.active",String(docs.indexOf(D)));if(show)toast("Saved in this browser. Use File → Save as file to keep a .cesim copy.")}catch(e){if(show)toast("This browser blocked saving. Use File → Save as file.",true)}}
+const EXV=2;
+function loadLocal(){try{const s=localStorage.getItem("cesim.docs");if(!s)return false;const arr=JSON.parse(s);arr.forEach(x=>docs.push(deserialize(x)));
+ if(+(localStorage.getItem("cesim.exv")||1)<EXV){try{localStorage.setItem("cesim.docs.backup",s)}catch(e){}EXAMPLES.forEach(([n,f])=>{const i=docs.findIndex(d=>d.name===n);if(i>=0){try{docs[i]=splitAtPins(f())}catch(e){}}});localStorage.setItem("cesim.exv",String(EXV))}
+ return docs.length>0}catch(e){return false}}
+$("#fileIn").onchange=async e=>{const f=e.target.files[0];e.target.value="";if(!f)return;const text=await f.text();const base=f.name.replace(/\.[^.]+$/,"");try{if(/\.(cir|net|sp|txt)$/i.test(f.name)&&!/^\s*\{/.test(text)){const d=importCir(text,base);addDoc(d);toast("Imported SPICE netlist with "+d.comps.length+" parts. Arrange them as you like.")}else{const d=deserialize(text,base);addDoc(d)}}catch(err){toast("Could not open "+f.name+": "+err.message,true)}};
+window.cesimOpenText=(name,text,path)=>{const base=name.replace(/\.[^.]+$/,"");try{let d;if(/\.(cir|net|sp)$/i.test(name))d=importCir(text,base);else d=deserialize(text,base);d.filePath=path||null;addDoc(d)}catch(err){toast("Could not open "+name+": "+err.message,true)}};
+
+/* SPICE netlist import (R, C, L, V, I, D, Q, M, E, G) with automatic layout */
+function importCir(text,name){const d=newDoc(name);const lines=text.split(/\r?\n/);const joined=[];for(const l of lines){if(/^\s*\+/.test(l)&&joined.length)joined[joined.length-1]+=" "+l.replace(/^\s*\+/,"");else joined.push(l)}
+ const models={};for(const l of joined){const m=l.match(/^\s*\.model\s+(\S+)\s+(\w+)/i);if(m)models[m[1].toLowerCase()]=m[2].toUpperCase()}
+ const parts=[];for(const raw of joined){const l=raw.trim();if(!l||/^[*.;]/.test(l))continue;const tok=l.split(/\s+/);const id=tok[0],ty=id[0].toUpperCase();let t=null,nodes=[],p={};
+  if(ty==="R"){t="res";nodes=[tok[1],tok[2]];p.resistance=tok[3]}else if(ty==="C"){t="cap";nodes=[tok[1],tok[2]];p.capacitance=tok[3]}else if(ty==="L"){t="ind";nodes=[tok[1],tok[2]];p.inductance=tok[3]}
+  else if(ty==="V"){nodes=[tok[1],tok[2]];const rest=tok.slice(3).join(" ");const s=rest.match(/sin\s*\(\s*([^\s)]+)\s+([^\s)]+)\s+([^\s)]+)/i);const pu=rest.match(/pulse\s*\(([^)]*)\)/i);if(s){t="acv";p={offset:s[1],amp:s[2],freq:s[3]}}else if(pu){const a=pu[1].trim().split(/[\s,]+/);t="clock";const per=num(a[6]),pw=num(a[5]);p={amp:a[1],freq:per>0?si(1/per,""):"1k",duty:per>0?String(Math.round(pw/per*100)):"50"}}else{t="dcv";const dc=rest.match(/(?:dc\s+)?([-+\d.eE]+[a-zA-Zµ]*)/i);p.voltage=dc?dc[1]:"0"}}
+  else if(ty==="I"){t="idc";nodes=[tok[2],tok[1]];p.current=(tok.slice(3).join(" ").match(/([-+\d.eE]+[a-zA-Zµ]*)\s*$/)||[0,"1m"])[1]}
+  else if(ty==="D"){t="diode";nodes=[tok[1],tok[2]];const mn=(tok[3]||"").toUpperCase();if(MODELS.diode[mn])p.model=mn;else if(ZENERS[mn]){t="zener";p.model=mn}else if(/LED/i.test(mn)){t="led"}}
+  else if(ty==="Q"){const mn=tok[4]||"";const pol=models[mn.toLowerCase()]||(MODELS.pnp[mn.toUpperCase()]?"PNP":"NPN");t=pol==="PNP"?"pnp":"npn";nodes=[tok[2],tok[1],tok[3]];if(MODELS[t][mn.toUpperCase()])p.model=mn.toUpperCase()}
+  else if(ty==="M"){const mn=tok[5]||"";const pol=models[mn.toLowerCase()]||"NMOS";t=/PMOS/.test(pol)?"pmos":"nmos";nodes=[tok[2],tok[1],tok[3]]}
+  else if(ty==="X"){const mn=(tok[tok.length-1]||"");const key=Object.keys(MODELS.opamp).find(k=>k.toUpperCase()===mn.toUpperCase());if(key||/OPAMP|OP-?AMP|741|358|324|071|072|082/i.test(mn)){t="opamp";nodes=tok.slice(1,6);while(nodes.length<5)nodes.push("");if(key)p.model=key}}
+  else if(ty==="E"){t="vcvs";nodes=[tok[3],tok[4],tok[1],tok[2]];p.gain=tok[5]}else if(ty==="G"){t="vccs";nodes=[tok[3],tok[4],tok[2],tok[1]];p.gm=tok[5]}
+  if(t)parts.push({t,nodes:nodes.map(x=>/^(0|gnd)$/i.test(x)?"0":x),p,label:id})}
+ parts.forEach(q=>q.nodes=q.nodes.map((x,i)=>x===""?"__NC_"+q.label+"_"+i:x));if(!parts.length)throw new Error("No supported elements (R, C, L, V, I, D, Q, M, E, G, X op-amp) were found.");
+ /* layout: one row of parts (two-terminal parts vertical); every net gets its own horizontal lane above the row */
+ const rowY=320,dx=120;const netPins={};const order=[];
+ parts.forEach((pt,i)=>{const L_=LIB[pt.t];const c=mkComp(d,pt.t,140+i*dx,rowY,pt.p);c.label=pt.label;if(L_.pins.length===2&&L_.pins[0][1]===0)c.r=1;d.comps.push(c);
+  pt.nodes.forEach((nn,j)=>{if(j>=L_.pins.length)return;const pp=pinPos(c,j);const side=pp.y<c.y-1?"top":pp.y>c.y+1?"bottom":"side";(netPins[nn]=netPins[nn]||[]).push({p:pp,side,c});if(!order.includes(nn))order.push(nn)})});
+ const W=(...q)=>{const pts=[];for(let i=0;i<q.length;i+=2)pts.push({x:q[i],y:q[i+1]});const w={id:uid(),pts};if(cleanWire(w))d.wires.push(w)};
+ let lane=0;const gut={};
+ for(const nn of order){const ps=netPins[nn];
+  if(nn==="0"){const rest=[];for(const q of ps){if(q.side==="bottom"){const g=mkComp(d,"gnd",q.p.x,q.p.y+20);d.comps.push(g);W(q.p.x,q.p.y,q.p.x,q.p.y+20)}else rest.push(q)}if(!rest.length)continue;ps.length=0;ps.push(...rest)}
+  if(ps.length<2&&nn!=="0")continue;
+  const ly=rowY-90-(lane++)*20;const xs=[];
+  for(const q of ps){const {p,side,c}=q;
+   if(side==="top"){W(p.x,p.y,p.x,ly);xs.push(p.x)}
+   else if(side==="side"){const ox=p.x+(p.x<c.x?-10:10);W(p.x,p.y,ox,p.y,ox,ly);xs.push(ox)}
+   else{const k=(gut[c.id]=(gut[c.id]||0)+1);const gx=c.x+40+k*8;const by=p.y+20+k*8;W(p.x,p.y,p.x,by,gx,by,gx,ly);xs.push(gx)}}
+  if(nn==="0"){const x0=Math.min(...xs)-30;xs.push(x0);const g=mkComp(d,"gnd",x0,ly+0);d.comps.push(g)}
+  W(Math.min(...xs),ly,Math.max(...xs),ly)}
+ d.wires.forEach(cleanWire);d.wires=d.wires.filter(w=>w.pts.length>=2);return d}
+
+/* ================= example circuits ================= */
+function B(name){const d=newDoc(name);const api={d,add(t,x,y,r,props){const c=mkComp(d,t,x,y,props);c.r=r||0;d.comps.push(c);return c},
+ w(...pts){const p=[];for(let i=0;i<pts.length;i+=2)p.push({x:pts[i],y:pts[i+1]});const w={id:uid(),pts:p};cleanWire(w);d.wires.push(w)},
+ pin(c,i){return pinPos(c,i)},link(c1,i1,c2,i2,hfirst=true){const a=pinPos(c1,i1),b=pinPos(c2,i2);if(a.x===b.x||a.y===b.y)api.w(a.x,a.y,b.x,b.y);else if(hfirst)api.w(a.x,a.y,b.x,a.y,b.x,b.y);else api.w(a.x,a.y,a.x,b.y,b.x,b.y)}};return api}
+const EXAMPLES=[
+ ["non_inverting_amplifier",()=>{const b=B("non_inverting_amplifier");const V1=b.add("acv",200,320,0,{amp:"1",freq:"1k"});b.add("gnd",200,370);b.w(200,350,200,370);
+  const U=b.add("opamp",400,330,0,{model:"AD712KN"});b.w(200,290,200,320-0);b.w(200,290,200,290);b.w(200,290,370,290,370,320);
+  const vp=b.add("vcc",400,260,0,{voltage:"12",net:"V_POS"});b.w(400,260,400,300);const vn=b.add("vcc",400,400,2,{voltage:"-12",net:"V_NEG"});b.w(400,360,400,400);
+  const R2=b.add("res",330,420,1,{resistance:"1k"});b.w(370,340,330,340,330,390);b.add("gnd",330,470);b.w(330,450,330,470);
+  const R1=b.add("res",390,470,0,{resistance:"1k"});b.w(330,390,330,390);b.w(360,470,345,470,345,390,330,390);b.w(420,470,450,470,450,330,430,330);
+  const sc=b.add("xsc",560,230,0,{tb:"500u",va:"1",vb:"1"});b.w(450,330,540,330,540,260);b.w(560,260,560,270,290,270,290,290);b.add("gnd",580,290);b.w(580,260,580,290);
+  b.add("probe",470,330);return b.d}],
+ ["voltage_divider_meters",()=>{const b=B("voltage_divider_meters");b.add("dcv",200,320,0,{voltage:"12"});b.add("gnd",200,380);b.w(200,350,200,380);b.add("ammeter",270,290);b.add("res",330,290,0,{resistance:"1k"});
+  b.add("res",420,320,1,{resistance:"2k"});b.w(360,290,420,290);b.w(200,290,240,290);b.add("voltmeter",500,320,1);b.w(420,290,500,290);b.w(420,350,500,350);b.w(420,350,200,350);
+  b.add("xmm",330,430,0,{mode:"V"});b.w(320,460,320,480,560,480,560,290,500,290);b.w(340,460,340,470,440,470,440,350);return b.d}],
+ ["rc_low_pass_filter",()=>{const b=B("rc_low_pass_filter");b.add("xfg",160,240,0,{wave:"square",freq:"500",amp:"2"});b.add("gnd",160,300);b.w(160,270,160,300);b.w(140,270,140,290,250,290);b.add("res",280,290,0,{resistance:"1k"});
+  b.add("cap",340,320,1,{capacitance:"159n"});b.w(310,290,340,290);b.add("gnd",340,370);b.w(340,350,340,370);b.add("probe",400,290);b.w(340,290,400,290);
+  const s=b.add("xsc",480,150,0,{tb:"500u",va:"1",vb:"1"});b.w(400,290,460,290,460,180);b.w(480,180,480,200,230,200,230,290);b.add("gnd",500,220);b.w(500,180,500,220);return b.d}],
+ ["bridge_with_filter",()=>{const b=B("bridge_with_filter");b.add("acv",160,330,0,{amp:"17",freq:"50"});b.add("bridge",290,330,0,{model:"1N4007"});b.w(160,300,290,300);b.w(160,360,290,360);
+  b.add("res",380,360,1,{resistance:"1k"});b.w(320,330,380,330);b.add("ecap",450,360,1,{capacitance:"470u"});b.w(380,330,450,330);b.w(380,390,450,390);b.w(380,390,380,410,240,410,240,330,260,330);b.add("gnd",380,430);b.w(380,410,380,430);
+  b.add("voltmeter",530,360,1);b.w(450,330,530,330);b.w(450,390,530,390);const s=b.add("xsc",620,250,0,{tb:"10m",va:"5",vb:"5"});b.w(530,330,600,330,600,280);b.add("gnd",640,300);b.w(640,280,640,300);return b.d}],
+ ["bjt_led_switch",()=>{const b=B("bjt_led_switch");b.add("vcc",360,150,0,{voltage:"5"});b.add("res",360,180,1,{resistance:"330"});b.add("led",360,240,1,{color:"green"});b.w(360,270,360,290);
+  b.add("npn",350,320,0,{model:"2N2222A"});b.add("gnd",360,370);b.w(360,350,360,370);b.add("res",290,320,0,{resistance:"10k"});b.add("spst",230,320);b.add("vcc",180,300,0,{voltage:"5"});b.w(200,320,180,320,180,300);return b.d}],
+ ["timer_555_led_blinker",()=>{const b=B("timer_555_led_blinker");const U=b.add("timer555",420,330);b.add("vcc",410,240,0,{voltage:"9"});b.w(410,240,410,280);b.w(430,280,430,260,410,260);
+  b.add("res",300,280,1,{resistance:"1k"});b.w(300,250,300,240,410,240);b.add("res",300,360,1,{resistance:"10k"});b.w(300,310,300,330);b.w(380,350,340,350,340,320,300,320);
+  b.add("ecap",300,440,1,{capacitance:"47u"});b.w(300,390,300,410);b.w(380,310,360,310,360,400,300,400);b.w(380,330,360,330);b.add("gnd",300,490);b.w(300,470,300,490);b.add("gnd",420,400);b.w(420,380,420,400);
+  b.add("res",500,310,0,{resistance:"330"});b.w(460,310,470,310);b.add("led",560,340,1,{color:"red"});b.w(530,310,560,310);b.add("gnd",560,390);b.w(560,370,560,390);return b.d}],
+ ["counter_hex_display",()=>{const b=B("counter_hex_display");b.add("clock",200,330,0,{freq:"2",amp:"5"});b.add("gnd",200,380);b.w(200,360,200,380);b.add("counter",320,330);b.w(200,300,260,300,260,320,280,320);
+  b.add("hexdisp",440,330);for(let i=0;i<4;i++)b.w(360,300+i*20,400,300+i*20);b.add("lprobe",390,260);b.w(390,300,390,260);b.add("lprobe",240,260);b.w(240,300,240,260);return b.d}],
+ ["zener_regulator",()=>{const b=B("zener_regulator");b.add("dcv",200,320,0,{voltage:"12"});b.add("gnd",200,380);b.w(200,350,200,380);b.add("res",270,290,0,{resistance:"470"});b.w(200,290,240,290);
+  b.add("zener",340,320,3,{model:"1N4733A"});b.w(300,290,340,290);b.w(200,350,340,350);b.add("res",440,320,1,{resistance:"1k"});b.w(340,290,440,290);b.w(440,350,340,350);b.add("voltmeter",530,320,1);b.w(440,290,530,290);b.w(440,350,530,350);return b.d}],
+ ["inverting_adder",()=>{const b=B("inverting_adder");b.add("dcv",160,320,0,{voltage:"1"});b.add("gnd",160,380);b.w(160,350,160,380);b.add("dcv",160,460,0,{voltage:"2"});b.add("gnd",160,520);b.w(160,490,160,520);
+  b.add("res",280,290,0,{resistance:"10k"});b.w(160,290,250,290);b.w(310,290,390,290);b.add("res",280,430,0,{resistance:"10k"});b.w(160,430,250,430);b.w(310,430,340,430,340,290);
+  const U=b.add("opamp",420,300,0,{model:"LM358"});U.f=1;b.add("res",420,200,0,{resistance:"10k"});b.w(390,200,370,200,370,290);b.w(450,200,480,200,480,300);b.w(450,300,480,300);
+  b.add("gnd",380,350);b.w(390,310,380,310,380,350);b.add("vcc",420,360,2,{voltage:"12",net:"V_POS"});b.w(420,330,420,360);b.add("vcc",420,250,0,{voltage:"-12",net:"V_NEG"});b.w(420,250,420,270);
+  b.add("voltmeter",540,330,1);b.w(480,300,540,300);b.add("gnd",540,380);b.w(540,360,540,380);return b.d}],
+];
+function splitAtPins(d,only){for(const c of (only||d.comps))LIB[c.t].pins.forEach((_,i)=>{const p=pinPos(c,i);for(const w of d.wires.slice()){for(let j=1;j<w.pts.length;j++){const a=w.pts[j-1],b=w.pts[j];if(onSeg(p,a,b)){const w2={id:uid(),pts:[{x:p.x,y:p.y}].concat(w.pts.slice(j).map(q=>({x:q.x,y:q.y})))};w.pts=w.pts.slice(0,j).map(q=>({x:q.x,y:q.y})).concat([{x:p.x,y:p.y}]);d.wires.push(w2);return}}}});return d}
+function openExample(n){const ex=EXAMPLES.find(e=>e[0]===n);if(!ex)return;const i=docs.findIndex(d=>d.name===n);if(i>=0){switchDoc(i);return}addDoc(splitAtPins(ex[1]()))}
+
+/* ================= boot ================= */
+window.addEventListener("resize",()=>{resize()});
+buildMenus();buildToolbars();
+try{const t=localStorage.getItem("cesim.theme");if(t)theme=t}catch(e){}setTheme(theme);
+if(!loadLocal()){try{localStorage.setItem("cesim.exv",String(EXV))}catch(e){}docs.push(newDoc("Design1"));EXAMPLES.forEach(([n,f])=>{try{docs.push(splitAtPins(f()))}catch(e){console.error(n,e)}})}
+let ai=0;try{ai=+localStorage.getItem("cesim.active")||0}catch(e){}D=docs[clamp(ai,0,docs.length-1)];
+resize();renderTabs();updateInUse();updMode();requestAnimationFrame(t=>{lastTs=t;loop(t)});
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{dirty=1});
+
+if(/fromimage/.test(location.search))setTimeout(()=>openImageTool(),300);
+(function splash(){const sp=$("#splash");if(!sp)return;if(/nosplash/.test(location.search)){sp.remove();return}const cvs=$("#sp-cv"),r=cvs.getBoundingClientRect(),g=cvs.getContext("2d");cvs.width=r.width;cvs.height=r.height;g.strokeStyle="#bfe2ff";g.lineWidth=1.4;
+ // faint circuit traces in the background
+ const rnd=(a)=>Math.floor(Math.random()*a);for(let k=0;k<14;k++){let x=rnd(r.width),y=rnd(r.height);g.beginPath();g.moveTo(x,y);for(let j=0;j<4;j++){if(j%2)y+=(rnd(2)?1:-1)*(20+rnd(60));else x+=(rnd(2)?1:-1)*(30+rnd(90));g.lineTo(x,y)}g.stroke();g.beginPath();g.arc(x,y,2.5,0,7);g.fillStyle="#bfe2ff";g.fill()}
+ requestAnimationFrame(()=>$("#sp-bar").style.width="100%");const msgs=["Loading component database…",countDB().toLocaleString()+" components ready","Starting workspace…"];let i=0;const it=setInterval(()=>{i++;if(i<msgs.length)$("#sp-msg").textContent=msgs[i]},550);
+ const done=()=>{clearInterval(it);sp.classList.add("out");setTimeout(()=>sp.remove(),400)};sp.onclick=done;setTimeout(done,1900)})();
+
+/* ===================== Circuit from image (local AI via Ollama) ===================== */
+const IMGAI={host:"http://127.0.0.1:11434",model:"",img:null,job:null};try{Object.assign(IMGAI,JSON.parse(localStorage.getItem("cesim.imgai")||"{}"));IMGAI.img=null}catch(e){}
+const IMGAI_SAVE=()=>{try{localStorage.setItem("cesim.imgai",JSON.stringify({host:IMGAI.host,model:IMGAI.model}))}catch(e){}};
+const VISION_RX=/(qwen[\d.]*-?vl|qwen3-?vl|gemma3|gemma4|llama3\.2-vision|llama4|minicpm-v|llava|mistral-small3|granite3\.2-vision|moondream|pixtral|bakllava)/i;
+const RECOMMENDED_MODEL="qwen2.5vl:7b";
+async function ollama(req){req=Object.assign({host:IMGAI.host},req);if(window.cesimNative&&window.cesimNative.ollama)return window.cesimNative.ollama(req);
+ const h=req.host.replace(/\/+$/,"");try{if(req.op==="tags"||req.op==="version"){const r=await fetch(h+"/api/"+req.op);return{ok:r.ok,data:await r.json()}}
+  if(req.op==="chat"){const body={model:req.model,stream:false,messages:[{role:"user",content:req.prompt,images:req.images||[]}],options:Object.assign({temperature:0},req.options||{})};if(req.format)body.format=req.format;const r=await fetch(h+"/api/chat",{method:"POST",body:JSON.stringify(body)});if(!r.ok)return{ok:false,error:"HTTP "+r.status};const j=await r.json();return{ok:true,text:j.message?j.message.content:""}}
+  if(req.op==="pull"){const r=await fetch(h+"/api/pull",{method:"POST",body:JSON.stringify({model:req.model,stream:false})});return{ok:r.ok}}
+  return{ok:false,error:"unsupported"}}catch(e){return{ok:false,error:"not-running"}}}
+const IMG_SCHEMA={type:"object",properties:{components:{type:"array",items:{type:"object",properties:{ref:{type:"string"},type:{type:"string",enum:["resistor","capacitor","inductor","dc_voltage_source","ac_voltage_source","dc_current_source","diode","led","zener","npn","pnp","nmos","pmos","opamp"]},value:{type:"string"},amplitude:{type:"string"},frequency:{type:"string"},nodes:{type:"array",items:{type:"string"}}},required:["ref","type","nodes"]}}},required:["components"]};
+const IMG_PROMPT=`You are an expert electronics engineer. Read the circuit schematic in this image and list EVERY component and exactly how they are connected.
+Rules:
+1. Give every electrical node (a group of wires that are connected together) a short name such as n1, n2, out, vin. Use "0" for ground (any ground symbol).
+2. Wires joined by a dot, or meeting in a T, are the SAME node. Wires that simply cross without a dot are NOT connected.
+3. Allowed types: resistor, capacitor, inductor, dc_voltage_source (battery or DC supply), ac_voltage_source (sine source), dc_current_source, diode, led, zener, npn, pnp, nmos, pmos, opamp.
+4. Order of "nodes": resistor/capacitor/inductor = [end1, end2]; voltage/current source = [positive, negative]; diode/led/zener = [anode, cathode]; npn/pnp = [collector, base, emitter]; nmos/pmos = [drain, gate, source]; opamp = [non-inverting input (+), inverting input (-), output, V+ supply, V- supply] and use "" for a supply pin that is not drawn.
+5. "value" uses engineering prefixes: 1k, 4.7k, 100n, 10u, 2.2m, 12 (volts for a DC source). For an AC source put the peak voltage in "amplitude" and the frequency in "frequency". For a transistor or op-amp put its part number in "value" if written (2N2222, uA741), otherwise leave it empty.
+6. Use the reference names printed in the image (R1, C2, Q1, U1...) when they are visible.
+7. A node name must appear on at least two component pins unless that pin is really left open.
+Return ONLY the JSON object.`;
+function cleanVal(v,unit){v=String(v||"").trim().replace(/Ω|ohms?|Ohms?/g,"").replace(/µ|μ/g,"u").replace(/\s+/g,"");if(unit)v=v.replace(new RegExp(unit+"$","i"),"");return v}
+function aiToSpice(obj){const out=["* Circuit read from an image by CEsim (local AI). Check it before simulating."],warn=[];const used=new Set();const comps=(obj&&obj.components)||[];
+ const name=(L,ref)=>{let r=String(ref||"").replace(/[^A-Za-z0-9_]/g,"");if(!r)r=L+"1";if(r[0].toUpperCase()!==L)r=L+r;let n=r,i=2;while(used.has(n.toUpperCase()))n=r+"_"+(i++);used.add(n.toUpperCase());return n};
+ const nd=x=>{x=String(x==null?"":x).trim();if(/^(0|gnd|ground|vss)$/i.test(x))return"0";return x.replace(/[^A-Za-z0-9_+-]/g,"_")};
+ let needSup=false;const extra=[];
+ for(const c of comps){const n=(c.nodes||[]).map(nd);const t=String(c.type||"").toLowerCase();const need={opamp:3,npn:3,pnp:3,nmos:3,pmos:3}[t]||2;
+  if(n.filter(Boolean).length<need){warn.push((c.ref||t)+": not enough connections, skipped");continue}
+  if(t==="resistor")out.push(name("R",c.ref)+" "+n[0]+" "+n[1]+" "+(cleanVal(c.value)||"1k"));
+  else if(t==="capacitor")out.push(name("C",c.ref)+" "+n[0]+" "+n[1]+" "+(cleanVal(c.value,"F")||"1u"));
+  else if(t==="inductor")out.push(name("L",c.ref)+" "+n[0]+" "+n[1]+" "+(cleanVal(c.value,"H")||"1m"));
+  else if(t==="dc_voltage_source")out.push(name("V",c.ref)+" "+n[0]+" "+n[1]+" DC "+(cleanVal(c.value,"V")||"5"));
+  else if(t==="ac_voltage_source"){const a=cleanVal(c.amplitude||c.value,"V(pk|p|peak)?")||"1",f=cleanVal(c.frequency,"Hz")||"1k";out.push(name("V",c.ref)+" "+n[0]+" "+n[1]+" SIN(0 "+a.replace(/vp?k?$/i,"")+" "+f+")")}
+  else if(t==="dc_current_source")out.push(name("I",c.ref)+" "+n[0]+" "+n[1]+" DC "+(cleanVal(c.value,"A")||"1m"));
+  else if(t==="diode")out.push(name("D",c.ref)+" "+n[0]+" "+n[1]+" "+(/^1N\d+/i.test(c.value||"")&&MODELS.diode[String(c.value).toUpperCase()]?String(c.value).toUpperCase():"1N4148"));
+  else if(t==="led")out.push(name("D",c.ref)+" "+n[0]+" "+n[1]+" LED");
+  else if(t==="zener"){const zv=parseFloat(String(c.value||"").replace(/[^\d.]/g,""));let best="1N4733A",bd=1e9;for(const k in ZENERS){const d=Math.abs((ZENERS[k].vz||ZENERS[k])-zv);if(d<bd){bd=d;best=k}}if(ZENERS[String(c.value||"").toUpperCase()])best=String(c.value).toUpperCase();out.push(name("D",c.ref)+" "+n[0]+" "+n[1]+" "+best)}
+  else if(t==="npn"||t==="pnp"){const mv=String(c.value||"").toUpperCase();const m=MODELS[t][mv]?mv:(t==="npn"?"2N2222":"2N3906");out.push(name("Q",c.ref)+" "+n[0]+" "+n[1]+" "+n[2]+" "+m)}
+  else if(t==="nmos"||t==="pmos")out.push(name("M",c.ref)+" "+n[0]+" "+n[1]+" "+n[2]+" "+n[2]+" "+(t==="nmos"?"NMOSX":"PMOSX"));
+  else if(t==="opamp"){const key=Object.keys(MODELS.opamp).find(k=>k.toUpperCase()===String(c.value||"").toUpperCase())||"uA741";let vp=n[3],vn=n[4];if(!vp){vp="VPOS_AUTO";needSup=true}if(!vn){vn="VNEG_AUTO";needSup=true}out.push(name("X",c.ref)+" "+n[0]+" "+n[1]+" "+n[2]+" "+vp+" "+vn+" "+key)}
+  else warn.push((c.ref||t)+": type '"+t+"' is not supported, skipped")}
+ if(needSup){out.push("VSUP_POS VPOS_AUTO 0 DC 15","VSUP_NEG 0 VNEG_AUTO DC 15");warn.push("Op-amp supply pins were not drawn: added ±15 V supplies.")}
+ if(out.some(l=>/NMOSX/.test(l)))out.push(".model NMOSX NMOS");if(out.some(l=>/PMOSX/.test(l)))out.push(".model PMOSX PMOS");
+ // single-use nodes
+ const cnt={};out.forEach(l=>{if(/^[*.]/.test(l))return;const tk=l.split(/\s+/);const k=tk[0][0].toUpperCase();const ns=k==="Q"||k==="M"?tk.slice(1,4):k==="X"?tk.slice(1,6):tk.slice(1,3);ns.forEach(x=>cnt[x]=(cnt[x]||0)+1)});
+ const lone=Object.keys(cnt).filter(k=>k!=="0"&&cnt[k]<2);if(lone.length)warn.push("Nodes connected to only one pin (check them): "+lone.join(", "));
+ if(!Object.keys(cnt).includes("0"))warn.push("No ground found. The simulator needs a ground: rename one node to 0.");
+ out.push(".end");return{text:out.join("\n"),warn,count:comps.length}}
+function parseAiJson(t){t=String(t||"").trim().replace(/^```(?:json)?/i,"").replace(/```$/,"").trim();try{return JSON.parse(t)}catch(e){const a=t.indexOf("{"),b=t.lastIndexOf("}");if(a>=0&&b>a)return JSON.parse(t.slice(a,b+1));throw e}}
+async function imageToB64(src,maxSide=1600){const img=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=()=>rej(new Error("This file is not an image the app can read."));i.src=src});
+ const k=Math.min(1,maxSide/Math.max(img.naturalWidth,img.naturalHeight));const c=document.createElement("canvas");c.width=Math.max(1,Math.round(img.naturalWidth*k));c.height=Math.max(1,Math.round(img.naturalHeight*k));const g=c.getContext("2d");g.fillStyle="#fff";g.fillRect(0,0,c.width,c.height);g.drawImage(img,0,0,c.width,c.height);return c.toDataURL("image/png").split(",")[1]}
+function openImageTool(){const b=document.createElement("div");b.className="imgai";
+ b.innerHTML=`<div class="ia-grid"><div class="ia-left"><div id="ia-drop" tabindex="0" role="button" aria-label="Choose or drop a circuit image"><div id="ia-ph"><b>Drop a circuit image here</b><br>or click to choose a file · or paste with Ctrl+V<br><span>PNG, JPG, screenshots, book pages</span></div><img id="ia-img" alt=""></div><input type="file" id="ia-file" accept="image/*" hidden>
+ <div class="ia-row"><label for="ia-model">AI model</label><select id="ia-model"><option value="">Checking Ollama…</option></select><button class="btn" id="ia-refresh" title="Refresh model list">↻</button></div>
+ <div id="ia-status" class="ia-status"></div>
+ <div class="ia-row"><button class="btn pri" id="ia-run" disabled>Read circuit</button><button class="btn" id="ia-cancel" style="display:none">Cancel</button><span id="ia-time" class="ia-dim"></span></div>
+ <details class="ia-adv"><summary>Settings</summary><div class="ia-row"><label for="ia-host">Ollama address</label><input id="ia-host" value="${esc(IMGAI.host)}"></div><p class="ia-dim">Runs on your Mac with Ollama. Nothing is uploaded to the internet.</p></details></div>
+ <div class="ia-right"><div class="ia-dim" style="margin-bottom:6px">Netlist (you can edit it before importing)</div><textarea id="ia-net" spellcheck="false" placeholder="The circuit the AI reads will appear here as a netlist."></textarea><div id="ia-warn"></div>
+ <div class="ia-row" style="justify-content:flex-end"><button class="btn" id="ia-raw" style="display:none">Show AI answer</button><button class="btn pri" id="ia-import" disabled>Import as new design</button></div></div></div>`;
+ const w=makeWin("Circuit from image",b,{modal:true});const q=s=>b.querySelector(s);let raw="";
+ const st=(h,cls)=>{const e=q("#ia-status");e.className="ia-status "+(cls||"");e.innerHTML=h};
+ const setImg=async src=>{try{IMGAI.img=await imageToB64(src);q("#ia-img").src="data:image/png;base64,"+IMGAI.img;q("#ia-img").style.display="block";q("#ia-ph").style.display="none";upd()}catch(e){toast(e.message,true)}};
+ const fileIn=f=>{if(!f)return;const r=new FileReader();r.onload=()=>setImg(r.result);r.readAsDataURL(f)};
+ q("#ia-drop").onclick=()=>q("#ia-file").click();q("#ia-drop").onkeydown=e=>{if(e.key==="Enter"||e.key===" ")q("#ia-file").click()};q("#ia-file").onchange=e=>fileIn(e.target.files[0]);
+ q("#ia-drop").ondragover=e=>{e.preventDefault();q("#ia-drop").classList.add("over")};q("#ia-drop").ondragleave=()=>q("#ia-drop").classList.remove("over");q("#ia-drop").ondrop=e=>{e.preventDefault();e.stopPropagation();q("#ia-drop").classList.remove("over");fileIn(e.dataTransfer.files[0])};
+ const onPaste=e=>{if(!document.body.contains(b)){document.removeEventListener("paste",onPaste);return}const it=[...(e.clipboardData||{}).items||[]].find(i=>i.type.startsWith("image/"));if(it){e.preventDefault();fileIn(it.getAsFile())}};document.addEventListener("paste",onPaste);
+ const upd=()=>{q("#ia-run").disabled=!(IMGAI.img&&q("#ia-model").value&&!IMGAI.job)};
+ q("#ia-model").onchange=()=>{const v=q("#ia-model").value;if(v==="__pull"){pull(RECOMMENDED_MODEL);return}IMGAI.model=v;IMGAI_SAVE();upd()};
+ q("#ia-host").onchange=()=>{IMGAI.host=q("#ia-host").value.trim()||"http://127.0.0.1:11434";IMGAI_SAVE();check()};
+ async function check(){const sel=q("#ia-model");sel.innerHTML='<option value="">Checking Ollama…</option>';const r=await ollama({op:"tags"});
+  if(!r.ok){sel.innerHTML='<option value="">Ollama is not running</option>';st(`<b>Ollama is not running on this Mac.</b><ol><li>Download it free from <b>ollama.com</b> and open it (it sits in the menu bar).</li><li>Come back here and press ↻. CEsim can then download the AI model for you (about 6 GB, one time).</li></ol>`,"warn");upd();return}
+  const all=(r.data.models||[]).map(m=>m.name);const vis=all.filter(n=>VISION_RX.test(n));const other=all.filter(n=>!VISION_RX.test(n));
+  let h=vis.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join("");if(other.length)h+=`<optgroup label="Other models (may not read images)">`+other.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join("")+"</optgroup>";
+  if(!vis.length)h=`<option value="">No vision model yet</option><option value="__pull">Download ${RECOMMENDED_MODEL} (about 6 GB)…</option>`+h;else h+=`<option value="__pull">Download ${RECOMMENDED_MODEL}…</option>`;
+  sel.innerHTML=h;const pref=[IMGAI.model,...vis].find(n=>n&&all.includes(n));sel.value=pref||"";
+  st(vis.length?`Ollama is ready. ${vis.length} model${vis.length>1?"s":""} can read images.`:`Ollama is running, but no model that reads images is installed. Choose “Download ${RECOMMENDED_MODEL}”.`,vis.length?"ok":"warn");upd()}
+ async function pull(m){const job="p"+Date.now();IMGAI.job=job;upd();q("#ia-cancel").style.display="";st("Downloading "+esc(m)+"… <progress id='ia-prog' max='100' value='0'></progress> <span id='ia-pt'></span>");
+  const off=window.cesimNative&&window.cesimNative.onOllamaProgress?window.cesimNative.onOllamaProgress(d=>{if(d.job!==job)return;const p=q("#ia-prog"),t=q("#ia-pt");if(d.total&&d.completed!=null&&p){p.value=Math.round(d.completed/d.total*100);t.textContent=(d.completed/1e9).toFixed(2)+" / "+(d.total/1e9).toFixed(2)+" GB"}else if(t&&d.status)t.textContent=d.status}):null;
+  const r=await ollama({op:"pull",model:m,job});off&&off();IMGAI.job=null;q("#ia-cancel").style.display="none";if(r.ok){IMGAI.model=m;IMGAI_SAVE();toast("Model downloaded.");check()}else{st("Download failed: "+esc(r.error||""),"err");check()}}
+ q("#ia-refresh").onclick=check;
+ q("#ia-cancel").onclick=()=>{if(IMGAI.job)ollama({op:"cancel",job:IMGAI.job})};
+ q("#ia-run").onclick=async()=>{const job="c"+Date.now();IMGAI.job=job;upd();q("#ia-cancel").style.display="";const t0=Date.now();let tok=0;
+  const tick=setInterval(()=>{q("#ia-time").textContent="Reading… "+Math.round((Date.now()-t0)/1000)+" s"+(tok?" · "+tok+" tokens":"")},500);
+  const off=window.cesimNative&&window.cesimNative.onOllamaProgress?window.cesimNative.onOllamaProgress(d=>{if(d.job===job&&d.tokens)tok=d.tokens}):null;
+  st("The AI is reading the circuit. The first run can take a minute while the model loads.");
+  const r=await ollama({op:"chat",job,model:q("#ia-model").value,prompt:IMG_PROMPT,images:[IMGAI.img],format:IMG_SCHEMA,options:{temperature:0,num_ctx:8192}});
+  clearInterval(tick);off&&off();IMGAI.job=null;q("#ia-cancel").style.display="none";q("#ia-time").textContent=r.ok?"Done in "+Math.round((Date.now()-t0)/1000)+" s":"";upd();
+  if(!r.ok){st(r.error==="cancelled"?"Cancelled.":r.error==="not-running"?"Ollama stopped responding. Make sure it is open.":"The AI could not read it: "+esc(r.error),"err");return}
+  raw=r.text;q("#ia-raw").style.display="";let o;try{o=parseAiJson(raw)}catch(e){st("The AI answer was not valid. Try again, or try a clearer image.","err");return}
+  const res=aiToSpice(o);q("#ia-net").value=res.text;q("#ia-warn").innerHTML=res.warn.map(x=>"<div>⚠ "+esc(x)+"</div>").join("");q("#ia-import").disabled=false;
+  st(`Found <b>${res.count}</b> component${res.count===1?"":"s"}. Check the netlist, then import.`,"ok")};
+ q("#ia-raw").onclick=()=>{const p=document.createElement("pre");p.className="ia-pre";p.textContent=raw;makeWin("AI answer",p,{})};
+ q("#ia-import").onclick=()=>{try{const d=importCir(q("#ia-net").value,"from_image");addDoc(d);w.close();toast("Imported. Check every connection before you simulate.")}catch(e){toast(e.message,true)}};
+ check();setTimeout(()=>q("#ia-drop").focus(),50);return b}
+
+window.CE={openImageTool,aiToSpice,parseAiJson,importCir,serialize,deserialize,addDoc,hitLabel,openProps,openExportDlg,doExportC,renderExport,voltsCsv,render:()=>{resize();render()},docs:()=>docs,D:()=>D,sim:()=>sim,openExample,runSim,stopSim,Sim,switchDoc,LIB,zoomFit,countDB,EXAMPLES,setTheme};
+</script>
+</body>
+</html>

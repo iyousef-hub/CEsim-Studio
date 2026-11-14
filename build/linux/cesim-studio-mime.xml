@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
+  <mime-type type="application/x-cesim"><comment>CEsim Circuit</comment><glob pattern="*.cesim"/></mime-type>
+  <mime-type type="application/x-cediag"><comment>CEsim Diagram</comment><glob pattern="*.cediag"/></mime-type>
+  <mime-type type="application/x-ce3d"><comment>CEsim 3D model</comment><glob pattern="*.ce3d"/></mime-type>
+</mime-info>

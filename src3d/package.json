@@ -1,0 +1,14 @@
+{
+  "name": "cesim-3d-bundle",
+  "private": true,
+  "description": "Builds app/lib/3d.bundle.js for the CEsim 3D tool",
+  "scripts": {
+    "build": "esbuild src3d.js --bundle --format=iife --minify --loader:.json=json --outfile=../app/lib/3d.bundle.js"
+  },
+  "devDependencies": {
+    "esbuild": "^0.24.0",
+    "three": "^0.169.0",
+    "three-bvh-csg": "^0.0.16",
+    "three-mesh-bvh": "^0.8.3"
+  }
+}

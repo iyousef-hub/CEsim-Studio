@@ -1,0 +1,8 @@
+#!/bin/sh
+set -e
+chown root:root /opt/cesim-studio/chrome-sandbox 2>/dev/null || true
+chmod 4755 /opt/cesim-studio/chrome-sandbox 2>/dev/null || true
+command -v update-desktop-database >/dev/null && update-desktop-database -q || true
+command -v update-mime-database >/dev/null && update-mime-database /usr/share/mime || true
+command -v gtk-update-icon-cache >/dev/null && gtk-update-icon-cache -q /usr/share/icons/hicolor || true
+exit 0

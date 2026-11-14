@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link href="fonts/fonts.css" rel="stylesheet"><title>CEsim 3D</title>
+<style>
+:root{--bg:#e9edf2;--panel:#f7f8fa;--line:#c8ced8;--text:#1b2230;--dim:#5e6979;--hover:#dde4ec;--accent:#185fa5;--acc-ink:#fff;--font:"IBM Plex Sans",-apple-system,"Segoe UI",Roboto,Arial,sans-serif;--mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;color-scheme:light}
+*{box-sizing:border-box}html,body{height:100%;margin:0}body{background:var(--bg);color:var(--text);font:13px/1.35 var(--font);overflow:hidden;user-select:none}
+#app{display:grid;grid-template-rows:auto 1fr;grid-template-columns:minmax(0,1fr);height:100%}
+#top{display:flex;flex-wrap:wrap;row-gap:2px;align-items:center;gap:2px;padding:4px 10px;min-height:44px;box-sizing:border-box;min-width:0;overflow:visible;background:var(--panel);border-bottom:1px solid var(--line)}
+.logo{flex:none;width:24px;height:24px;border-radius:6px;background:var(--accent);color:#fff;display:grid;place-items:center;font:600 10px var(--mono);margin-right:6px}
+#docname{flex:none;font-weight:600;margin-right:12px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tb{height:30px;min-width:28px;padding:0 6px;white-space:nowrap;flex:none;border:1px solid transparent;border-radius:4px;background:none;color:var(--text);cursor:pointer;font:12.5px var(--font);display:inline-flex;align-items:center;gap:5px}
+.tb:hover{background:var(--hover);border-color:var(--line)}.tb.on{background:#cfe0f3;border-color:#8fb3da}
+.tb:focus-visible,select:focus-visible,input:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.tb svg{width:17px;height:17px}
+.sep{width:1px;height:22px;background:var(--line);margin:0 6px}
+select.s{flex:none;height:28px;border:1px solid var(--line);border-radius:4px;background:#fff;font:12px var(--font);color:var(--text)}
+#main{display:grid;grid-template-columns:minmax(0,1fr) 290px;min-height:0}
+#view{position:relative;min-width:0;min-height:0;overflow:hidden}
+#view canvas{display:block;position:absolute;inset:0;z-index:0}
+#vctl,#hint,.dim,.mlabel,#alignpop{z-index:5}
+#vctl{position:absolute;left:12px;top:12px;display:flex;flex-direction:column;gap:4px;background:rgba(255,255,255,.92);border:1px solid var(--line);border-radius:6px;padding:4px}
+#vctl .tb{height:28px;width:28px;padding:0;justify-content:center;font-size:11px}
+#hint{position:absolute;left:50%;top:12px;transform:translateX(-50%);background:rgba(27,34,48,.85);color:#fff;padding:5px 12px;border-radius:5px;font-size:12px;pointer-events:none}
+#hint:empty{display:none}
+.dim{position:absolute;transform:translate(-50%,-50%);background:#fff;border:1px solid #0f9bb4;color:#0a6f82;font:600 11px var(--mono);padding:1px 6px;border-radius:3px;pointer-events:none;white-space:nowrap;font-variant-numeric:tabular-nums}
+.mlabel{position:absolute;transform:translate(-50%,-120%);background:#fff;border:1px solid #d1452b;border-radius:4px;padding:2px 7px;font:11px var(--mono);color:#a3321d;pointer-events:none;display:flex;flex-direction:column;align-items:center;white-space:nowrap}
+.mlabel b{font-size:12.5px}
+#side{background:var(--panel);border-left:1px solid var(--line);display:flex;flex-direction:column;min-height:0;overflow:auto}
+.sec{padding:10px 12px;border-bottom:1px solid var(--line)}
+.sec h3{margin:0 0 8px;font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--dim);font-weight:600}
+.shapes{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}
+.shp{height:58px;border:1px solid var(--line);border-radius:5px;background:#fff;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:10.5px;color:var(--dim);padding:0}
+.shp:hover{border-color:var(--accent);color:var(--text)}
+.shp svg{width:28px;height:28px}
+.shp.hole svg{opacity:.75}
+#boards{display:flex;flex-direction:column;gap:4px}
+.bl{display:flex;justify-content:space-between;align-items:center;gap:6px;border:1px solid var(--line);background:#fff;border-radius:4px;padding:6px 8px;cursor:pointer;text-align:left;font:12px var(--font);color:var(--text)}
+.bl:hover{border-color:var(--accent)}.bl span{color:var(--dim);font:11px var(--mono);white-space:nowrap}
+#insp{display:flex;flex-direction:column;gap:7px}
+#insp .nm{height:28px;border:1px solid var(--line);border-radius:4px;padding:0 8px;font:600 13px var(--font);background:#fff;color:var(--text)}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:2px 6px}
+.grid3 label{font-size:10.5px;color:var(--dim)}
+.grid3 input,#insp input[type=number],#insp #i-text{height:26px;border:1px solid var(--line);border-radius:3px;padding:0 6px;font:12px var(--mono);background:#fff;color:var(--text);min-width:0;width:100%;font-variant-numeric:tabular-nums}
+.grid3 input:disabled{background:#eef0f3;color:var(--dim)}
+.row2{display:flex;align-items:center;gap:8px}.lbl{font-size:12px;color:var(--dim);display:flex;align-items:center;gap:4px}
+.seg2{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--line);border-radius:4px;overflow:hidden}
+.seg2 button{height:28px;border:none;background:#fff;font:600 12px var(--font);cursor:pointer;color:var(--dim)}
+.seg2 button.on{background:var(--accent);color:#fff}
+.btn{height:28px;padding:0 12px;border:1px solid var(--line);border-radius:4px;background:#fff;font:12.5px var(--font);cursor:pointer;color:var(--text)}
+.btn:hover{background:var(--hover)}
+.muted{color:var(--dim);font-size:12px;line-height:1.45}.ih{font-weight:600}
+.unitnote{font-size:10.5px;color:var(--dim);text-align:right}
+#tree{max-height:180px;overflow:auto;display:flex;flex-direction:column;gap:1px}
+#tree .ti{display:flex;align-items:center;gap:7px;padding:3px 6px;border-radius:3px;cursor:pointer;font-size:12px}
+#tree .ti:hover{background:var(--hover)}#tree .ti.on{background:#cfe0f3}
+#tree .sw{width:11px;height:11px;border-radius:2px;flex:none;border:1px solid rgba(0,0,0,.15)}
+#tree .k{margin-left:auto;color:var(--dim);font-size:10.5px}
+#alignpop{position:absolute;right:300px;top:52px;display:none;grid-template-columns:auto repeat(3,auto);gap:4px 6px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:6px;padding:10px 12px;box-shadow:0 8px 24px rgba(0,0,0,.15);z-index:20;font-size:12px}
+#alignpop button{height:26px;border:1px solid var(--line);background:#fff;border-radius:3px;cursor:pointer;font:12px var(--font)}
+#alignpop button:hover{background:var(--hover)}
+#dlg3{position:absolute;right:300px;top:56px;width:340px;display:none;background:#fff;border:1px solid var(--line);border-radius:8px;box-shadow:0 14px 36px rgba(20,30,50,.22);padding:14px;z-index:30}
+.dh{font-weight:600;font-size:14px;margin-bottom:8px}.dg{display:grid;grid-template-columns:1fr 130px;gap:7px 10px;align-items:center}.dg label{font-size:12.5px;color:var(--dim)}.dg input,.dg select{height:28px;border:1px solid var(--line);border-radius:4px;padding:0 6px;font:12.5px var(--font);background:#fff;min-width:0}.dg input[type=checkbox]{height:16px;justify-self:start}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:#fff}.btn.pri:hover{background:#134e88}
+.qc3{display:inline-flex;gap:3px;flex-wrap:wrap}.qc3 button{width:16px;height:16px;border-radius:3px;border:1px solid rgba(0,0,0,.2);padding:0;cursor:pointer}
+#help3{position:absolute;left:50%;top:60px;transform:translateX(-50%);width:430px;display:none;background:#fff;border:1px solid var(--line);border-radius:8px;box-shadow:0 14px 36px rgba(20,30,50,.22);padding:16px;z-index:31;font-size:12.5px}
+#help3 table{width:100%;border-collapse:collapse}#help3 td{padding:3px 4px;border-bottom:1px solid #edf0f4}#help3 td:last-child{font-family:var(--mono);color:var(--dim);text-align:right}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#1b2230;color:#fff;padding:8px 14px;border-radius:5px;z-index:60;font-size:12.5px;max-width:70vw}
+.toast.err{background:#c0392b}
+#mirSel,#viewSel{width:auto;max-width:118px}
+#shot3{position:fixed;z-index:60;display:none;flex-direction:column;min-width:210px;background:#fff;border:1px solid #d5dce6;border-radius:6px;padding:4px;box-shadow:0 10px 26px rgba(20,30,50,.2)}#shot3 button{border:none;background:none;text-align:left;padding:7px 10px;font:12.5px var(--font,sans-serif);border-radius:4px;cursor:pointer}#shot3 button:hover{background:#eaf3ff}
+</style></head>
+<body><div id="app">
+<div id="top"><div class="logo">CE</div><span id="docname">Untitled</span>
+ <button class="tb" id="b-new" title="New">New</button><button class="tb" id="b-open" title="Open (.ce3d, .stl, .obj, .3mf)">Open</button><button class="tb" id="b-save" title="Save project (Ctrl+S)">Save</button><button class="tb" id="b-import" title="Import .stl, .obj, .3mf">Import</button>
+ <button class="tb" id="b-export" title="Export (Ctrl+E)">Export…</button>
+ <div class="sep"></div>
+ <button class="tb" id="b-undo" title="Undo (Ctrl+Z)">Undo</button><button class="tb" id="b-redo" title="Redo (Ctrl+Y)">Redo</button><div class="sep"></div>
+ <button class="tb" id="b-group" title="Group: join solids and cut holes (Ctrl+G)">Group</button><button class="tb" id="b-ungroup" title="Ungroup (Ctrl+Shift+G)">Ungroup</button><button class="tb" id="b-align" title="Align selected">Align</button>
+ <select class="s" id="mirSel" aria-label="Mirror" title="Mirror the selection" onchange="const v=this.value;this.value='';if(v)document.getElementById('b-m'+v).click()"><option value="">Mirror…</option><option value="x">Mirror across X</option><option value="y">Mirror across Y</option><option value="z">Mirror across Z</option></select><span style="display:none"><button class="tb" id="b-mx" title="Mirror across X">Mirror X</button><button class="tb" id="b-my" title="Mirror across Y">Mirror Y</button><button class="tb" id="b-mz" title="Mirror across Z">Mirror Z</button></span>
+ <button class="tb" id="b-dup" title="Duplicate (Ctrl+D)">Duplicate</button><button class="tb" id="b-array" title="Array / pattern (Shift+A)">Array</button><button class="tb" id="b-shell" title="Make a shape hollow">Hollow</button><button class="tb" id="b-enc" title="Auto enclosure for the selected board">Enclosure</button><button class="tb" id="b-drop" title="Drop to workplane (D)">Drop</button><button class="tb" id="b-del" title="Delete">Delete</button><div class="sep"></div>
+ <button class="tb" id="g-translate" title="Move gizmo (W)">Move</button><button class="tb" id="g-rotate" title="Rotate gizmo (E)">Rotate</button><button class="tb" id="g-scale" title="Scale gizmo (R)">Scale</button><div class="sep"></div>
+ <button class="tb" id="b-measure" title="Measure distance (M)">Ruler</button><button class="tb" id="b-clearm" title="Clear measurements">Clear</button>
+ <span style="flex:1"></span>
+ <label class="lbl" for="snapSel">Snap</label><select class="s" id="snapSel"><option value="0.1">0.1</option><option value="0.5">0.5</option><option value="1" selected>1.0</option><option value="2">2.0</option><option value="5">5.0</option><option value="10">10</option></select>
+ <select class="s" id="unitSel" aria-label="Units"><option value="mm">mm</option><option value="in">inch</option></select>
+ <select class="s" id="viewSel" aria-label="View options"><option value="">View…</option><option value="grid">Show / hide grid</option><option value="dims">Show / hide dimensions</option><option value="dark">Light / dark background</option><option value="settings">Control settings…</option><option value="help">Keyboard shortcuts</option></select>
+ <select class="s" id="wpSel" aria-label="Workplane size"><option value="300x200">Plate 300×200</option><option value="200x200">200×200</option><option value="220x220">220×220</option><option value="256x256">256×256</option><option value="400x300">400×300</option></select>
+</div>
+<div id="main">
+ <div id="view"><div id="vctl"><button class="tb" id="v-set" title="Control settings: zoom speed, mouse buttons…">⚙</button><button class="tb" id="v-shot" title="Screenshot">📷</button><button class="tb" id="v-home" title="Home view">⌂</button><button class="tb" id="v-fit" title="Fit (F)">Fit</button><button class="tb" id="v-zin" title="Zoom in">+</button><button class="tb" id="v-zout" title="Zoom out">−</button><button class="tb" id="v-top" title="Top view">Top</button><button class="tb" id="v-front" title="Front view">Fr</button><button class="tb" id="v-right" title="Right view">Rt</button><button class="tb" id="v-iso" title="Iso view">Iso</button></div>
+  <div id="hint"></div><div class="dim" id="dim-w"></div><div class="dim" id="dim-d"></div><div class="dim" id="dim-h"></div>
+  <div id="dlg3" role="dialog"></div><div id="shot3" role="menu"></div><div id="help3" role="dialog"><div class="row2" style="justify-content:space-between;margin-bottom:8px"><b>Keyboard and mouse</b><button class="btn" onclick="this.closest('#help3').style.display='none'">Close</button></div><table>
+<tr><td>Orbit / pan / zoom</td><td>Right-drag · Middle-drag · Scroll</td></tr><tr><td>Move selected on the plate</td><td>Drag · Arrow keys</td></tr><tr><td>Raise / lower</td><td>Ctrl+↑ / Ctrl+↓</td></tr><tr><td>Bigger nudge</td><td>Shift+Arrow</td></tr><tr><td>Move / rotate / scale gizmo</td><td>W / E / R</td></tr>
+<tr><td>Drop to plate</td><td>D</td></tr><tr><td>Hole on / off</td><td>H</td></tr><tr><td>Group / ungroup</td><td>Ctrl+G / Ctrl+Shift+G</td></tr><tr><td>Copy / paste / duplicate</td><td>Ctrl+C / Ctrl+V / Ctrl+D</td></tr><tr><td>Array</td><td>Shift+A</td></tr><tr><td>Ruler</td><td>M</td></tr><tr><td>Fit view</td><td>F · double-click a shape</td></tr><tr><td>Export</td><td>Ctrl+E</td></tr><tr><td>Undo / redo</td><td>Ctrl+Z / Ctrl+Y</td></tr><tr><td>New shapes</td><td>Land on top of the selected shape</td></tr></table></div><div id="alignpop"><b>X</b><button data-al="x:min">Left</button><button data-al="x:mid">Center</button><button data-al="x:max">Right</button><b>Y</b><button data-al="y:min">Front</button><button data-al="y:mid">Center</button><button data-al="y:max">Back</button><b>Z</b><button data-al="z:min">Bottom</button><button data-al="z:mid">Middle</button><button data-al="z:max">Top</button><span></span><span></span><span></span><button id="alignbtn-close">Close</button></div>
+ </div>
+ <div id="side">
+  <div class="sec"><h3>Inspector</h3><div id="insp"></div></div>
+  <div class="sec"><h3>Basic shapes</h3><div class="shapes" id="shapes"></div></div>
+  <div class="sec"><h3>Boards and modules</h3><div id="boards"></div></div>
+  <div class="sec"><h3>Scene</h3><div id="tree"></div></div>
+  <div class="sec muted">Right-drag orbit · Middle-drag pan · Scroll zoom · Arrows nudge (Shift ×10, Ctrl = height) · H toggles hole · Ctrl+G group</div>
+ </div>
+</div></div>
+<input type="file" id="fileIn" accept=".ce3d,.json,.stl,.obj,.3mf" multiple style="display:none">
+<script>
+(function(){const S=[['box','Box','<path d="M4 9l8-4 8 4v8l-8 4-8-4z M4 9l8 4 8-4 M12 13v8"/>'],['cylinder','Cylinder','<ellipse cx="12" cy="6" rx="7" ry="2.6"/><path d="M5 6v12c0 1.4 3.1 2.6 7 2.6s7-1.2 7-2.6V6"/>'],['sphere','Sphere','<circle cx="12" cy="12" r="8"/><ellipse cx="12" cy="12" rx="8" ry="3"/>'],['cone','Cone','<path d="M12 3l7 15c0 1.4-3.1 2.6-7 2.6S5 19.4 5 18z"/>'],['pyramid','Pyramid','<path d="M12 3l8 14-8 4-8-4z M12 3v18"/>'],['wedge','Wedge','<path d="M4 18h16L4 6z"/>'],['torus','Torus','<ellipse cx="12" cy="12" rx="9" ry="5"/><ellipse cx="12" cy="12" rx="3.5" ry="1.6"/>'],['ring','Tube','<ellipse cx="12" cy="7" rx="7" ry="2.6"/><ellipse cx="12" cy="7" rx="4" ry="1.4"/><path d="M5 7v10c0 1.4 3.1 2.6 7 2.6s7-1.2 7-2.6V7"/>'],['roundbox','Round box','<rect x="4" y="6" width="16" height="12" rx="3"/>'],['hexprism','Hexagon','<path d="M7 5h10l4 7-4 7H7l-4-7z"/>'],['text','Text','<path d="M5 6h14M12 6v13"/>'],['box','Box hole','<path d="M4 9l8-4 8 4v8l-8 4-8-4z" stroke-dasharray="2 2"/>',1],['cylinder','Cyl. hole','<ellipse cx="12" cy="6" rx="7" ry="2.6" stroke-dasharray="2 2"/><path d="M5 6v12c0 1.4 3.1 2.6 7 2.6s7-1.2 7-2.6V6" stroke-dasharray="2 2"/>',1]];
+document.getElementById('shapes').innerHTML=S.map(([k,n,p,h])=>`<button class="shp${h?' hole':''}" data-shape="${k}" data-hole="${h?1:0}" title="${n}"><svg viewBox="0 0 24 24" fill="none" stroke="${h?'#7f8b9c':'#185fa5'}" stroke-width="1.5" stroke-linejoin="round">${p}</svg>${n}</button>`).join('')})();
+</script>
+<script src="lib/3d.bundle.js"></script>
+</body></html>

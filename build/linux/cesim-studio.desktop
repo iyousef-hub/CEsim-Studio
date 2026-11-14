@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=CEsim Studio
+Comment=Circuit simulator, diagrams and 3D. BY. YOUSEF
+Exec=/opt/cesim-studio/cesim-studio %F
+Icon=cesim-studio
+Terminal=false
+Type=Application
+Categories=Education;Engineering;Electronics;Science;
+MimeType=application/x-cesim;application/x-cediag;application/x-ce3d;
+StartupWMClass=CEsim Studio

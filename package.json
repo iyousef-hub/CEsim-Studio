@@ -1,0 +1,17 @@
+{
+  "name": "cesim-studio-build",
+  "private": true,
+  "version": "1.4.0",
+  "description": "Build scripts for CEsim Studio",
+  "scripts": {
+    "start": "electron app",
+    "build:3d": "npm --prefix src3d install && npm --prefix src3d run build",
+    "pack:mac": "node build/pack.js darwin arm64",
+    "pack:win": "node build/pack.js win32 x64",
+    "pack:linux": "node build/pack.js linux x64"
+  },
+  "devDependencies": {
+    "@electron/packager": "^18.4.4",
+    "electron": "33.2.1"
+  }
+}

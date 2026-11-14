@@ -1,0 +1,11 @@
+Package: cesim-studio
+Version: @VER@
+Section: education
+Priority: optional
+Architecture: amd64
+Installed-Size: @SIZE@
+Depends: libgtk-3-0 | libgtk-3-0t64, libnss3, libxss1, libxtst6, libatspi2.0-0 | libatspi2.0-0t64, libsecret-1-0, libgbm1, libasound2 | libasound2t64
+Maintainer: Yousef <noreply@example.com>
+Description: CEsim Studio - circuit simulator, diagrams and 3D
+ Schematic capture with live simulation and instruments, a diagram editor
+ and a millimetre-accurate 3D modeller. BY. YOUSEF
