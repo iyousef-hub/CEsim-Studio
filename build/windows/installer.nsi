@@ -1,7 +1,9 @@
 Unicode true
 !include "MUI2.nsh"
 !define APP "CEsim Studio"
+!ifndef VER
 !define VER "1.4.0"
+!endif
 !define EXE "CEsim Studio.exe"
 !define SRC "..\..\out\CEsim Studio-win32-x64"
 !define UNKEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\CEsimStudio"

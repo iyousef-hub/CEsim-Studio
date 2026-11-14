@@ -1,0 +1,91 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-14
+            target: mac
+          - os: windows-latest
+            target: win
+          - os: ubuntu-22.04
+            target: linux
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install --no-audit --no-fund
+      - name: Version
+        shell: bash
+        run: echo "VER=$(node -p "require('./app/package.json').version")" >> "$GITHUB_ENV"
+
+      - name: macOS app and disk image
+        if: matrix.target == 'mac'
+        run: |
+          npm run pack:mac
+          APP="out/CEsim Studio-darwin-arm64/CEsim Studio.app"
+          codesign --force --deep -s - "$APP"
+          mkdir -p dist stage
+          cp -R "$APP" stage/
+          ln -s /Applications stage/Applications
+          hdiutil create -volname "CEsim Studio" -srcfolder stage -ov -format UDZO "dist/CEsim-Studio-${VER}-arm64.dmg"
+
+      - name: Windows installer and portable zip
+        if: matrix.target == 'win'
+        shell: pwsh
+        run: |
+          npm run pack:win
+          New-Item -ItemType Directory -Force dist | Out-Null
+          if (-not (Get-Command makensis -ErrorAction SilentlyContinue)) { choco install nsis -y --no-progress; $env:PATH += ";C:\Program Files (x86)\NSIS" }
+          makensis /DVER=$env:VER build\windows\installer.nsi
+          Compress-Archive -Path "out\CEsim Studio-win32-x64" -DestinationPath "dist\CEsim-Studio-$env:VER-Windows-x64-Portable.zip"
+
+      - name: Linux AppImage and deb
+        if: matrix.target == 'linux'
+        run: |
+          npm run pack:linux
+          curl -sSL -o appimagetool https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
+          chmod +x appimagetool
+          mkdir -p bin
+          printf '#!/bin/sh\nexec "%s/appimagetool" --appimage-extract-and-run "$@"\n' "$PWD" > bin/appimagetool
+          chmod +x bin/appimagetool
+          PATH="$PWD/bin:$PATH" sh build/linux/package.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cesim-${{ matrix.target }}
+          path: dist/CEsim-Studio-*
+          if-no-files-found: error
+
+  release:
+    needs: build
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Version
+        run: echo "VER=$(node -p "require('./app/package.json').version")" >> "$GITHUB_ENV"
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ env.VER }}
+          name: CEsim Studio ${{ env.VER }}
+          body_path: build/RELEASE_NOTES.md
+          files: dist/*
