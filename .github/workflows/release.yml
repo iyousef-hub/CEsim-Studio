@@ -4,6 +4,11 @@ on:
   push:
     tags: ['v*']
   workflow_dispatch:
+    inputs:
+      remove_tag:
+        description: 'Release tag to delete before publishing (optional)'
+        required: false
+        default: ''
 
 permissions:
   contents: write
@@ -83,6 +88,11 @@ jobs:
           merge-multiple: true
       - name: Version
         run: echo "VER=$(node -p "require('./app/package.json').version")" >> "$GITHUB_ENV"
+      - name: Remove an old release
+        if: github.event_name == 'workflow_dispatch' && inputs.remove_tag != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release delete "${{ inputs.remove_tag }}" --repo "${{ github.repository }}" --cleanup-tag --yes || true
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ env.VER }}
