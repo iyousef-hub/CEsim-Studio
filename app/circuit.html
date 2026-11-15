@@ -198,7 +198,7 @@ kbd{font:11px var(--font-mono);border:1px solid var(--ui-border);border-bottom-w
 </div>
 <div id="splash" role="dialog" aria-label="CEsim"><div class="sp-box"><canvas id="sp-cv"></canvas><div class="sp-in">
  <div class="sp-row"><div class="sp-logo">CE</div><div><div class="sp-name">CE<span>sim</span></div><div class="sp-sub">Circuit Design &amp; Simulation Suite</div></div></div>
- <div class="sp-ver">Version 1.8.0</div><div class="sp-bar"><i id="sp-bar"></i></div><div class="sp-foot"><span id="sp-msg">Loading component database…</span><span class="sp-by">BY. YOUSEF</span></div>
+ <div class="sp-ver">Version 1.9.0</div><div class="sp-bar"><i id="sp-bar"></i></div><div class="sp-foot"><span id="sp-msg">Loading component database…</span><span class="sp-by">BY. YOUSEF</span></div>
 </div></div></div>
 <script src="lib/canvas2svg.js"></script>
 <script>(function(){if(!window.C2S)return;const P=C2S.prototype;const os=P.save,or=P.restore,ost=P.stroke;P.setLineDash=function(a){this.__dash=a||[]};P.getLineDash=function(){return this.__dash||[]};P.save=function(){(this.__ds=this.__ds||[]).push(this.__dash);os.call(this)};P.restore=function(){this.__dash=(this.__ds||[]).pop();or.call(this)};P.stroke=function(){ost.apply(this,arguments);if(this.__dash&&this.__dash.length&&this.__currentElement)this.__currentElement.setAttribute("stroke-dasharray",this.__dash.join(","))}})()</script>
@@ -292,11 +292,11 @@ def("iac",{name:"AC Current source",ar:"مصدر تيار متردد",prefix:"I"
  draw(c){L(c,0,-30,0,-15);L(c,0,15,0,30);CIR(c,0,0,15);L(c,0,9,0,-7);arrowHead(c,0,9,0,-9,6);c.beginPath();for(let i=0;i<=12;i++){const x=4+i*0.7,y=-4*Math.sin(i/12*2*PI);i?c.lineTo(x,y):c.moveTo(x,y)}c.stroke()},
  val(c){const p=P(c);return [si(p.amp,"Apk"),si(p.freq,"Hz")]},build(c,n,E){E.I(n[0],n[1],()=>{const p=P(c);return p.amp*Math.sin(2*PI*p.freq*E.t())})},fmax(c){return P(c).freq},
  spice(c,n){const p=P(c);return `I${c.label} ${n[1]} ${n[0]} SIN(0 ${p.amp} ${p.freq})`}});
-def("clock",{name:"Clock / Pulse source",ar:"مصدر نبضات (ساعة)",prefix:"V",pins:[[0,-30,"+"],[0,30,"-"]],bb:[-15,-30,15,30],props:{freq:"1k",amp:"5",duty:"50"},fields:[fSI("freq","Frequency","Hz"),fSI("amp","Voltage","V"),fSI("duty","Duty cycle","%")],
+def("clock",{name:"Clock / Pulse source",ar:"مصدر نبضات (ساعة)",prefix:"V",pins:[[0,-30,"+"],[0,30,"-"]],bb:[-15,-30,15,30],props:{freq:"1k",amp:"5",duty:"50",low:"0"},fields:[fSI("freq","Frequency","Hz"),fSI("amp","Voltage","V"),fSI("low","Low level","V"),fSI("duty","Duty cycle","%")],
  draw(c){L(c,0,-30,0,-15);L(c,0,15,0,30);CIR(c,0,0,15);L(c,-9,5,-5,5,-5,-5,0,-5,0,5,5,5,5,-5,9,-5)},
- val(c){const p=P(c);return [si(p.freq,"Hz"),si(p.amp,"V")+" "+p.duty+"%"]},
- build(c,n,E){E.V(n[0],n[1],()=>{const p=P(c);const ph=(E.t()*p.freq)%1;return ph<p.duty/100?p.amp:0})},fmax(c){return P(c).freq*5},
- spice(c,n){const p=P(c),T=1/p.freq;return `V${c.label} ${n[0]} ${n[1]} PULSE(0 ${p.amp} 0 ${T/1000} ${T/1000} ${T*p.duty/100} ${T})`}});
+ val(c){const p=P(c);return [si(p.freq,"Hz"),(p.low?si(p.low,"V")+"…":"")+si(p.amp,"V")+" "+p.duty+"%"]},
+ build(c,n,E){E.V(n[0],n[1],()=>{const p=P(c);const ph=(E.t()*p.freq)%1;return ph<p.duty/100?p.amp:(p.low||0)})},fmax(c){return P(c).freq*5},
+ spice(c,n){const p=P(c),T=1/p.freq;return `V${c.label} ${n[0]} ${n[1]} PULSE(${p.low||0} ${p.amp} 0 ${T/1000} ${T/1000} ${T*p.duty/100} ${T})`}});
 def("vcvs",{name:"Voltage-controlled voltage source",ar:"مصدر جهد متحكم بالجهد",prefix:"V",pins:[[-30,-20,"C+"],[-30,20,"C-"],[30,-20,"+"],[30,20,"-"]],bb:[-30,-24,30,24],props:{gain:"10"},fields:[fSI("gain","Gain (V/V)","")],
  draw(c,st,tx){L(c,-30,-20,-14,-20);L(c,-30,20,-14,20);L(c,30,-20,10,-20,10,-12);L(c,30,20,10,20,10,12);POLY(c,[10,-12,22,0,10,12,-2,0]);tx("+",10,-4,8,"part","center");tx("−",10,7,8,"part","center");tx("+",-20,-26,8,"part");tx("−",-20,15,8,"part")},
  val(c){return ["E="+P(c).gain]},build(c,n,E){E.VCVS(n[2],n[3],n[0],n[1],()=>P(c).gain)},spice(c,n){return `E${c.label} ${n[2]} ${n[3]} ${n[0]} ${n[1]} ${num(c.p.gain)}`}});
@@ -921,8 +921,11 @@ function scopeWin(c){const body=el(`<div class="scope"><div><canvas id="sc" widt
   if(c.p.tmode==="Auto"){const ch=c.p.tsrc==="B"?2:1,lvl=+c.p.trig||0;for(let j=len-2;j>0;j--){const t=buf[at(j)*3];if(t>tEnd-win)continue;if(t<tEnd-win*6)break;const a=buf[at(j-1)*3+ch],b=buf[at(j)*3+ch];if(a<lvl&&b>=lvl){tStart=t;break}}}
   const draw=(ch,col,vd,pos)=>{g.strokeStyle=col;g.lineWidth=1.6;g.beginPath();let first=true;for(let j=0;j<len;j++){const i=at(j);const t=buf[i*3];if(t<tStart)continue;if(t>tStart+win)break;const x=(t-tStart)/win*Wd,y=Ht/2-(buf[i*3+ch]/vd+pos)*Ht/8;first?g.moveTo(x,y):g.lineTo(x,y);first=false}g.stroke()};
   const va=num(c.p.va),vb=num(c.p.vb);const cA=E_conn(c,0),cB=E_conn(c,1);if(cA)draw(1,"#ffcc3d",va,+c.p.pa||0);if(cB)draw(2,"#4cc9ff",vb,+c.p.pb||0);
-  const stat=ch=>{let mn=1e9,mx=-1e9,s2=0,n=0;for(let j=0;j<len;j++){const i=at(j);const t=buf[i*3];if(t<tEnd-win)continue;const v=buf[i*3+ch];mn=Math.min(mn,v);mx=Math.max(mx,v);s2+=v*v;n++}return n?{pp:mx-mn,rms:Math.sqrt(s2/n),mx,mn}:null};
-  const A=stat(1),B=stat(2);ms.innerHTML=`<span></span><span style="color:#d9a400">Channel A</span><span style="color:#1f9fd6">Channel B</span><span style="color:var(--ui-dim)">Vpp</span><span>${cA&&A?rd(A.pp,"V"):"—"}</span><span>${cB&&B?rd(B.pp,"V"):"—"}</span><span style="color:var(--ui-dim)">Vrms</span><span>${cA&&A?rd(A.rms,"V"):"—"}</span><span>${cB&&B?rd(B.rms,"V"):"—"}</span><span style="color:var(--ui-dim)">Max</span><span>${cA&&A?rd(A.mx,"V"):"—"}</span><span>${cB&&B?rd(B.mx,"V"):"—"}</span>`}}}
+  const stat=ch=>{let mn=1e9,mx=-1e9,s2=0,n=0;for(let j=0;j<len;j++){const i=at(j);const t=buf[i*3];if(t<tEnd-win)continue;const v=buf[i*3+ch];mn=Math.min(mn,v);mx=Math.max(mx,v);s2+=v*v;n++}if(!n)return null;
+   // frequency: rising crossings of the midpoint, with hysteresis, over everything recorded
+   let f=null;const pp=mx-mn;if(pp>1e-6){const mid=(mx+mn)/2,h=pp*0.1;let armed=false,first=null,last=null,k=0;for(let j=0;j<len;j++){const i=at(j);const v=buf[i*3+ch],t=buf[i*3];if(v<mid-h)armed=true;else if(armed&&v>mid+h){armed=false;if(first==null)first=t;else{last=t;k++}}}if(k>=1&&last>first)f=k/(last-first)}
+   return{pp,rms:Math.sqrt(s2/n),mx,mn,f}};
+  const A=stat(1),B=stat(2);ms.innerHTML=`<span></span><span style="color:#d9a400">Channel A</span><span style="color:#1f9fd6">Channel B</span><span style="color:var(--ui-dim)">Vpp</span><span>${cA&&A?rd(A.pp,"V"):"—"}</span><span>${cB&&B?rd(B.pp,"V"):"—"}</span><span style="color:var(--ui-dim)">Vrms</span><span>${cA&&A?rd(A.rms,"V"):"—"}</span><span>${cB&&B?rd(B.rms,"V"):"—"}</span><span style="color:var(--ui-dim)">Max</span><span>${cA&&A?rd(A.mx,"V"):"—"}</span><span>${cB&&B?rd(B.mx,"V"):"—"}</span><span style="color:var(--ui-dim)">Min</span><span>${cA&&A?rd(A.mn,"V"):"—"}</span><span>${cB&&B?rd(B.mn,"V"):"—"}</span><span style="color:var(--ui-dim)">Frequency</span><span>${cA&&A&&A.f?rd(A.f,"Hz"):"—"}</span><span>${cB&&B&&B.f?rd(B.f,"Hz"):"—"}</span><span style="color:var(--ui-dim)">Period</span><span>${cA&&A&&A.f?rd(1/A.f,"s"):"—"}</span><span>${cB&&B&&B.f?rd(1/B.f,"s"):"—"}</span>`}}}
 function E_conn(c,i){const n=nets();const cn=n.conn.get(c.id);return cn&&cn[i]}
 function openSimSettings(){const body=el(`<div class="form" style="min-width:360px"><label for="ss-dt">Time step</label><input id="ss-dt" value="${dtUser?si(dtUser,""):"auto"}"><span class="u">s</span><label for="ss-sp">Speed</label><select id="ss-sp">${[["1","Real time ×1"],["0.1","×0.1"],["0.01","×0.01"],["0.001","×0.001"],["10","×10"],["0","Max speed"]].map(([v,l])=>`<option value="${v}" ${+v===speed?"selected":""}>${l}</option>`).join("")}</select><span></span></div>
  <p style="font-size:11.5px;color:var(--ui-dim);margin:10px 0 0;max-width:380px">"auto" picks 200 steps per period of the fastest source (current: ${si(autoDt(D),"s")}). Use a smaller step for fast RC or LC circuits.</p>`);
@@ -1042,7 +1045,7 @@ function importCir(text,name){const d=newDoc(name);const lines=text.split(/\r?\n
   else if(/^VM/i.test(id)){t="voltmeter";nodes=[tok[1],tok[2]];p.mode=/\bAC\b/i.test(l)?"AC":"DC";const ri=l.match(/\brin=(\S+)/i);if(ri)p.rin=ri[1]}
   else if(/^POT/i.test(id)){t="pot";nodes=[tok[1],tok[2],tok[3]];p.resistance=tok[4]||"10k";const wp=tok.slice(5).join(" ").match(/(\d+(?:\.\d+)?)\s*%/);if(wp)p.wiper=wp[1];const k=l.match(/\bkey=(\S+)/i);if(k)p.key=k[1]}
   else if(ty==="R"){t="res";nodes=[tok[1],tok[2]];p.resistance=tok[3]}else if(ty==="C"){t="cap";nodes=[tok[1],tok[2]];p.capacitance=tok[3]}else if(ty==="L"){t="ind";nodes=[tok[1],tok[2]];p.inductance=tok[3]}
-  else if(ty==="V"){nodes=[tok[1],tok[2]];const rest=tok.slice(3).join(" ");const s=rest.match(/sin\s*\(\s*([^\s)]+)\s+([^\s)]+)\s+([^\s)]+)/i);const pu=rest.match(/pulse\s*\(([^)]*)\)/i);if(s){t="acv";p={offset:s[1],amp:s[2],freq:s[3]}}else if(pu){const a=pu[1].trim().split(/[\s,]+/);t="clock";const per=num(a[6]),pw=num(a[5]);p={amp:a[1],freq:per>0?si(1/per,""):"1k",duty:per>0?String(Math.round(pw/per*100)):"50"}}else{t="dcv";const dc=rest.match(/(?:dc\s+)?([-+\d.eE]+[a-zA-Zµ]*)/i);p.voltage=dc?dc[1]:"0"}}
+  else if(ty==="V"){nodes=[tok[1],tok[2]];const rest=tok.slice(3).join(" ");const s=rest.match(/sin\s*\(\s*([^\s)]+)\s+([^\s)]+)\s+([^\s)]+)/i);const pu=rest.match(/pulse\s*\(([^)]*)\)/i);if(s){t="acv";p={offset:s[1],amp:s[2],freq:s[3]}}else if(pu){const a=pu[1].trim().split(/[\s,]+/);t="clock";const per=num(a[6]),pw=num(a[5]);p={amp:a[1],freq:per>0?si(1/per,""):"1k",duty:per>0?String(Math.round(pw/per*100)):"50"};if(num(a[0]))p.low=a[0]}else{t="dcv";const dc=rest.match(/(?:dc\s+)?([-+\d.eE]+[a-zA-Zµ]*)/i);p.voltage=dc?dc[1]:"0"}}
   else if(ty==="I"){t="idc";nodes=[tok[2],tok[1]];p.current=(tok.slice(3).join(" ").match(/([-+\d.eE]+[a-zA-Zµ]*)\s*$/)||[0,"1m"])[1]}
   else if(ty==="D"){t="diode";nodes=[tok[1],tok[2]];const mn=(tok[3]||"").toUpperCase();if(MODELS.diode[mn])p.model=mn;else if(ZENERS[mn]){t="zener";p.model=mn}else if(/LED/i.test(mn)){t="led"}}
   else if(ty==="Q"){const mn=tok[4]||"";const pol=models[mn.toLowerCase()]||(MODELS.pnp[mn.toUpperCase()]?"PNP":"NPN");t=pol==="PNP"?"pnp":"npn";nodes=[tok[2],tok[1],tok[3]];if(MODELS[t][mn.toUpperCase()])p.model=mn.toUpperCase()}
@@ -1050,7 +1053,7 @@ function importCir(text,name){const d=newDoc(name);const lines=text.split(/\r?\n
   else if(ty==="X"){const mn=(tok[tok.length-1]||"");const key=Object.keys(MODELS.opamp).find(k=>k.toUpperCase()===mn.toUpperCase());if(key||/OPAMP|OP-?AMP|741|358|324|071|072|082/i.test(mn)){t="opamp";nodes=tok.slice(1,6);while(nodes.length<5)nodes.push("");if(key)p.model=key}}
   else if(ty==="E"){t="vcvs";nodes=[tok[3],tok[4],tok[1],tok[2]];p.gain=tok[5]}else if(ty==="G"){t="vccs";nodes=[tok[3],tok[4],tok[2],tok[1]];p.gm=tok[5]}
   if(t)parts.push({t,nodes:nodes.map(x=>/^(0|gnd)$/i.test(x)?"0":x),p,label:id,lay:LY.lay,lab:LY.lab})}
- parts.forEach(q=>q.nodes=q.nodes.map((x,i)=>x===""?"__NC_"+q.label+"_"+i:x));if(!parts.length)throw new Error("No supported elements (R, C, L, V, I, D, Q, M, E, G, X op-amp, AM, VM, POT or PART) were found.");
+ parts.forEach(q=>q.nodes=q.nodes.map((x,i)=>x===""||/^(nc|-)$/i.test(x)?"__NC_"+q.label+"_"+i:x));if(!parts.length)throw new Error("No supported elements (R, C, L, V, I, D, Q, M, E, G, X op-amp, AM, VM, POT or PART) were found.");
  {const placed=parts.filter(q=>q.lay&&!q.lay.partial);if(placed.length){if(placed.length<parts.length)throw new Error("Give every part a position with @ x y, or none of them. Missing: "+parts.filter(q=>!q.lay||q.lay.partial).map(q=>q.label).slice(0,6).join(", "));return buildPlaced(d,parts,xw,xg,xn)}
   if(xw.length||xg.length||xn.length)throw new Error("W, GND and NET lines need every part to have a position (@ x y).")}
  /* layout: parts ordered along the signal path, one row (two-terminal parts vertical); nets run on horizontal lanes above, sharing a lane when they do not overlap */
@@ -1205,7 +1208,7 @@ function circuitToCode(doc,opt){opt=opt||{};const LAY=!!opt.layout;const keep=D;
    if(c.t==="res")line=`${name} ${n[0]} ${n[1]} ${P_.resistance}`;else if(c.t==="cap"||c.t==="ecap")line=`${name} ${n[0]} ${n[1]} ${P_.capacitance}`;else if(c.t==="ind")line=`${name} ${n[0]} ${n[1]} ${P_.inductance}`;
    else if(c.t==="dcv")line=`${name} ${n[0]} ${n[1]} DC ${P_.voltage}`;else if(c.t==="vcc")line=`${name} ${n[0]} 0 DC ${P_.voltage}`;
    else if(c.t==="acv")line=`${name} ${n[0]} ${n[1]} SIN(${P_.offset||0} ${P_.amp} ${P_.freq})`;
-   else if(c.t==="clock"){const f=num(P_.freq)||1000,T=1/f,du=(+P_.duty||50)/100;line=`${name} ${n[0]} ${n[1]} PULSE(0 ${P_.amp} 0 ${si(T/1000,"")} ${si(T/1000,"")} ${si(T*du,"")} ${si(T,"")})`}
+   else if(c.t==="clock"){const f=num(P_.freq)||1000,T=1/f,du=(+P_.duty||50)/100;line=`${name} ${n[0]} ${n[1]} PULSE(${P_.low||0} ${P_.amp} 0 ${si(T/1000,"")} ${si(T/1000,"")} ${si(T*du,"")} ${si(T,"")})`}
    else if(c.t==="idc")line=`${name} ${n[1]} ${n[0]} DC ${P_.current}`;
    else if(c.t==="diode"||c.t==="schottky")line=`${name} ${n[0]} ${n[1]} ${P_.model||"1N4148"}`;else if(c.t==="zener")line=`${name} ${n[0]} ${n[1]} ${P_.model||"1N4733A"}`;else if(c.t==="led")line=`${name} ${n[0]} ${n[1]} LED`;
    else if(c.t==="npn"||c.t==="pnp")line=`${name} ${n[1]} ${n[0]} ${n[2]} ${P_.model||(c.t==="npn"?"2N2222":"2N3906")}`;
@@ -1226,20 +1229,151 @@ function lintCode(text){const msgs=[];const lines=text.split(/\r?\n/);const cnt=
   if(names[tk[0].toUpperCase()])msgs.push({line:i+1,err:true,m:`${tk[0]} is used twice (also on line ${names[tk[0].toUpperCase()]}).`});names[tk[0].toUpperCase()]=i+1;
   if(L==="X"&&!Object.keys(MODELS.opamp).some(k=>k.toUpperCase()===tk[tk.length-1].toUpperCase())&&!/741|358|324|07\d|08\d|opamp|ideal/i.test(tk[tk.length-1]))msgs.push({line:i+1,err:false,m:`${tk[0]}: "${tk[tk.length-1]}" is not a known op-amp, uA741 will be used.`});
   parts++;nodesOf(L,tk).forEach(n=>{const k=/^(0|gnd)$/i.test(n)?"0":n;if(k==="0")ground=true;cnt[k]=(cnt[k]||0)+1;(where[k]=where[k]||[]).push(i+1)})});
- Object.keys(cnt).filter(k=>k!=="0"&&cnt[k]<2).forEach(k=>msgs.push({line:where[k][0],err:false,m:`Node "${k}" connects to only one pin. Check the spelling.`}));
+ Object.keys(cnt).filter(k=>k!=="0"&&!/^(nc|-)$/i.test(k)&&cnt[k]<2).forEach(k=>msgs.push({line:where[k][0],err:false,m:`Node "${k}" connects to only one pin. Check the spelling.`}));
  if(parts&&!ground)msgs.push({line:0,err:true,m:"There is no ground. Name one node 0."});
  return{msgs,parts}}
 function openCodeEditor(){const b=document.createElement("div");b.className="cedit";
  let saved="";try{saved=localStorage.getItem(CODE_KEY)||""}catch(e){}
  b.innerHTML=`<div class="ce-help"><div class="ce-steps"><div><b>1</b>Copy the prompt</div><div><b>2</b>Paste it into any AI chat, with a photo of your circuit</div><div><b>3</b>Paste the answer here, then press Build circuit</div></div><div class="ce-hb"><button class="btn pri" id="ce-copyp">Copy prompt for AI</button><button class="btn" id="ce-showp" aria-expanded="false">Show prompt</button></div></div>
  <pre id="ce-prompt" class="ce-prompt" hidden></pre>
- <div class="ce-grid"><div class="ce-left"><div class="ce-tb"><span class="ce-dim">Circuit code</span><span style="flex:1"></span><select id="ce-ex" aria-label="Insert an example"><option value="">Examples…</option><option value="amp">Non-inverting amplifier</option><option value="div">Voltage divider</option><option value="rc">RC low-pass filter</option><option value="bjt">Transistor LED switch</option><option value="bridge">Bridge rectifier</option><option value="cb">BJT common base, exact layout</option></select><button class="btn" id="ce-from" title="Write the open design as code">From current design</button><label class="ce-dim" title="Also write where every part and wire is, so the drawing comes back exactly"><input type="checkbox" id="ce-lay" checked> With layout</label><button class="btn" id="ce-copyc">Copy code</button></div>
+ <div class="ce-grid"><div class="ce-left"><div class="ce-tb"><span class="ce-dim">Circuit code</span><span style="flex:1"></span><select id="ce-ex" aria-label="Insert an example"><option value="">Examples…</option><option value="amp">Non-inverting amplifier</option><option value="div">Voltage divider</option><option value="rc">RC low-pass filter</option><option value="bjt">Transistor LED switch</option><option value="bridge">Bridge rectifier</option><option value="cb">BJT common base, exact layout</option><option value="l10">Lab 10: inverting amplifier on the oscilloscope</option><option value="l11a">Lab 11: inverting adder</option><option value="l11b">Lab 11: subtractor (Rf = R1)</option><option value="l11c">Lab 11: subtractor (Rf = 12k)</option></select><button class="btn" id="ce-from" title="Write the open design as code">From current design</button><label class="ce-dim" title="Also write where every part and wire is, so the drawing comes back exactly"><input type="checkbox" id="ce-lay" checked> With layout</label><button class="btn" id="ce-copyc">Copy code</button></div>
  <div class="ce-ed"><pre id="ce-ln" aria-hidden="true"></pre><textarea id="ce-code" spellcheck="false" wrap="off" aria-label="Circuit code"></textarea></div><div id="ce-msg" class="ce-msg" role="status"></div></div>
  <div class="ce-right"><div class="ce-tb"><span class="ce-dim">Preview</span><span style="flex:1"></span><span id="ce-count" class="ce-dim"></span></div><div id="ce-prev" class="ce-prev"></div>
  <div class="ce-row"><button class="btn" id="ce-reset">Reset to example</button><span style="flex:1"></span><button class="btn pri" id="ce-build">Build circuit</button></div></div></div>`;
  const w=makeWin("Circuit code",b,{modal:true});const q=x=>b.querySelector(x);const ta=q("#ce-code");
  q("#ce-prompt").textContent=CODE_PROMPT;ta.value=saved.trim()?saved:CODE_EXAMPLE;
- const EX={amp:CODE_EXAMPLE,div:`* Voltage divider: 12 V into 1k and 2k, Vout = 8 V\nV1 vin 0 DC 12\nR1 vin out 1k\nR2 out 0 2k\n.end\n`,rc:`* RC low-pass filter, cutoff about 1 kHz\nV1 vin 0 SIN(0 1 1k)\nR1 vin out 1k\nC1 out 0 159n\n.end\n`,bjt:`* NPN transistor switching an LED\nV1 vcc 0 DC 9\nV2 ctl 0 DC 5\nRB ctl b 10k\nQ1 c b 0 2N2222\nRC vcc a 470\nD1 a c LED\n.end\n`,cb:`* BJT common base: input and output characteristics, drawn exactly\n* Press A or B to turn POT1 or POT2 (Shift turns them back)\nV1 0 vt1 DC 20 @ 100 360 rot=180\nPOT1 0 vt1 w1 1k 6% key=A @ 250 360 rot=270 flip\nAM1 e w1 DC @ 470 190 rot=180 label=Ie\nQ1 c 0 e BC547B @ 600 200 rot=270 flip\nVM1 0 e DC @ 530 330 rot=270 label=Vbe\nVM2 c 0 DC @ 680 330 rot=90 label=Vcb\nAM2 w2 c DC @ 760 190 rot=180 label=Ic\nPOT2 0 vt2 w2 1k 0% key=B @ 870 360 rot=270\nV2 vt2 0 DC 20 @ 1000 360\nGND @ 600 500\nW 100,330 100,250 250,250 250,330\nW 270,360 330,360 330,190 440,190\nW 500,190 570,190\nW 530,190 530,300\nW 630,190 730,190\nW 680,190 680,300\nW 790,190 850,190 850,360\nW 870,330 870,250 1000,250 1000,330\nW 100,390 100,480 1000,480 1000,390\nW 250,390 250,480\nW 530,360 530,480\nW 600,230 600,480\nW 600,480 600,500\nW 680,360 680,480\nW 870,390 870,480\n.end\n`,bridge:`* Full-wave bridge rectifier with filter capacitor\nV1 ac1 ac2 SIN(0 17 50)\nD1 ac1 pos 1N4007\nD2 ac2 pos 1N4007\nD3 0 ac1 1N4007\nD4 0 ac2 1N4007\nC1 pos 0 470u\nRL pos 0 1k\n.end\n`};
+ const EX={amp:CODE_EXAMPLE,div:`* Voltage divider: 12 V into 1k and 2k, Vout = 8 V\nV1 vin 0 DC 12\nR1 vin out 1k\nR2 out 0 2k\n.end\n`,rc:`* RC low-pass filter, cutoff about 1 kHz\nV1 vin 0 SIN(0 1 1k)\nR1 vin out 1k\nC1 out 0 159n\n.end\n`,bjt:`* NPN transistor switching an LED\nV1 vcc 0 DC 9\nV2 ctl 0 DC 5\nRB ctl b 10k\nQ1 c b 0 2N2222\nRC vcc a 470\nD1 a c LED\n.end\n`,cb:`* BJT common base: input and output characteristics, drawn exactly\n* Press A or B to turn POT1 or POT2 (Shift turns them back)\nV1 0 vt1 DC 20 @ 100 360 rot=180\nPOT1 0 vt1 w1 1k 6% key=A @ 250 360 rot=270 flip\nAM1 e w1 DC @ 470 190 rot=180 label=Ie\nQ1 c 0 e BC547B @ 600 200 rot=270 flip\nVM1 0 e DC @ 530 330 rot=270 label=Vbe\nVM2 c 0 DC @ 680 330 rot=90 label=Vcb\nAM2 w2 c DC @ 760 190 rot=180 label=Ic\nPOT2 0 vt2 w2 1k 0% key=B @ 870 360 rot=270\nV2 vt2 0 DC 20 @ 1000 360\nGND @ 600 500\nW 100,330 100,250 250,250 250,330\nW 270,360 330,360 330,190 440,190\nW 500,190 570,190\nW 530,190 530,300\nW 630,190 730,190\nW 680,190 680,300\nW 790,190 850,190 850,360\nW 870,330 870,250 1000,250 1000,330\nW 100,390 100,480 1000,480 1000,390\nW 250,390 250,480\nW 530,360 530,480\nW 600,230 600,480\nW 600,480 600,500\nW 680,360 680,480\nW 870,390 870,480\n.end\n`,l10:`* Lab 10: inverting amplifier, gain -Rf/R1 = -10, seen on the oscilloscope
+V1 in 0 SIN(0 1 1k) @ 120 300
+R1 in n 1k @ 250 230
+RF n out 10k @ 400 160
+XU1 0 n out nc nc Ideal @ 400 240 flip
+RL out 0 10k @ 560 300 rot=90
+PART xsc XSC1 in out 0 tb=200u va=1 vb=5 @ 700 120
+GND @ 120 360
+GND @ 350 300
+GND @ 560 360
+GND @ 720 200
+W 120,270 120,230 220,230
+W 280,230 370,230
+W 120,330 120,360
+W 370,250 350,250 350,300
+W 320,230 320,160 370,160
+W 430,160 470,160 470,240
+W 430,240 560,240 560,270
+W 560,330 560,360
+W 680,150 680,180 120,180 120,230
+W 700,150 700,190 560,190 560,240
+W 720,150 720,200
+.end
+`,l11a:`* Lab 11, Fig. 11.1: inverting adder, Vout = -(E1 + E2 + E3)
+VE3 e3 0 DC 3 @ 100 180 label=E3
+VE2 e2 0 DC 3 @ 100 310 label=E2
+VE1 e1 0 DC 2 @ 100 440 label=E1
+R3 e3 a3 10k @ 250 150
+R2 e2 a2 10k @ 250 280
+R1 e1 a1 10k @ 250 410
+AM3 a3 s DC @ 400 150 label=I3
+AM2 a2 s DC @ 400 280 label=I2
+AM1 a1 s DC @ 400 410 label=I1
+AM4 s sm DC @ 570 280 label=I
+XU1 0 sm vo nc nc Ideal @ 700 290 flip label=U1
+RF sm vo 10k @ 700 200 label=Rf
+RL vo 0 10k @ 850 330 rot=90
+VM1 vo 0 DC @ 950 330 rot=90 label=Vout
+GND @ 100 230
+GND @ 100 360
+GND @ 100 490
+GND @ 650 330
+GND @ 850 380
+GND @ 950 380
+W 100,210 100,230
+W 100,340 100,360
+W 100,470 100,490
+W 100,150 220,150
+W 100,280 220,280
+W 100,410 220,410
+W 280,150 370,150
+W 280,280 370,280
+W 280,410 370,410
+W 430,150 500,150 500,410 430,410
+W 430,280 500,280
+W 500,280 540,280
+W 600,280 670,280
+W 670,300 650,300 650,330
+W 630,280 630,200 670,200
+W 730,200 780,200 780,290
+W 730,290 850,290 850,300
+W 850,290 950,290 950,300
+W 850,360 850,380
+W 950,360 950,380
+.end
+`,l11b:`* Lab 11, Fig. 11.2: inverting subtractor, Vo = Rf/Ri (V1 - V2)
+V1 v1 0 DC 4 @ 100 260
+R1 v1 n1 10k @ 200 200
+XU1 0 n1 o1 nc nc Ideal @ 340 210 flip label=U1
+R2 n1 o1 10k @ 340 140
+RIA o1 n2 10k @ 470 210 label=Ria
+V2 v2 0 DC 1 @ 400 330
+RIB v2 n2 10k @ 470 280 label=Rib
+XU2 0 n2 vo nc nc Ideal @ 640 220 flip label=U2
+RF n2 vo 10k @ 640 150 label=Rf
+VM1 vo 0 DC @ 760 260 rot=90 label=Output
+GND @ 100 310
+GND @ 290 250
+GND @ 400 380
+GND @ 590 260
+GND @ 760 310
+W 100,290 100,310
+W 100,230 100,200 170,200
+W 230,200 310,200
+W 310,220 290,220 290,250
+W 270,200 270,140 310,140
+W 370,210 440,210
+W 370,140 400,140 400,210
+W 500,210 610,210
+W 500,280 540,280 540,210
+W 400,300 400,280 440,280
+W 400,360 400,380
+W 610,230 590,230 590,260
+W 570,210 570,150 610,150
+W 670,150 700,150 700,220
+W 670,220 760,220 760,230
+W 760,290 760,310
+.end
+`,l11c:`* Lab 11, Fig. 11.3: inverting subtractor, Vo = Rf/Ri (V1 - V2)
+V1 v1 0 DC 6 @ 100 260
+R1 v1 n1 10k @ 200 200
+XU1 0 n1 o1 nc nc Ideal @ 340 210 flip label=U1
+R2 n1 o1 10k @ 340 140
+RIA o1 n2 10k @ 470 210 label=Ria
+V2 v2 0 DC 3 @ 400 330
+RIB v2 n2 10k @ 470 280 label=Rib
+XU2 0 n2 vo nc nc Ideal @ 640 220 flip label=U2
+RF n2 vo 12k @ 640 150 label=Rf
+VM1 vo 0 DC @ 760 260 rot=90 label=Output
+GND @ 100 310
+GND @ 290 250
+GND @ 400 380
+GND @ 590 260
+GND @ 760 310
+W 100,290 100,310
+W 100,230 100,200 170,200
+W 230,200 310,200
+W 310,220 290,220 290,250
+W 270,200 270,140 310,140
+W 370,210 440,210
+W 370,140 400,140 400,210
+W 500,210 610,210
+W 500,280 540,280 540,210
+W 400,300 400,280 440,280
+W 400,360 400,380
+W 610,230 590,230 590,260
+W 570,210 570,150 610,150
+W 670,150 700,150 700,220
+W 670,220 760,220 760,230
+W 760,290 760,310
+.end
+`,bridge:`* Full-wave bridge rectifier with filter capacitor\nV1 ac1 ac2 SIN(0 17 50)\nD1 ac1 pos 1N4007\nD2 ac2 pos 1N4007\nD3 0 ac1 1N4007\nD4 0 ac2 1N4007\nC1 pos 0 470u\nRL pos 0 1k\n.end\n`};
  let tmr=null;const lines=()=>{q("#ce-ln").textContent=ta.value.split("\n").map((_,i)=>i+1).join("\n")};
  function update(){lines();try{localStorage.setItem(CODE_KEY,ta.value)}catch(e){}const r=lintCode(ta.value);const box=q("#ce-msg");let prevOk=false;let d=null;
   try{d=importCir(ta.value,"preview");prevOk=true;(d._codeWarn||[]).forEach(m=>r.msgs.push({line:0,err:false,m}))}catch(e){r.msgs.unshift({line:0,err:true,m:e.message})}
@@ -1305,7 +1439,7 @@ function aiToSpice(obj){const out=["* Circuit read from an image by CEsim (local
  if(out.some(l=>/NMOSX/.test(l)))out.push(".model NMOSX NMOS");if(out.some(l=>/PMOSX/.test(l)))out.push(".model PMOSX PMOS");
  // single-use nodes
  const cnt={};out.forEach(l=>{if(/^[*.]/.test(l))return;const tk=l.split(/\s+/);const k=tk[0][0].toUpperCase();const ns=k==="Q"||k==="M"?tk.slice(1,4):k==="X"?tk.slice(1,6):tk.slice(1,3);ns.forEach(x=>cnt[x]=(cnt[x]||0)+1)});
- const lone=Object.keys(cnt).filter(k=>k!=="0"&&cnt[k]<2);if(lone.length)warn.push("Nodes connected to only one pin (check them): "+lone.join(", "));
+ const lone=Object.keys(cnt).filter(k=>k!=="0"&&!/^(nc|-)$/i.test(k)&&cnt[k]<2);if(lone.length)warn.push("Nodes connected to only one pin (check them): "+lone.join(", "));
  if(!Object.keys(cnt).includes("0"))warn.push("No ground found. The simulator needs a ground: rename one node to 0.");
  out.push(".end");return{text:out.join("\n"),warn,count:comps.length}}
 function parseAiJson(t){t=String(t||"").trim().replace(/^```(?:json)?/i,"").replace(/```$/,"").trim();try{return JSON.parse(t)}catch(e){const a=t.indexOf("{"),b=t.lastIndexOf("}");if(a>=0&&b>a)return JSON.parse(t.slice(a,b+1));throw e}}
@@ -1357,7 +1491,7 @@ function openImageTool(){const b=document.createElement("div");b.className="imga
 
 function takeHandoff(){let h=null;try{h=JSON.parse(localStorage.getItem("cesim.handoff.circuit")||"null");localStorage.removeItem("cesim.handoff.circuit")}catch(e){}if(!h||!h.text)return;try{const d=importCir(h.text,(h.name||"from_breadboard").replace(/[^\w ]+/g,"").replace(/\s+/g,"_"));addDoc(d);toast("Opened the circuit from the Breadboard. Press Run to simulate.")}catch(e){toast(e.message,true)}}
 setTimeout(takeHandoff,300);window.addEventListener("focus",()=>setTimeout(takeHandoff,50));window.addEventListener("storage",e=>{if(e.key==="cesim.handoff.circuit"&&e.newValue)takeHandoff()});
-window.CE={sendToPcb,nets:()=>nets(),openCodeEditor,circuitToCode,lintCode,CODE_PROMPT,CODE_EXAMPLE,openImageTool,aiToSpice,parseAiJson,importCir,serialize,deserialize,addDoc,hitLabel,openProps,openExportDlg,doExportC,renderExport,voltsCsv,render:()=>{resize();render()},docs:()=>docs,D:()=>D,sim:()=>sim,openExample,runSim,stopSim,Sim,switchDoc,LIB,zoomFit,countDB,EXAMPLES,setTheme};
+window.CE={openInstWin:c=>openInstWin(c),spiceOf:doc=>{const keep=D;D=doc;netCache=null;try{const net=nets();const probes={};for(const c of doc.comps)if(c.t==="xsc")probes[c.label]=(net.pinNodes.get(c.id)||[]).map(k=>k===0?"0":String(k));return{text:toCir(),probes}}finally{D=keep;netCache=null}},sendToPcb,nets:()=>nets(),openCodeEditor,circuitToCode,lintCode,CODE_PROMPT,CODE_EXAMPLE,openImageTool,aiToSpice,parseAiJson,importCir,serialize,deserialize,addDoc,hitLabel,openProps,openExportDlg,doExportC,renderExport,voltsCsv,render:()=>{resize();render()},docs:()=>docs,D:()=>D,sim:()=>sim,openExample,runSim,stopSim,Sim,switchDoc,LIB,zoomFit,countDB,EXAMPLES,setTheme};
 </script>
 </body>
 </html>
