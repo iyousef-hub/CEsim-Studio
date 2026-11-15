@@ -9,6 +9,8 @@ const docTypes = [
   { CFBundleTypeName: 'SPICE Netlist', CFBundleTypeExtensions: ['cir', 'net', 'sp'], CFBundleTypeRole: 'Editor', LSHandlerRank: 'Alternate' },
   { CFBundleTypeName: 'CEsim Diagram', CFBundleTypeExtensions: ['cediag'], CFBundleTypeRole: 'Editor', LSHandlerRank: 'Owner' },
   { CFBundleTypeName: 'Diagram file', CFBundleTypeExtensions: ['drawio', 'dio', 'mmd', 'mermaid'], CFBundleTypeRole: 'Editor', LSHandlerRank: 'Alternate' },
+  { CFBundleTypeName: 'CEsim Logic', CFBundleTypeExtensions: ['cedig'], CFBundleTypeRole: 'Editor', LSHandlerRank: 'Owner' },
+  { CFBundleTypeName: 'Logic circuit', CFBundleTypeExtensions: ['circ'], CFBundleTypeRole: 'Editor', LSHandlerRank: 'Alternate' },
   { CFBundleTypeName: 'CEsim 3D', CFBundleTypeExtensions: ['ce3d'], CFBundleTypeRole: 'Editor', LSHandlerRank: 'Owner' },
   { CFBundleTypeName: '3D model', CFBundleTypeExtensions: ['stl', 'obj', '3mf'], CFBundleTypeRole: 'Editor', LSHandlerRank: 'Alternate' }];
 (async () => {

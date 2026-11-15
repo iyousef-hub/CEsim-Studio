@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link href="fonts/fonts.css" rel="stylesheet"><title>CEsim Logic</title>
+<style>
+:root{--bg:#e9edf2;--panel:#f7f8fa;--line:#cdd3dc;--text:#1b2230;--dim:#5e6979;--hover:#e1e7ef;--accent:#185fa5;--sel:#1a8cff;--font:"IBM Plex Sans",-apple-system,"Segoe UI",Roboto,Arial,sans-serif;--mono:"IBM Plex Mono",ui-monospace,Menlo,monospace}
+*{box-sizing:border-box}html,body{height:100%;margin:0}body{background:var(--bg);color:var(--text);font:13px/1.35 var(--font);overflow:hidden;user-select:none}
+#app{display:grid;grid-template-rows:auto 1fr auto 28px;height:100%}
+#top{display:flex;flex-wrap:wrap;row-gap:2px;align-items:center;gap:2px;padding:4px 10px;min-height:44px;background:var(--panel);border-bottom:1px solid var(--line)}
+.logo{flex:none;width:24px;height:24px;border-radius:6px;background:var(--accent);color:#fff;display:grid;place-items:center;font:600 10px var(--mono);margin-right:6px}
+#docname{flex:none;font-weight:600;margin-right:10px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:text;padding:3px 5px;border-radius:3px}#docname:hover{background:var(--hover)}
+.tb{flex:none;height:30px;min-width:30px;padding:0 9px;border:1px solid transparent;border-radius:4px;background:none;color:var(--text);cursor:pointer;font:12.5px var(--font);white-space:nowrap}
+.tb:hover{background:var(--hover);border-color:var(--line)}.tb.on{background:#d3e4f7;border-color:#93b8e0}.tb.pri{background:var(--accent);color:#fff}.tb.pri:hover{filter:brightness(.92)}
+.sep{flex:none;width:1px;height:22px;background:var(--line);margin:0 6px}
+select.s{height:28px;border:1px solid var(--line);border-radius:4px;background:#fff;font:12px var(--font)}
+#zoomv{font:12px var(--mono);color:var(--dim);min-width:44px;text-align:center}
+#main{display:grid;grid-template-columns:236px minmax(0,1fr) 250px;min-height:0}
+#left{background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+#libq{margin:8px;height:28px;border:1px solid var(--line);border-radius:4px;padding:0 8px;font:12.5px var(--font)}
+#lib{overflow:auto;flex:1;padding:0 6px 10px}.cath{font:600 11px var(--font);color:var(--dim);padding:8px 4px 5px;text-transform:uppercase;letter-spacing:.05em}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:3px}
+.it{height:66px;border:1px solid transparent;border-radius:4px;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;padding:3px;font:10px var(--font);color:var(--dim)}
+.it:hover{border-color:var(--sel);color:var(--text)}.it img{width:48px;height:36px}.it span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+#cwrap{position:relative;min-width:0;min-height:0;overflow:hidden;background:#fff}
+#cv{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
+#hint{position:absolute;left:12px;top:10px;font-size:12px;color:#1b2230;background:rgba(255,255,255,.9);border-radius:4px;padding:3px 8px;pointer-events:none}#hint:empty{display:none}
+#right{background:var(--panel);border-left:1px solid var(--line);overflow:auto;padding:6px 14px 16px}
+#right h3{font-size:13px;margin:10px 0 10px}#right label{display:block;font-size:12px;color:var(--dim);margin-bottom:9px}
+#right input,#right select{display:block;width:100%;height:28px;margin-top:3px;border:1px solid var(--line);border-radius:4px;padding:0 7px;font:12.5px var(--font);background:#fff;color:var(--text)}#right input[type=color]{padding:2px}
+.row{display:flex;gap:6px;align-items:center}.dim{color:var(--dim);font-size:12px;line-height:1.5}
+.tips{padding-left:16px;margin:0;font-size:12px;line-height:1.55;color:#33404f}.tips li{margin-bottom:6px}
+.btn{height:30px;padding:0 12px;border:1px solid var(--line);border-radius:4px;background:#fff;color:var(--text);cursor:pointer;font:12.5px var(--font)}.btn:hover{background:var(--hover)}.btn.pri{background:var(--accent);border-color:var(--accent);color:#fff}
+#timing{border-top:1px solid var(--line);background:#fff;height:210px;display:grid;grid-template-rows:30px 1fr}
+#timing .th{display:flex;align-items:center;gap:8px;padding:0 10px;background:var(--panel);border-bottom:1px solid var(--line);font-size:12px;color:var(--dim)}
+#tcv{width:100%;height:100%;display:block}
+#statusbar{display:flex;align-items:center;gap:14px;padding:0 12px;background:var(--panel);border-top:1px solid var(--line);font-size:11.5px;color:var(--dim)}
+#status.warn{color:#b3261e;font-weight:600}#coord{margin-left:auto;font-family:var(--mono)}
+.toast{position:fixed;left:50%;bottom:44px;transform:translateX(-50%);background:#1b2230;color:#fff;padding:9px 14px;border-radius:6px;font-size:12.5px;z-index:90;max-width:70vw}.toast.warn{background:#8a3a00}
+.menu{position:fixed;z-index:80;background:#fff;border:1px solid var(--line);border-radius:6px;box-shadow:0 10px 30px rgba(20,30,50,.18);padding:4px;min-width:230px;display:flex;flex-direction:column}
+.menu button{display:flex;justify-content:space-between;gap:20px;border:none;background:none;text-align:left;padding:7px 10px;font:12.5px var(--font);border-radius:4px;cursor:pointer;color:var(--text)}.menu button:hover{background:#eaf3ff}.menu button span{color:var(--dim)}.menu hr{border:none;border-top:1px solid var(--line);margin:4px 0}
+.ov{position:fixed;inset:0;background:rgba(15,20,30,.35);display:grid;place-items:center;z-index:70}
+.mdl{background:#fff;border-radius:10px;box-shadow:0 20px 50px rgba(0,0,0,.3);max-width:90vw;max-height:86vh;display:flex;flex-direction:column;min-width:360px}
+.mh{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid var(--line)}.mb{padding:14px;overflow:auto}
+.tt-wrap{max-height:56vh;overflow:auto;border:1px solid var(--line);border-radius:6px}
+.tt{border-collapse:collapse;font:12.5px var(--mono)}.tt th,.tt td{padding:4px 12px;text-align:center;border-bottom:1px solid #eef1f4}.tt th{position:sticky;top:0;background:#f3f6fa;font-family:var(--font)}.tt .sep{width:2px;padding:0;background:#cdd3dc}.tt td.o{font-weight:600}.tt td.one{color:#1f8a3a}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+[hidden]{display:none!important}
+</style></head>
+<body><div id="app">
+<div id="top">
+ <div class="logo">CE</div><span id="docname" title="Click to rename">Untitled</span>
+ <button class="tb" id="bFile">File ▾</button><div class="sep"></div>
+ <button class="tb" id="bUndo" title="Undo (Ctrl+Z)">Undo</button><button class="tb" id="bRedo" title="Redo (Ctrl+Y)">Redo</button><button class="tb" id="bRot" title="Rotate (R)">Rotate</button><button class="tb" id="bDel" title="Delete (Del)">Delete</button><div class="sep"></div>
+ <button class="tb pri" id="bRun" title="Run or pause every clock">Run clock</button><button class="tb" id="bStep" title="One clock half-cycle (T)">Step</button>
+ <select class="s" id="speed" aria-label="Clock speed" title="Clock speed"><option value="0.5">0.5 Hz</option><option value="1" selected>1 Hz</option><option value="2">2 Hz</option><option value="5">5 Hz</option><option value="10">10 Hz</option><option value="25">25 Hz</option></select>
+ <button class="tb" id="bReset" title="Clear memory and restart">Reset</button><div class="sep"></div>
+ <button class="tb" id="bTT">Truth table</button><button class="tb on" id="bTiming">Timing diagram</button><button class="tb" id="bBool">Boolean tools</button><div class="sep"></div>
+ <button class="tb" id="bZout" title="Zoom out">−</button><span id="zoomv">100%</span><button class="tb" id="bZin" title="Zoom in">+</button><button class="tb" id="bFit" title="Fit (F)">Fit</button>
+</div>
+<div id="main">
+ <div id="left"><input id="libq" placeholder="Search parts" aria-label="Search parts"><div id="lib"></div></div>
+ <div id="cwrap"><canvas id="cv" aria-label="Logic circuit"></canvas><div id="hint"></div></div>
+ <div id="right"><div id="props"></div></div>
+</div>
+<div id="timing"><div class="th"><b style="color:#1b2230">Timing diagram</b><span>Inputs, clocks, outputs and probes over time</span><span style="flex:1"></span><button class="btn" id="tClear" style="height:24px">Clear</button></div><canvas id="tcv"></canvas></div>
+<div id="statusbar"><span id="status"></span><span id="coord"></span></div>
+</div>
+<input type="file" id="fileIn" accept=".cedig,.circ,.json" multiple hidden>
+<script src="lib/canvas2svg.js"></script>
+<script src="logic-parts.js"></script>
+<script src="logic.js"></script>
+</body></html>

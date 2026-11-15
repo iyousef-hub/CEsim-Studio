@@ -2,15 +2,15 @@ const { app, BrowserWindow, Menu, dialog, ipcMain, shell, nativeTheme } = requir
 const path = require('path'); const fs = require('fs');
 nativeTheme.themeSource = 'light';
 let studio = null; const pendingPaths = [];
-const TOOL_FILE = { imgcircuit: 'circuit.html', codecircuit: 'circuit.html', circuit: 'circuit.html', diagram: 'diagram.html', '3d': '3d.html' };
-const TOOL_TITLE = { imgcircuit: 'CEsim Circuit', codecircuit: 'CEsim Circuit', circuit: 'CEsim Circuit', diagram: 'CEsim Diagram', '3d': 'CEsim 3D' };
-const EXT_TOOL = { cesim: 'circuit', cir: 'circuit', net: 'circuit', sp: 'circuit', cediag: 'diagram', drawio: 'diagram', dio: 'diagram', xml: 'diagram', mmd: 'diagram', mermaid: 'diagram', svg: 'diagram', png: 'diagram', jpg: 'diagram', jpeg: 'diagram', ce3d: '3d', stl: '3d', obj: '3d', '3mf': '3d' };
+const TOOL_FILE = { logic: 'logic.html', bool: 'bool.html', imgcircuit: 'circuit.html', codecircuit: 'circuit.html', circuit: 'circuit.html', diagram: 'diagram.html', '3d': '3d.html' };
+const TOOL_TITLE = { logic: 'CEsim Logic', bool: 'CEsim Boolean tools', imgcircuit: 'CEsim Circuit', codecircuit: 'CEsim Circuit', circuit: 'CEsim Circuit', diagram: 'CEsim Diagram', '3d': 'CEsim 3D' };
+const EXT_TOOL = { cedig: 'logic', circ: 'logic', cesim: 'circuit', cir: 'circuit', net: 'circuit', sp: 'circuit', cediag: 'diagram', drawio: 'diagram', dio: 'diagram', xml: 'diagram', mmd: 'diagram', mermaid: 'diagram', svg: 'diagram', png: 'diagram', jpg: 'diagram', jpeg: 'diagram', ce3d: '3d', stl: '3d', obj: '3d', '3mf': '3d' };
 const BINARY = new Set(['stl', '3mf', 'png', 'jpg', 'jpeg']);
 const recentFile = () => path.join(app.getPath('userData'), 'recent.json');
 function readRecent() { try { return JSON.parse(fs.readFileSync(recentFile(), 'utf8')) } catch (e) { return [] } }
 function addRecent(p, tool) { let r = readRecent().filter(x => x.path !== p); r.unshift({ path: p, tool, t: Date.now() }); r = r.slice(0, 30); try { fs.mkdirSync(path.dirname(recentFile()), { recursive: true }); fs.writeFileSync(recentFile(), JSON.stringify(r)) } catch (e) { } try { app.addRecentDocument(p) } catch (e) { } }
 const winOpts = (w, h) => ({ width: w, height: h, ...(process.platform !== 'darwin' ? { icon: path.join(__dirname, 'icon.png') } : {}), minWidth: 900, minHeight: 600, backgroundColor: '#f3f5f8', show: false, webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false } });
-function wire(win) { win.once('ready-to-show', () => win.show()); win.webContents.setWindowOpenHandler(({ url }) => { if (/^https?:/.test(url)) shell.openExternal(url); return { action: 'deny' }; }); }
+function wire(win) { win.once('ready-to-show', () => win.show()); win.webContents.setWindowOpenHandler(({ url }) => { if (/^(https?|mailto):/.test(url)) shell.openExternal(url); return { action: 'deny' }; }); }
 function createStudio() {
   if (studio && !studio.isDestroyed()) { studio.show(); studio.focus(); return studio; }
   studio = new BrowserWindow(Object.assign(winOpts(1180, 780), { title: 'CEsim Studio' }));
@@ -93,7 +93,7 @@ ipcMain.handle('cesim-pdf', async (e, { name, svg }) => {
 });
 app.on('open-file', (e, p) => { e.preventDefault(); if (app.isReady()) openPath(p); else pendingPaths.push(p); });
 /* Windows / Linux: files arrive as command-line arguments; keep a single instance */
-const OPENABLE = /\.(cesim|cir|net|sp|cediag|drawio|dio|mmd|mermaid|ce3d|stl|obj|3mf|ms\d+|msm)$/i;
+const OPENABLE = /\.(cesim|cir|net|sp|cedig|circ|cediag|drawio|dio|mmd|mermaid|ce3d|stl|obj|3mf|ms\d+|msm)$/i;
 const argFiles = argv => argv.slice(1).filter(a => a && !a.startsWith('-') && OPENABLE.test(a) && (() => { try { return fs.statSync(a).isFile(); } catch (e) { return false; } })());
 if (process.platform !== 'darwin' && !process.env.CESIM_SELFTEST) {
   if (!app.requestSingleInstanceLock()) app.quit();
@@ -109,8 +109,8 @@ const template = [
   { label: 'View', submenu: [{ role: 'reload' }, { role: 'togglefullscreen' }, { type: 'separator' }, { role: 'resetZoom' }, { role: 'zoomIn' }, { role: 'zoomOut' }, { type: 'separator' }, { role: 'toggleDevTools' }] },
   { role: 'windowMenu' }
 ];
-if (!isMac) template.push({ label: 'Help', submenu: [{ label: 'About CEsim Studio', click: () => dialog.showMessageBox({ type: 'info', title: 'CEsim Studio', message: 'CEsim Studio', detail: 'Version 1.1.0\nBY. YOUSEF' }) }] });
-app.setAboutPanelOptions({ applicationName: 'CEsim Studio', applicationVersion: '1.1.0', credits: 'BY. YOUSEF' });
+if (!isMac) template.push({ label: 'Help', submenu: [{ label: 'About CEsim Studio', click: () => dialog.showMessageBox({ type: 'info', title: 'CEsim Studio', message: 'CEsim Studio', detail: 'Version 1.2.0\nBY. YOUSEF' }) }] });
+app.setAboutPanelOptions({ applicationName: 'CEsim Studio', applicationVersion: '1.2.0', credits: 'BY. YOUSEF' });
 app.whenReady().then(() => { Menu.setApplicationMenu(Menu.buildFromTemplate(template)); createStudio(); pendingPaths.splice(0).forEach(openPath); app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createStudio(); }); });
 app.on('window-all-closed', () => { if (!isMac) app.quit(); });
 /* self-test hook (only runs when CESIM_SELFTEST is set) */
@@ -128,9 +128,11 @@ if (process.env.CESIM_SELFTEST) app.whenReady().then(async () => {
   const dw = wins.find(w => w.webContents.getURL().includes('diagram.html'));
   if (dw) { const tgt = path.join(out, 'saved.cediag'); const r1 = await dw.webContents.executeJavaScript(`window.cesimNative.write(${JSON.stringify(tgt)}, '{"format":"CEsimDiagram"}')`); log.push('write=' + (r1 && fs.existsSync(tgt)));
     const svg = await dw.webContents.executeJavaScript('CED.exportSvgString()'); const m = svg.match(/width="(\d+)" height="(\d+)"/); const hidden = new BrowserWindow({ show: false, width: +m[1], height: +m[2], webPreferences: { offscreen: true } }); await hidden.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent('<html><body style="margin:0">' + svg + '</body></html>')); const pdf = await hidden.webContents.printToPDF({ printBackground: true, pageSize: { width: +m[1] / 96, height: +m[2] / 96 }, margins: { marginType: 'none' } }); hidden.destroy(); fs.writeFileSync(path.join(out, 'diagram.pdf'), pdf); log.push('pdf=' + pdf.length); }
-  for (const w of BrowserWindow.getAllWindows()) { if (w === studio) continue; const u = w.webContents.getURL(); const k = u.includes('circuit') ? 'circuit' : u.includes('diagram') ? 'diagram' : u.includes('3d') ? 'd3' : 'other'; const fp = await w.webContents.executeJavaScript(`window.cesimNative && window.cesimNative.capture ? window.cesimNative.capture('cap_${k}.png') : 'nocapture'`); log.push('capture_' + k + '=' + (fp && fs.existsSync(fp) ? fs.statSync(fp).size : fp)); }
+  for (const w of BrowserWindow.getAllWindows()) { if (w === studio) continue; const u = w.webContents.getURL(); const k = u.includes('circuit') ? 'circuit' : u.includes('diagram') ? 'diagram' : u.includes('3d') ? 'd3' : u.includes('logic') ? 'logic' : u.includes('bool') ? 'bool' : 'other'; const fp = await w.webContents.executeJavaScript(`window.cesimNative && window.cesimNative.capture ? window.cesimNative.capture('cap_${k}.png') : 'nocapture'`); log.push('capture_' + k + '=' + (fp && fs.existsSync(fp) ? fs.statSync(fp).size : fp)); }
   const cw = BrowserWindow.getAllWindows().find(w => w.webContents.getURL().includes('circuit.html'));
   if (cw) log.push('ollama=' + await cw.webContents.executeJavaScript(`(async()=>{let prog=0;const off=cesimNative.onOllamaProgress(d=>prog++);const t=await cesimNative.ollama({op:'tags'});const p=await cesimNative.ollama({op:'pull',model:'qwen2.5vl:7b',job:'pp'});const c=await cesimNative.ollama({op:'chat',model:'qwen2.5vl:7b',prompt:'x',images:['iVBOR'],job:'cc',format:{type:'object'}});off();let net='';try{net=CE.aiToSpice(CE.parseAiJson(c.text)).text.split('\\n').length}catch(e){net='ERR '+e.message}return JSON.stringify({tags:t.ok&&t.data.models.length,pull:p.ok,chat:c.ok,tokens:c.tokens,prog,netLines:net})})()`));
+  const lw = BrowserWindow.getAllWindows().find(w => w.webContents.getURL().includes('logic.html'));
+  if (lw) log.push('logic=' + await lw.webContents.executeJavaScript(`(()=>{const d=CEL.doc;const pin=l=>d.comps.find(c=>c.t==='pin'&&c.a.label===l);const reg=d.comps.find(c=>c.t==='register');if(!reg)return 'no register';pin('B').st.v=9;pin('Load').st.v=1;CEL.propagate();CEL.clockStep();CEL.clockStep();return d.name+' parts='+d.comps.length+' PC='+reg.st.q})()`));
   const d3w = BrowserWindow.getAllWindows().find(w => w.webContents.getURL().includes('3d.html')); if (d3w) log.push('d3settings=' + await d3w.webContents.executeJavaScript('JSON.stringify([CE3D.controls.zoomSpeed, !!CE3D.csvReport().length, CE3D.exportSVG3().length > 500])'));
   log.push('recent=' + JSON.stringify(readRecent().map(r => [path.basename(r.path), r.tool])));
   fs.writeFileSync(path.join(out, 'log.txt'), log.join('\n') + '\nERRORS:\n' + errs.join('\n'));

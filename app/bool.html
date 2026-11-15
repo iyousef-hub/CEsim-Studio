@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link href="fonts/fonts.css" rel="stylesheet"><title>CEsim Boolean tools</title>
+<style>
+:root{--bg:#eef1f5;--panel:#f7f8fa;--line:#cdd3dc;--text:#1b2230;--dim:#5e6979;--hover:#e1e7ef;--accent:#185fa5;--font:"IBM Plex Sans",-apple-system,"Segoe UI",Roboto,Arial,sans-serif;--mono:"IBM Plex Mono",ui-monospace,Menlo,monospace}
+*{box-sizing:border-box}html,body{height:100%;margin:0}body{background:var(--bg);color:var(--text);font:13px/1.4 var(--font)}
+#top{display:flex;align-items:center;gap:6px;padding:6px 12px;background:var(--panel);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
+.logo{width:24px;height:24px;border-radius:6px;background:var(--accent);color:#fff;display:grid;place-items:center;font:600 10px var(--mono)}
+.title{font-weight:600;margin-right:14px}
+.tab{height:32px;padding:0 14px;border:1px solid transparent;border-radius:6px;background:none;cursor:pointer;font:13px var(--font);color:var(--text)}.tab:hover{background:var(--hover)}.tab.on{background:#d3e4f7;border-color:#93b8e0;font-weight:600}
+.btn{height:30px;padding:0 12px;border:1px solid var(--line);border-radius:5px;background:#fff;color:var(--text);cursor:pointer;font:12.5px var(--font);white-space:nowrap}.btn:hover{background:var(--hover)}.btn.pri{background:var(--accent);border-color:var(--accent);color:#fff}.btn.pri:hover{filter:brightness(.92)}
+main{padding:14px;max-width:1500px;margin:0 auto}
+.cols{display:grid;grid-template-columns:330px minmax(0,1fr);gap:14px;align-items:start}
+.card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:14px}
+.card h2{font-size:13.5px;margin:0 0 10px}
+label.f{display:block;font-size:12px;color:var(--dim);margin-bottom:10px}
+label.f input,label.f select,label.f textarea{display:block;width:100%;margin-top:4px;height:32px;border:1px solid var(--line);border-radius:5px;padding:0 9px;font:13px var(--font);color:var(--text);background:#fff}
+label.f textarea{height:60px;padding:6px 9px;resize:vertical;font-family:var(--mono)}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.dim{color:var(--dim);font-size:12px}
+.err{color:#b3261e;font-size:12px;min-height:16px;margin-top:-4px}
+table.tt{border-collapse:collapse;font:13px var(--mono);width:100%}
+.tt th,.tt td{padding:3px 8px;text-align:center;border-bottom:1px solid #eef1f4}.tt th{background:#f3f6fa;font-family:var(--font);position:sticky;top:0;z-index:1}
+.tt td.idx{color:#9aa7b8;font-size:11px}.tt td.o{cursor:pointer;font-weight:600}.tt td.o:hover{background:#eaf3ff}.tt td.one{color:#1f8a3a}.tt td.dc{color:#b06b00}
+.tt .sepc{width:3px;padding:0;background:#dfe4ea}
+.ttwrap{max-height:calc(100vh - 160px);overflow:auto}
+.outsel{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+.chip{height:28px;padding:0 12px;border-radius:14px;border:1px solid var(--line);background:#fff;cursor:pointer;font:12.5px var(--font)}.chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.res{font:14px/1.6 var(--mono);background:#f7f9fc;border:1px solid #e3e8ef;border-radius:6px;padding:8px 10px;margin:4px 0 10px;word-break:break-word;user-select:text}
+.res b{font-family:var(--font);font-size:11.5px;color:var(--dim);display:block;font-weight:600}
+.kmaps{display:flex;gap:18px;flex-wrap:wrap}
+svg text{font-family:var(--font)}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;margin-top:6px}
+.legend span{display:inline-flex;gap:5px;align-items:center}.legend i{width:12px;height:12px;border-radius:3px;display:inline-block}
+.fsmt{border-collapse:collapse;font-size:12.5px}.fsmt th,.fsmt td{border:1px solid #e3e8ef;padding:4px 6px;text-align:center}.fsmt th{background:#f3f6fa}.fsmt select,.fsmt input{height:26px;border:1px solid var(--line);border-radius:4px;font:12.5px var(--font);padding:0 4px;background:#fff}.fsmt input{width:56px;text-align:center}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#1b2230;color:#fff;padding:9px 14px;border-radius:6px;font-size:12.5px;z-index:90}
+button:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible,td:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+[hidden]{display:none!important}
+</style></head><body>
+<div id="top"><div class="logo">CE</div><span class="title">Boolean tools</span>
+ <button class="tab on" data-tab="fn">Function, truth table and K-map</button><button class="tab" data-tab="fsm">State machine (FSM)</button>
+ <span style="flex:1"></span><button class="btn" id="bLogic">Open Logic</button></div>
+<main>
+<section id="fn">
+<div class="cols">
+ <div>
+  <div class="card"><h2>Variables and outputs</h2>
+   <div class="row"><label class="f" style="flex:1">Inputs<select id="nv">${'2,3,4,5,6'}</select></label><label class="f" style="flex:1">Outputs<select id="no"></select></label></div>
+   <label class="f">Input names (separated by spaces)<input id="vnames" spellcheck="false"></label>
+   <label class="f">Output names<input id="onames" spellcheck="false"></label>
+  </div>
+  <div class="card"><h2>Enter the function for <span class="curout"></span></h2>
+   <label class="f">Expression<input id="expr" spellcheck="false" placeholder="e.g. A'B + AC   or   (A+B)C'"></label>
+   <div class="err" id="exprErr"></div>
+   <div class="row" style="margin-bottom:12px"><button class="btn pri" id="bExpr">Apply expression</button></div>
+   <label class="f">Minterms<input id="mins" spellcheck="false" placeholder="e.g. Σm(1,3,5,7) + d(0,2)"></label>
+   <div class="err" id="minErr"></div>
+   <div class="row"><button class="btn" id="bMins">Apply minterms</button><button class="btn" id="bClear">All 0</button></div>
+   <p class="dim" style="margin:12px 0 0">Click an output in the truth table to switch it between 0, 1 and x (don't care). Write NOT as A' or ~A, AND as AB, A·B or A&amp;B, OR as A+B, XOR as A^B.</p>
+  </div>
+ </div>
+ <div>
+  <div class="card"><div class="outsel" id="outsel"></div>
+   <div style="display:grid;grid-template-columns:minmax(260px,auto) minmax(0,1fr);gap:18px;align-items:start">
+    <div class="ttwrap"><table class="tt" id="tt"></table></div>
+    <div>
+     <div class="row" style="margin-bottom:8px"><b style="font-size:13px">K-map</b><span style="flex:1"></span><button class="chip on" id="gSop">SOP groups (1s)</button><button class="chip" id="gPos">POS groups (0s)</button></div>
+     <div class="kmaps" id="kmaps"></div><div class="legend" id="legend"></div>
+     <div style="margin-top:14px">
+      <div class="res"><b>Minimal sum of products (SOP)</b><span id="rSop"></span></div>
+      <div class="res"><b>Minimal product of sums (POS)</b><span id="rPos"></span></div>
+      <div class="res"><b>Canonical forms</b><span id="rCan"></span></div>
+      <div class="row"><button class="btn" id="bCopy">Copy results</button><button class="btn" id="bCode">Copy as code (Verilog style)</button><button class="btn pri" id="bBuild">Build circuit in Logic</button></div>
+      <p class="dim" id="buildNote"></p>
+     </div>
+    </div>
+   </div>
+  </div>
+ </div>
+</div>
+</section>
+
+<section id="fsm" hidden>
+<div class="cols">
+ <div>
+  <div class="card"><h2>Machine</h2>
+   <div class="row"><label class="f" style="flex:1">Type<select id="fType"><option value="moore">Moore (outputs depend on the state)</option><option value="mealy">Mealy (outputs depend on state and input)</option></select></label></div>
+   <label class="f">States (separated by spaces)<input id="fStates" value="S0 S1 S2" spellcheck="false"></label>
+   <label class="f">Input names (0 to 2, separated by spaces)<input id="fIns" value="X" spellcheck="false"></label>
+   <label class="f">Output names (separated by spaces)<input id="fOuts" value="Z" spellcheck="false"></label>
+   <label class="f">State encoding<select id="fEnc"><option value="binary">Binary</option><option value="gray">Gray code</option><option value="onehot">One-hot</option></select></label>
+   <label class="f">Flip-flops<select id="fFF"><option value="D">D flip-flops</option><option value="JK">JK flip-flops</option><option value="T">T flip-flops</option></select></label>
+   <div class="row"><button class="btn" id="fApply">Update table</button><button class="btn" id="fEx">Example: detect 101</button></div>
+  </div>
+  <div class="card"><h2>State diagram</h2><div id="fDiag"></div></div>
+ </div>
+ <div>
+  <div class="card"><h2>State table</h2><div id="fTable"></div><p class="dim">Choose the next state and the outputs for each state and input. The first state is the reset state.</p></div>
+  <div class="card"><h2>Design</h2><div id="fRes"></div>
+   <div class="row"><button class="btn" id="fCopy">Copy design</button><button class="btn pri" id="fBuild">Build circuit in Logic</button></div><p class="dim" id="fNote"></p></div>
+ </div>
+</div>
+</section>
+</main>
+<script src="boolmin.js"></script>
+<script>
+'use strict';
+const B = window.BOOL, $ = s => document.querySelector(s), N = window.cesimNative;
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+function toast(m) { const t = document.createElement('div'); t.className = 'toast'; t.textContent = m; document.body.appendChild(t); setTimeout(() => t.remove(), 3000); }
+function copy(t, ok) { (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => toast(ok)).catch(() => { const x = document.createElement('textarea'); x.value = t; document.body.appendChild(x); x.select(); document.execCommand('copy'); x.remove(); toast(ok); }); }
+document.querySelectorAll('.tab').forEach(b => b.onclick = () => { document.querySelectorAll('.tab').forEach(x => x.classList.toggle('on', x === b)); $('#fn').hidden = b.dataset.tab !== 'fn'; $('#fsm').hidden = b.dataset.tab !== 'fsm'; if (b.dataset.tab === 'fsm') fsmRender(); });
+function openLogic(payload) { try { localStorage.setItem('cesim.handoff.logic', JSON.stringify(payload)); } catch (e) { } if (N && N.openTool) N.openTool('logic'); else window.open('logic.html', '_blank'); toast('Opening the circuit in Logic.'); }
+$('#bLogic').onclick = () => { if (N && N.openTool) N.openTool('logic'); else window.open('logic.html', '_blank'); };
+
+/* ================= function / truth table / K-map ================= */
+const DEF_V = ['A', 'B', 'C', 'D', 'E', 'F'];
+let S = { vars: ['A', 'B', 'C'], outs: [{ name: 'F', values: [0, 1, 0, 1, 0, 1, 1, 1] }], cur: 0, groups: 'sop' };
+try { const o = JSON.parse(localStorage.getItem('cesim.bool.fn') || 'null'); if (o && o.vars && o.outs) S = Object.assign(S, o); } catch (e) { }
+const saveS = () => { try { localStorage.setItem('cesim.bool.fn', JSON.stringify(S)); } catch (e) { } };
+$('#nv').innerHTML = [1, 2, 3, 4, 5, 6].map(n => `<option>${n}</option>`).join(''); $('#no').innerHTML = [1, 2, 3, 4].map(n => `<option>${n}</option>`).join('');
+function resize(nv, no) {
+  nv = Math.max(1, Math.min(6, nv)); no = Math.max(1, Math.min(4, no));
+  if (nv !== S.vars.length) { const old = S.vars.length; S.vars = DEF_V.slice(0, nv).map((d, i) => S.vars[i] || d); S.outs.forEach(o => { const nvals = []; for (let m = 0; m < 1 << nv; m++) nvals.push(nv > old ? o.values[m >> (nv - old)] ?? 0 : o.values[m << (old - nv)] ?? 0); o.values = nvals; }); }
+  while (S.outs.length < no) S.outs.push({ name: 'F' + (S.outs.length + 1), values: new Array(1 << nv).fill(0) }); S.outs.length = no; if (S.cur >= no) S.cur = 0;
+}
+function syncInputs() { $('#nv').value = S.vars.length; $('#no').value = S.outs.length; $('#vnames').value = S.vars.join(' '); $('#onames').value = S.outs.map(o => o.name).join(' '); }
+$('#nv').onchange = () => { resize(+$('#nv').value, S.outs.length); syncInputs(); render(); };
+$('#no').onchange = () => { resize(S.vars.length, +$('#no').value); syncInputs(); render(); };
+$('#vnames').onchange = () => { const v = $('#vnames').value.trim().split(/[\s,]+/).filter(Boolean); if (v.length !== S.vars.length || new Set(v).size !== v.length || v.some(x => !/^[A-Za-z_]\w*$/.test(x))) { toast('Use ' + S.vars.length + ' different names made of letters, digits or _.'); syncInputs(); return; } S.vars = v; render(); };
+$('#onames').onchange = () => { const v = $('#onames').value.trim().split(/[\s,]+/).filter(Boolean); if (v.length !== S.outs.length) { toast('Use ' + S.outs.length + ' names.'); syncInputs(); return; } S.outs.forEach((o, i) => o.name = v[i]); render(); };
+$('#bExpr').onclick = () => { try { S.outs[S.cur].values = B.exprToValues($('#expr').value, S.vars); $('#exprErr').textContent = ''; render(); } catch (e) { $('#exprErr').textContent = e.message; } };
+$('#expr').addEventListener('keydown', e => { if (e.key === 'Enter') $('#bExpr').click(); });
+$('#bMins').onclick = () => { try { S.outs[S.cur].values = B.parseMinterms($('#mins').value, S.vars.length); $('#minErr').textContent = ''; render(); } catch (e) { $('#minErr').textContent = e.message; } };
+$('#mins').addEventListener('keydown', e => { if (e.key === 'Enter') $('#bMins').click(); });
+$('#bClear').onclick = () => { S.outs[S.cur].values = S.outs[S.cur].values.map(() => 0); render(); };
+$('#gSop').onclick = () => { S.groups = 'sop'; render(); }; $('#gPos').onclick = () => { S.groups = 'pos'; render(); };
+const COLORS = ['#e53935', '#1e88e5', '#43a047', '#fb8c00', '#8e24aa', '#00897b', '#c0ca33', '#6d4c41', '#d81b60', '#3949ab'];
+function analyse(o) { const n = S.vars.length; const ones = [], zeros = [], dcs = []; o.values.forEach((v, i) => v === 1 ? ones.push(i) : v === 'x' ? dcs.push(i) : zeros.push(i)); return { sop: B.minimise(ones, dcs, n), pos: B.minimise(zeros, dcs, n), ones, zeros, dcs }; }
+function render() {
+  const n = S.vars.length; saveS(); syncInputs(); document.querySelectorAll('.curout').forEach(e => e.textContent = S.outs[S.cur].name);
+  $('#outsel').innerHTML = S.outs.map((o, i) => `<button class="chip ${i === S.cur ? 'on' : ''}" data-o="${i}">${esc(o.name)}</button>`).join('');
+  $('#outsel').querySelectorAll('[data-o]').forEach(b => b.onclick = () => { S.cur = +b.dataset.o; render(); });
+  let h = `<thead><tr><th>#</th>${S.vars.map(v => `<th>${esc(v)}</th>`).join('')}<th class="sepc"></th>${S.outs.map((o, i) => `<th style="${i === S.cur ? 'color:#185fa5' : ''}">${esc(o.name)}</th>`).join('')}</tr></thead><tbody>`;
+  for (let m = 0; m < 1 << n; m++) { h += `<tr><td class="idx">${m}</td>` + S.vars.map((_, i) => `<td>${(m >> (n - 1 - i)) & 1}</td>`).join('') + '<td class="sepc"></td>' + S.outs.map((o, j) => { const v = o.values[m]; return `<td class="o ${v === 1 ? 'one' : v === 'x' ? 'dc' : ''}" tabindex="0" data-m="${m}" data-j="${j}" title="Click to change">${v}</td>`; }).join('') + '</tr>'; }
+  $('#tt').innerHTML = h + '</tbody>';
+  $('#tt').querySelectorAll('td.o').forEach(td => { const f = () => { const o = S.outs[+td.dataset.j]; const m = +td.dataset.m; o.values[m] = o.values[m] === 0 ? 1 : o.values[m] === 1 ? 'x' : 0; S.cur = +td.dataset.j; render(); const again = $(`#tt td.o[data-m="${m}"][data-j="${td.dataset.j}"]`); if (again) again.focus(); }; td.onclick = f; td.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); f(); } }; });
+  const o = S.outs[S.cur], a = analyse(o);
+  $('#rSop').textContent = o.name + ' = ' + B.sopText(a.sop, S.vars); $('#rPos').textContent = o.name + ' = ' + B.posText(a.pos, S.vars);
+  $('#rCan').innerHTML = esc(o.name) + ' = Σm(' + a.ones.join(', ') + ')' + (a.dcs.length ? ' + d(' + a.dcs.join(', ') + ')' : '') + '<br>' + esc(o.name) + ' = ΠM(' + a.zeros.join(', ') + ')' + (a.dcs.length ? ' · D(' + a.dcs.join(', ') + ')' : '');
+  $('#gSop').classList.toggle('on', S.groups === 'sop'); $('#gPos').classList.toggle('on', S.groups === 'pos');
+  drawKmaps(o, S.groups === 'sop' ? a.sop : a.pos);
+  $('#buildNote').textContent = 'Builds every output (' + S.outs.map(x => x.name).join(', ') + ') from its minimal SOP with AND, OR and NOT gates.';
+}
+function kmapLayout(n) { // returns {mapVars, rowVars, colVars} as variable index arrays
+  if (n === 1) return { map: [], row: [], col: [0] }; if (n === 2) return { map: [], row: [0], col: [1] }; if (n === 3) return { map: [], row: [0], col: [1, 2] }; if (n === 4) return { map: [], row: [0, 1], col: [2, 3] }; if (n === 5) return { map: [0], row: [1, 2], col: [3, 4] }; return { map: [0, 1], row: [2, 3], col: [4, 5] }; }
+function drawKmaps(o, res) {
+  const n = S.vars.length, L = kmapLayout(n); const g = B.gray, rG = g(L.row.length), cG = g(L.col.length); const cell = 40, ox = 54, oy = 46;
+  const groups = res.constant !== null ? [] : res.terms; const posMode = S.groups === 'pos';
+  const mapsN = 1 << L.map.length; let html = '';
+  for (let mi = 0; mi < mapsN; mi++) {
+    const W = ox + cG.length * cell + 12, H = oy + rG.length * cell + 12;
+    let s = `<svg width="${W}" height="${H + (L.map.length ? 18 : 0)}" viewBox="0 0 ${W} ${H + (L.map.length ? 18 : 0)}" role="img" aria-label="K-map">`;
+    const yo = L.map.length ? 18 : 0;
+    if (L.map.length) s += `<text x="${ox}" y="13" font-size="12" font-weight="600" fill="#1b2230">${L.map.map((v, k) => esc(S.vars[v]) + '=' + ((mi >> (L.map.length - 1 - k)) & 1)).join(', ')}</text>`;
+    s += `<text x="${ox - 6}" y="${yo + oy - 26}" font-size="11.5" text-anchor="end" fill="#5e6979">${L.row.map(v => esc(S.vars[v])).join('')}\\${L.col.map(v => esc(S.vars[v])).join('')}</text>`;
+    cG.forEach((c, j) => s += `<text x="${ox + j * cell + cell / 2}" y="${yo + oy - 8}" font-size="11.5" text-anchor="middle" fill="#1b2230" font-family="IBM Plex Mono">${c.toString(2).padStart(L.col.length, '0')}</text>`);
+    rG.forEach((r, i) => s += `<text x="${ox - 8}" y="${yo + oy + i * cell + cell / 2 + 4}" font-size="11.5" text-anchor="end" fill="#1b2230" font-family="IBM Plex Mono">${L.row.length ? r.toString(2).padStart(L.row.length, '0') : ''}</text>`);
+    const mOf = (i, j) => { const bits = new Array(n).fill(0); L.map.forEach((v, k) => bits[v] = (mi >> (L.map.length - 1 - k)) & 1); L.row.forEach((v, k) => bits[v] = (rG[i] >> (L.row.length - 1 - k)) & 1); L.col.forEach((v, k) => bits[v] = (cG[j] >> (L.col.length - 1 - k)) & 1); return bits.reduce((a, b) => a * 2 + b, 0); };
+    for (let i = 0; i < rG.length; i++) for (let j = 0; j < cG.length; j++) { const m = mOf(i, j), v = o.values[m]; s += `<rect x="${ox + j * cell}" y="${yo + oy + i * cell}" width="${cell}" height="${cell}" fill="${v === 1 ? '#effaf2' : v === 'x' ? '#fff7e8' : '#fff'}" stroke="#9aa7b8"/><text x="${ox + j * cell + cell / 2}" y="${yo + oy + i * cell + cell / 2 + 5}" font-size="15" font-weight="600" text-anchor="middle" fill="${v === 1 ? '#1f8a3a' : v === 'x' ? '#b06b00' : '#9aa7b8'}" font-family="IBM Plex Mono">${v}</text><text x="${ox + j * cell + 4}" y="${yo + oy + i * cell + 10}" font-size="8" fill="#b7c0cc">${m}</text>`; }
+    groups.forEach((t, gi) => { const col = COLORS[gi % COLORS.length]; const inMap = L.map.every((v, k) => { const bit = 1 << (n - 1 - v); return (t.m & bit) || (((t.v & bit) ? 1 : 0) === ((mi >> (L.map.length - 1 - k)) & 1)); }); if (!inMap) return;
+      const rows = [], cols = []; for (let i = 0; i < rG.length; i++) if (L.row.every((v, k) => { const bit = 1 << (n - 1 - v); return (t.m & bit) || (((t.v & bit) ? 1 : 0) === ((rG[i] >> (L.row.length - 1 - k)) & 1)); })) rows.push(i);
+      for (let j = 0; j < cG.length; j++) if (L.col.every((v, k) => { const bit = 1 << (n - 1 - v); return (t.m & bit) || (((t.v & bit) ? 1 : 0) === ((cG[j] >> (L.col.length - 1 - k)) & 1)); })) cols.push(j);
+      const runs = (arr, len) => { if (!arr.length) return []; const set = new Set(arr); if (arr.length === len) return [[0, len - 1]]; const out = []; let start = arr.find(x => !set.has((x - 1 + len) % len)); let x = start, cur = [x, x]; for (let k = 1; k < arr.length; k++) { const nx = (x + 1) % len; if (set.has(nx) && nx !== start) { x = nx; if (x === 0) { out.push(cur); cur = [0, 0]; } else cur[1] = x; } else break; } out.push(cur); return out; };
+      const pad = 3 + (gi % 4) * 2.2;
+      for (const [r0, r1] of runs(rows, rG.length)) for (const [c0, c1] of runs(cols, cG.length)) s += `<rect x="${ox + c0 * cell + pad}" y="${yo + oy + r0 * cell + pad}" width="${(c1 - c0 + 1) * cell - 2 * pad}" height="${(r1 - r0 + 1) * cell - 2 * pad}" rx="10" fill="${col}" fill-opacity=".10" stroke="${col}" stroke-width="2"/>`; });
+    html += s + '</svg>';
+  }
+  $('#kmaps').innerHTML = html;
+  const posMode2 = S.groups === 'pos';
+  $('#legend').innerHTML = groups.map((t, gi) => { const L2 = B.termLits(t, n); const txt = posMode2 ? (L2.length > 1 ? '(' : '') + L2.map(l => l.neg ? S.vars[l.v] : S.vars[l.v] + "'").join(' + ') + (L2.length > 1 ? ')' : '') : L2.map(l => S.vars[l.v] + (l.neg ? "'" : '')).join(''); return `<span><i style="background:${COLORS[gi % COLORS.length]}"></i>${esc(txt || '1')}</span>`; }).join('');
+}
+$('#bCopy').onclick = () => { const lines = S.outs.map(o => { const a = analyse(o); return `${o.name} = ${B.sopText(a.sop, S.vars)}\n${o.name} = ${B.posText(a.pos, S.vars)}\n${o.name} = Σm(${a.ones.join(',')})${a.dcs.length ? ' + d(' + a.dcs.join(',') + ')' : ''}`; }); copy(lines.join('\n\n'), 'Results copied.'); };
+$('#bCode').onclick = () => { const lines = S.outs.map(o => `assign ${o.name} = ${B.sopText(analyse(o).sop, S.vars, 'code')};`); copy(lines.join('\n'), 'Copied as code.'); };
+function sopPayload(title) { return { kind: 'sop', title, vars: S.vars.slice(), outs: S.outs.map(o => { const r = analyse(o).sop; return { name: o.name, terms: r.constant === 0 ? [] : r.constant === 1 ? [[]] : r.terms.map(t => B.termLits(t, S.vars.length)) }; }) }; }
+$('#bBuild').onclick = () => openLogic(sopPayload(S.outs.map(o => o.name).join('_') + '_circuit'));
+
+/* handoff from Logic (truth table) */
+(function () { let h = null; try { h = JSON.parse(localStorage.getItem('cesim.handoff.bool') || 'null'); localStorage.removeItem('cesim.handoff.bool'); } catch (e) { }
+  if (h && h.kind === 'truthtable' && h.vars.length >= 1 && h.vars.length <= 6) { S.vars = h.vars.slice(); S.outs = h.outs.slice(0, 4).map(o => ({ name: o.name, values: o.values })); S.cur = 0; toast('Truth table received from Logic.'); } })();
+render();
+
+/* ================= FSM ================= */
+let F = { type: 'moore', states: ['S0', 'S1', 'S2'], ins: ['X'], outs: ['Z'], enc: 'binary', ff: 'D', next: {}, out: {} };
+try { const o = JSON.parse(localStorage.getItem('cesim.bool.fsm') || 'null'); if (o && o.states) F = Object.assign(F, o); } catch (e) { }
+const saveF = () => { try { localStorage.setItem('cesim.bool.fsm', JSON.stringify(F)); } catch (e) { } };
+function fsmSync() { $('#fType').value = F.type; $('#fStates').value = F.states.join(' '); $('#fIns').value = F.ins.join(' '); $('#fOuts').value = F.outs.join(' '); $('#fEnc').value = F.enc; $('#fFF').value = F.ff; }
+function fsmRead() { const names = s => s.trim().split(/[\s,]+/).filter(Boolean);
+  const st = names($('#fStates').value), ins = names($('#fIns').value), outs = names($('#fOuts').value);
+  if (st.length < 2 || st.length > 16 || new Set(st).size !== st.length) { toast('Use 2 to 16 different state names.'); return false; }
+  if (ins.length > 2) { toast('Use at most 2 inputs.'); return false; } if (!outs.length || outs.length > 4) { toast('Use 1 to 4 outputs.'); return false; }
+  if ([...ins, ...outs].some(x => !/^[A-Za-z_]\w*$/.test(x))) { toast('Input and output names use letters, digits or _.'); return false; }
+  F.type = $('#fType').value; F.states = st; F.ins = ins; F.outs = outs; F.enc = $('#fEnc').value; F.ff = $('#fFF').value; return true; }
+$('#fApply').onclick = () => { if (fsmRead()) fsmRender(); };
+['#fType', '#fEnc', '#fFF'].forEach(s => $(s).onchange = () => { if (fsmRead()) fsmRender(); });
+['#fStates', '#fIns', '#fOuts'].forEach(s => $(s).addEventListener('keydown', e => { if (e.key === 'Enter' && fsmRead()) fsmRender(); }));
+$('#fEx').onclick = () => { F = { type: 'moore', states: ['S0', 'S1', 'S2', 'S3'], ins: ['X'], outs: ['Z'], enc: 'binary', ff: 'D', next: { 'S0|0': 'S0', 'S0|1': 'S1', 'S1|0': 'S2', 'S1|1': 'S1', 'S2|0': 'S0', 'S2|1': 'S3', 'S3|0': 'S2', 'S3|1': 'S1' }, out: { 'S0': '0', 'S1': '0', 'S2': '0', 'S3': '1' } }; fsmSync(); fsmRender(); toast('Moore machine that outputs 1 after the input sequence 1, 0, 1.'); };
+const nIn = () => 1 << F.ins.length; const inLabel = k => F.ins.length ? F.ins.map((n, i) => n + '=' + ((k >> (F.ins.length - 1 - i)) & 1)).join(' ') : '—';
+const outKey = (s, k) => F.type === 'moore' ? s : s + '|' + k;
+function fsmRender() {
+  fsmSync(); const nS = F.states.length;
+  let h = '<table class="fsmt"><thead><tr><th>State</th>' + (F.ins.length ? '<th>Input</th>' : '') + '<th>Next state</th>' + F.outs.map(o => `<th>${esc(o)}</th>`).join('') + '</tr></thead><tbody>';
+  F.states.forEach((s, si) => { for (let k = 0; k < nIn(); k++) { const nk = s + '|' + k; if (!F.next[nk] || !F.states.includes(F.next[nk])) F.next[nk] = s; const ok = outKey(s, k); if (F.out[ok] === undefined || String(F.out[ok]).length !== F.outs.length) F.out[ok] = '0'.repeat(F.outs.length);
+    h += '<tr>' + (k === 0 ? `<td rowspan="${nIn()}"><b>${esc(s)}</b>${si === 0 ? '<br><span class="dim">reset</span>' : ''}</td>` : '') + (F.ins.length ? `<td>${esc(inLabel(k))}</td>` : '') + `<td><select data-n="${esc(nk)}" aria-label="Next state of ${esc(s)} for ${esc(inLabel(k))}">${F.states.map(x => `<option ${x === F.next[nk] ? 'selected' : ''}>${esc(x)}</option>`).join('')}</select></td>`;
+    F.outs.forEach((o, oi) => { if (F.type === 'moore' && k > 0) { h += ''; return; } const v = String(F.out[ok])[oi]; h += `<td ${F.type === 'moore' ? `rowspan="${nIn()}"` : ''}><select data-o="${esc(ok)}" data-oi="${oi}" aria-label="${esc(o)}">${['0', '1', 'x'].map(x => `<option ${x === v ? 'selected' : ''}>${x}</option>`).join('')}</select></td>`; });
+    h += '</tr>'; } });
+  $('#fTable').innerHTML = h + '</tbody></table>';
+  $('#fTable').querySelectorAll('[data-n]').forEach(s => s.onchange = () => { F.next[s.dataset.n] = s.value; fsmRender(); });
+  $('#fTable').querySelectorAll('[data-o]').forEach(s => s.onchange = () => { const cur = String(F.out[s.dataset.o]).split(''); cur[+s.dataset.oi] = s.value; F.out[s.dataset.o] = cur.join(''); fsmRender(); });
+  saveF(); fsmDiagram(); fsmDesign();
+}
+function encode() { const nS = F.states.length; let bits, codes;
+  if (F.enc === 'onehot') { bits = nS; codes = F.states.map((_, i) => 1 << (nS - 1 - i)); }
+  else { bits = Math.max(1, Math.ceil(Math.log2(nS))); codes = F.states.map((_, i) => F.enc === 'gray' ? i ^ (i >> 1) : i); }
+  return { bits, codes }; }
+function fsmEquations() {
+  const { bits, codes } = encode(); const ni = F.ins.length; const n = bits + ni; if (n > 6) return { err: 'This machine needs ' + n + ' variables (' + bits + ' state bits + ' + ni + ' inputs). The designer supports up to 6. Use binary encoding or fewer states.' };
+  const qn = []; for (let b = 0; b < bits; b++) qn.push('Q' + (bits - 1 - b)); const vars = qn.concat(F.ins);
+  const fns = []; // excitation functions
+  const nextVals = [], outVals = F.outs.map(() => new Array(1 << n).fill('x'));
+  for (let b = 0; b < bits; b++) nextVals.push({ D: new Array(1 << n).fill('x'), J: new Array(1 << n).fill('x'), K: new Array(1 << n).fill('x'), T: new Array(1 << n).fill('x') });
+  F.states.forEach((s, si) => { for (let k = 0; k < (1 << ni); k++) { const m = (codes[si] << ni) | k; const nx = codes[F.states.indexOf(F.next[s + '|' + k])];
+    for (let b = 0; b < bits; b++) { const bit = bits - 1 - b; const q = (codes[si] >> bit) & 1, qp = (nx >> bit) & 1; nextVals[b].D[m] = qp; nextVals[b].T[m] = q ^ qp; nextVals[b].J[m] = q ? 'x' : qp; nextVals[b].K[m] = q ? (qp ? 0 : 1) : 'x'; }
+    const ov = String(F.out[outKey(s, k)] || ''); F.outs.forEach((o, oi) => { const c = ov[oi]; outVals[oi][m] = c === '1' ? 1 : c === '0' ? 0 : 'x'; }); } });
+  const min = vals => { const ones = [], dcs = []; vals.forEach((v, i) => v === 1 ? ones.push(i) : v === 'x' ? dcs.push(i) : 0); return B.minimise(ones, dcs, n); };
+  const eq = []; for (let b = 0; b < bits; b++) { if (F.ff === 'D') eq.push({ name: 'D' + (bits - 1 - b), res: min(nextVals[b].D) }); else if (F.ff === 'T') eq.push({ name: 'T' + (bits - 1 - b), res: min(nextVals[b].T) }); else { eq.push({ name: 'J' + (bits - 1 - b), res: min(nextVals[b].J) }); eq.push({ name: 'K' + (bits - 1 - b), res: min(nextVals[b].K) }); } }
+  const oe = F.outs.map((o, oi) => ({ name: o, res: min(outVals[oi]) }));
+  return { bits, codes, vars, qn, eq, oe, n };
+}
+function fsmDesign() {
+  const r = fsmEquations(); if (r.err) { $('#fRes').innerHTML = `<p class="err">${esc(r.err)}</p>`; $('#fBuild').disabled = true; return; }
+  let h = '<div class="res"><b>State assignment</b>' + F.states.map((s, i) => esc(s) + ' = ' + r.codes[i].toString(2).padStart(r.bits, '0')).join('&nbsp;&nbsp; ') + ' <span class="dim">(' + r.qn.join(' ') + ')</span></div>';
+  h += '<div class="res"><b>' + (F.ff === 'D' ? 'Next-state equations (D inputs)' : F.ff === 'T' ? 'T flip-flop inputs' : 'JK flip-flop inputs') + '</b>' + r.eq.map(e => esc(e.name + ' = ' + B.sopText(e.res, r.vars))).join('<br>') + '</div>';
+  h += '<div class="res"><b>Output equations</b>' + r.oe.map(e => esc(e.name + ' = ' + B.sopText(e.res, r.vars))).join('<br>') + '</div>';
+  $('#fRes').innerHTML = h; const can = F.enc !== 'onehot' && F.ff === 'D'; $('#fBuild').disabled = !can;
+  $('#fNote').textContent = can ? 'Builds the machine with D flip-flops, a clock and gates. The first state is the reset state (all flip-flops at 0).' : 'Building a circuit works with D flip-flops and binary or Gray encoding. The equations above are still correct for your choice.';
+}
+$('#fCopy').onclick = () => { const r = fsmEquations(); if (r.err) return; copy(['States: ' + F.states.map((s, i) => s + '=' + r.codes[i].toString(2).padStart(r.bits, '0')).join(', '), ...r.eq.map(e => e.name + ' = ' + B.sopText(e.res, r.vars)), ...r.oe.map(e => e.name + ' = ' + B.sopText(e.res, r.vars))].join('\n'), 'Design copied.'); };
+$('#fBuild').onclick = () => { const r = fsmEquations(); if (r.err) return; const terms = res => res.constant === 0 ? [] : res.constant === 1 ? [[]] : res.terms.map(t => B.termLits(t, r.n));
+  openLogic({ kind: 'sop', title: 'fsm_' + F.states.length + '_states', vars: r.vars, outs: r.eq.map(e => ({ name: e.name, terms: terms(e.res) })).concat(r.oe.map(e => ({ name: e.name, terms: terms(e.res) }))), fsm: { bits: r.bits } }); };
+function fsmDiagram() {
+  const nS = F.states.length, W = 300, H = 280, cx = W / 2, cy = H / 2, R = Math.min(105, 40 + nS * 14), r = 22; const pos = F.states.map((s, i) => { const a = -Math.PI / 2 + i * 2 * Math.PI / nS; return [cx + R * Math.cos(a), cy + R * Math.sin(a)]; });
+  let s = `<svg width="100%" viewBox="0 0 ${W} ${H}" role="img" aria-label="State diagram"><defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#1b2230"/></marker></defs>`;
+  const edges = {}; F.states.forEach((st, si) => { for (let k = 0; k < nIn(); k++) { const nx = F.next[st + '|' + k]; const key = si + '>' + F.states.indexOf(nx); const lab = (F.ins.length ? F.ins.length === 1 ? String(k) : k.toString(2).padStart(F.ins.length, '0') : '') + (F.type === 'mealy' ? '/' + (F.out[outKey(st, k)] || '') : ''); (edges[key] = edges[key] || []).push(lab); } });
+  Object.entries(edges).forEach(([k, labs]) => { const [a, b] = k.split('>').map(Number); const [x1, y1] = pos[a], [x2, y2] = pos[b]; const lab = esc(labs.filter(Boolean).join(', '));
+    if (a === b) { const ang = Math.atan2(y1 - cy, x1 - cx); const lx = x1 + Math.cos(ang) * (r + 16), ly = y1 + Math.sin(ang) * (r + 16); s += `<circle cx="${lx}" cy="${ly}" r="13" fill="none" stroke="#1b2230" stroke-width="1.3"/><text x="${x1 + Math.cos(ang) * (r + 40)}" y="${y1 + Math.sin(ang) * (r + 40) + 4}" font-size="10.5" text-anchor="middle" fill="#185fa5">${lab}</text>`; return; }
+    const dx = x2 - x1, dy = y2 - y1, L = Math.hypot(dx, dy), ux = dx / L, uy = dy / L; const bend = edges[b + '>' + a] ? 18 : 0; const mx = (x1 + x2) / 2 - uy * bend, my = (y1 + y2) / 2 + ux * bend;
+    s += `<path d="M${x1 + ux * r} ${y1 + uy * r} Q${mx} ${my} ${x2 - ux * (r + 2)} ${y2 - uy * (r + 2)}" fill="none" stroke="#1b2230" stroke-width="1.3" marker-end="url(#ar)"/><text x="${mx - uy * 8}" y="${my + ux * 8 + 4}" font-size="10.5" text-anchor="middle" fill="#185fa5">${lab}</text>`; });
+  F.states.forEach((st, i) => { const [x, y] = pos[i]; s += `<circle cx="${x}" cy="${y}" r="${r}" fill="${i === 0 ? '#eaf3ff' : '#fff'}" stroke="#1b2230" stroke-width="1.6"/>${i === 0 ? `<circle cx="${x}" cy="${y}" r="${r - 4}" fill="none" stroke="#1b2230" stroke-width="1"/>` : ''}<text x="${x}" y="${y + (F.type === 'moore' ? 0 : 4)}" font-size="12" font-weight="600" text-anchor="middle" fill="#1b2230">${esc(st)}</text>${F.type === 'moore' ? `<text x="${x}" y="${y + 13}" font-size="10" text-anchor="middle" fill="#5e6979">${esc(F.out[st] || '')}</text>` : ''}`; });
+  $('#fDiag').innerHTML = s + '</svg>' + (F.ins.length ? `<p class="dim">Arrow labels show the input${F.type === 'mealy' ? ' / output' : ''}. Moore outputs are shown inside the states.</p>` : '');
+}
+fsmSync();
+window.CEB = { get S() { return S; }, render, analyse, get F() { return F; }, fsmRender, fsmEquations, sopPayload };
+</script>
+</body></html>
