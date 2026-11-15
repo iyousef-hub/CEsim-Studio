@@ -1,31 +1,48 @@
-CEsim Studio 1.10.0 adds the BC107 transistor family and makes the common base lab circuit match the lab handout.
+CEsim Studio 1.11.0 puts every circuit part into circuit code and adds the workbook labs as ready examples.
 
 ## Downloads
 
 | System | File |
 |---|---|
-| macOS (Apple Silicon) | `CEsim-Studio-1.10.0-arm64.dmg` |
-| Windows 10 and 11 (64-bit) | `CEsim-Studio-1.10.0-Windows-x64-Setup.exe` (installer) or `CEsim-Studio-1.10.0-Windows-x64-Portable.zip` |
-| Linux (64-bit) | `CEsim-Studio-1.10.0-Linux-x86_64.AppImage` or `CEsim-Studio-1.10.0-Linux-amd64.deb` |
+| macOS (Apple Silicon) | `CEsim-Studio-1.11.0-arm64.dmg` |
+| Windows 10 and 11 (64-bit) | `CEsim-Studio-1.11.0-Windows-x64-Setup.exe` (installer) or `CEsim-Studio-1.11.0-Windows-x64-Portable.zip` |
+| Linux (64-bit) | `CEsim-Studio-1.11.0-Linux-x86_64.AppImage` or `CEsim-Studio-1.11.0-Linux-amd64.deb` |
 
-## Transistors
+## Every part in code
 
-- New models: BC107BP, BC107B, BC107A and BC107.
-- The example "BJT common base, exact layout (Lab 8)" now uses the BC107BP. With POT1 at 6% and POT2 at 0% it reads Ie = 8.848 mA, Ic = 8.818 mA, Vbe = 0.701 V and Vcb = 1.1 µV, against 8.839 mA, 8.809 mA, 0.701 V and 1.119 µV in the lab handout.
+- All parts of the Circuit library can be written as code, with or without positions: gates, flip-flops, counter, 555, regulators, switches, relay, motor, transformer, fuse, lamps, buzzer, displays, probes, function generator, oscilloscope, multimeter and wattmeter, next to the resistors, sources, diodes, transistors and op-amps.
+- Any setting can be written at the end of a line as `setting=value`, for example `R1 a b 1k tol=1%` or `D2 a k LED color=green`. A circuit turned into code and back keeps every setting. Before, a resistor's tolerance and power, a capacitor's starting voltage, an LED's colour, a transistor's hFE and a sine source's phase were lost.
+- **From current design** without **With layout** used to leave out every part that was not a plain SPICE element. It now writes them all.
+- The prompt for AI lists every part with its pin order and settings, and every model name, so an AI chat can write any circuit.
 
-## Circuit code
+## Workbook labs
 
-- A transistor model that is not in the library now gives a warning in the code editor. Before, it was replaced by the 2N2222A without a message.
-- The prompt for AI asks for the drawing lines (positions and wires) whenever a picture is sent, so the circuit is drawn like the picture.
+The Examples list has a new group with the circuits of the Electronics workbook (503413-4), each drawn like the workbook figure with its meters or oscilloscope:
 
-## Fixed
+| Lab | Circuit | Reading in CEsim |
+|---|---|---|
+| 3 | Diode, forward and reverse bias | VD = 0.621 V, ID = 4.38 mA at 5 V |
+| 4 | Zener, static and regulation | VZ = 6.23 V |
+| 5 | Half-wave rectifier | 16.97 Vp secondary (12 Vrms) |
+| 6 | Full-wave centre-tapped rectifier | |
+| 7 | Full-wave bridge rectifier | |
+| 8 | BJT common base | Ie = 8.848 mA, Vbe = 0.701 V |
+| 9 | BJT common emitter | |
+| 10 | Inverting and non-inverting amplifiers | 2.2 Vp and 3.2 Vp |
+| 11 | Adder and two subtractors | −8 V, 3 V, 3.6 V |
+| 12 | Integrator and differentiator | 4.89 Vpp triangle, 1.6 Vpp square |
+| 13 | First- and second-order low-pass filters | 0.844 Vp at 10 kHz, 1.283 Vp at 450 Hz |
+| 14 | High-pass active and second-order high-pass filters | |
+| 15 | Active band-pass and notch filters | |
 
-- A potentiometer turned fully to one end now has almost no resistance at that end (0.1 mΩ instead of 0.5 Ω), so meters across it read close to zero.
+## Oscilloscope
+
+- Vrms is now measured over whole periods, so a 10 Vp sine reads 7.071 V every time instead of moving between 7.06 and 7.08 V.
 
 ## First launch
 
 - **macOS:** right-click the app, choose Open, then Open again. If macOS says the app is damaged, run `xattr -cr "/Applications/CEsim Studio.app"` once in Terminal.
 - **Windows:** if SmartScreen appears, choose More info, then Run anyway. The installer does not need administrator rights.
-- **Linux:** make the AppImage executable with `chmod +x CEsim-Studio-1.10.0-Linux-x86_64.AppImage` and run it, or install the package with `sudo apt install ./CEsim-Studio-1.10.0-Linux-amd64.deb`.
+- **Linux:** make the AppImage executable with `chmod +x CEsim-Studio-1.11.0-Linux-x86_64.AppImage` and run it, or install the package with `sudo apt install ./CEsim-Studio-1.11.0-Linux-amd64.deb`.
 
 BY. YOUSEF A.ALGHAMDI

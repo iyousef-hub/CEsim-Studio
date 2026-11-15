@@ -198,7 +198,7 @@ kbd{font:11px var(--font-mono);border:1px solid var(--ui-border);border-bottom-w
 </div>
 <div id="splash" role="dialog" aria-label="CEsim"><div class="sp-box"><canvas id="sp-cv"></canvas><div class="sp-in">
  <div class="sp-row"><div class="sp-logo">CE</div><div><div class="sp-name">CE<span>sim</span></div><div class="sp-sub">Circuit Design &amp; Simulation Suite</div></div></div>
- <div class="sp-ver">Version 1.10.0</div><div class="sp-bar"><i id="sp-bar"></i></div><div class="sp-foot"><span id="sp-msg">Loading component database…</span><span class="sp-by">BY. YOUSEF</span></div>
+ <div class="sp-ver">Version 1.11.0</div><div class="sp-bar"><i id="sp-bar"></i></div><div class="sp-foot"><span id="sp-msg">Loading component database…</span><span class="sp-by">BY. YOUSEF</span></div>
 </div></div></div>
 <script src="lib/canvas2svg.js"></script>
 <script>(function(){if(!window.C2S)return;const P=C2S.prototype;const os=P.save,or=P.restore,ost=P.stroke;P.setLineDash=function(a){this.__dash=a||[]};P.getLineDash=function(){return this.__dash||[]};P.save=function(){(this.__ds=this.__ds||[]).push(this.__dash);os.call(this)};P.restore=function(){this.__dash=(this.__ds||[]).pop();or.call(this)};P.stroke=function(){ost.apply(this,arguments);if(this.__dash&&this.__dash.length&&this.__currentElement)this.__currentElement.setAttribute("stroke-dasharray",this.__dash.join(","))}})()</script>
@@ -924,7 +924,8 @@ function scopeWin(c){const body=el(`<div class="scope"><div><canvas id="sc" widt
   const stat=ch=>{let mn=1e9,mx=-1e9,s2=0,n=0;for(let j=0;j<len;j++){const i=at(j);const t=buf[i*3];if(t<tEnd-win)continue;const v=buf[i*3+ch];mn=Math.min(mn,v);mx=Math.max(mx,v);s2+=v*v;n++}if(!n)return null;
    // frequency: rising crossings of the midpoint, with hysteresis, over everything recorded
    let f=null;const pp=mx-mn;if(pp>1e-6){const mid=(mx+mn)/2,h=pp*0.1;let armed=false,first=null,last=null,k=0;for(let j=0;j<len;j++){const i=at(j);const v=buf[i*3+ch],t=buf[i*3];if(v<mid-h)armed=true;else if(armed&&v>mid+h){armed=false;if(first==null)first=t;else{last=t;k++}}}if(k>=1&&last>first)f=k/(last-first)}
-   return{pp,rms:Math.sqrt(s2/n),mx,mn,f}};
+   let rms=Math.sqrt(s2/n);if(f){const per=1/f,kk=Math.floor(win/per+1e-9);if(kk>=1){const t0=tEnd-kk*per;let q2=0,qn=0,pv=null,pt=null;for(let j=0;j<len;j++){const i=at(j);const t=buf[i*3];if(t<t0){pv=buf[i*3+ch];pt=t;continue}const v=buf[i*3+ch];if(pt!=null){q2+=(v*v+pv*pv)/2*(t-Math.max(pt,t0))}pv=v;pt=t;qn=1}if(qn&&kk*per>0)rms=Math.sqrt(q2/(tEnd-t0))}}
+   return{pp,rms,mx,mn,f}};
   const A=stat(1),B=stat(2);ms.innerHTML=`<span></span><span style="color:#d9a400">Channel A</span><span style="color:#1f9fd6">Channel B</span><span style="color:var(--ui-dim)">Vpp</span><span>${cA&&A?rd(A.pp,"V"):"—"}</span><span>${cB&&B?rd(B.pp,"V"):"—"}</span><span style="color:var(--ui-dim)">Vrms</span><span>${cA&&A?rd(A.rms,"V"):"—"}</span><span>${cB&&B?rd(B.rms,"V"):"—"}</span><span style="color:var(--ui-dim)">Max</span><span>${cA&&A?rd(A.mx,"V"):"—"}</span><span>${cB&&B?rd(B.mx,"V"):"—"}</span><span style="color:var(--ui-dim)">Min</span><span>${cA&&A?rd(A.mn,"V"):"—"}</span><span>${cB&&B?rd(B.mn,"V"):"—"}</span><span style="color:var(--ui-dim)">Frequency</span><span>${cA&&A&&A.f?rd(A.f,"Hz"):"—"}</span><span>${cB&&B&&B.f?rd(B.f,"Hz"):"—"}</span><span style="color:var(--ui-dim)">Period</span><span>${cA&&A&&A.f?rd(1/A.f,"s"):"—"}</span><span>${cB&&B&&B.f?rd(1/B.f,"s"):"—"}</span>`}}}
 function E_conn(c,i){const n=nets();const cn=n.conn.get(c.id);return cn&&cn[i]}
 function openSimSettings(){const body=el(`<div class="form" style="min-width:360px"><label for="ss-dt">Time step</label><input id="ss-dt" value="${dtUser?si(dtUser,""):"auto"}"><span class="u">s</span><label for="ss-sp">Speed</label><select id="ss-sp">${[["1","Real time ×1"],["0.1","×0.1"],["0.01","×0.01"],["0.001","×0.001"],["10","×10"],["0","Max speed"]].map(([v,l])=>`<option value="${v}" ${+v===speed?"selected":""}>${l}</option>`).join("")}</select><span></span></div>
@@ -1041,6 +1042,7 @@ function importCir(text,name){const d=newDoc(name);const lines=text.split(/\r?\n
   if(/^NET\s/i.test(l)){const nm=codeTokens(l)[1];if(!LY.lay||LY.lay.partial)throw new Error("NET needs a name and a position, like NET out @ 300 100");xn.push({name:nm,lay:LY.lay});continue}
   const tok=codeTokens(l);const id=tok[0],ty=id[0].toUpperCase();let t=null,nodes=[],p={};
   if(/^PART$/i.test(id)){const t2=tok[1];if(!LIB[t2])throw new Error(`PART: there is no part type "${t2}"`);const np=LIB[t2].pins.length;const props={};tok.slice(3+np).forEach(kv=>{const m=kv.match(/^(\w+)=([\s\S]*)$/);if(m)props[m[1]]=m[2]});if(tok.length<3+np)throw new Error(`PART ${t2} ${tok[2]||""}: it needs ${np} node${np===1?"":"s"}`);parts.push({t:t2,nodes:tok.slice(3,3+np).map(x=>/^(0|gnd)$/i.test(x)?"0":x),p:props,label:tok[2]||"",lay:LY.lay,lab:LY.lab});continue}
+  const kv={};for(let q=tok.length-1;q>0;q--){const m=String(tok[q]).match(/^([A-Za-z_]\w*)=([\s\S]*)$/);if(m){kv[m[1]]=m[2];tok.splice(q,1)}}
   if(/^AM/i.test(id)){t="ammeter";nodes=[tok[1],tok[2]];p.mode=/\bAC\b/i.test(l)?"AC":"DC"}
   else if(/^VM/i.test(id)){t="voltmeter";nodes=[tok[1],tok[2]];p.mode=/\bAC\b/i.test(l)?"AC":"DC";const ri=l.match(/\brin=(\S+)/i);if(ri)p.rin=ri[1]}
   else if(/^POT/i.test(id)){t="pot";nodes=[tok[1],tok[2],tok[3]];p.resistance=tok[4]||"10k";const wp=tok.slice(5).join(" ").match(/(\d+(?:\.\d+)?)\s*%/);if(wp)p.wiper=wp[1];const k=l.match(/\bkey=(\S+)/i);if(k)p.key=k[1]}
@@ -1052,6 +1054,7 @@ function importCir(text,name){const d=newDoc(name);const lines=text.split(/\r?\n
   else if(ty==="M"){const mn=tok[5]||"";const pol=models[mn.toLowerCase()]||"NMOS";t=/PMOS/.test(pol)?"pmos":"nmos";nodes=[tok[2],tok[1],tok[3]]}
   else if(ty==="X"){const mn=(tok[tok.length-1]||"");const key=Object.keys(MODELS.opamp).find(k=>k.toUpperCase()===mn.toUpperCase());if(key||/OPAMP|OP-?AMP|741|358|324|071|072|082/i.test(mn)){t="opamp";nodes=tok.slice(1,6);while(nodes.length<5)nodes.push("");if(key)p.model=key}}
   else if(ty==="E"){t="vcvs";nodes=[tok[3],tok[4],tok[1],tok[2]];p.gain=tok[5]}else if(ty==="G"){t="vccs";nodes=[tok[3],tok[4],tok[2],tok[1]];p.gm=tok[5]}
+  if(t)for(const k in kv)if(LIB[t].props&&k in LIB[t].props)p[k]=kv[k];
   if(t)parts.push({t,nodes:nodes.map(x=>/^(0|gnd)$/i.test(x)?"0":x),p,label:id,lay:LY.lay,lab:LY.lab})}
  parts.forEach(q=>q.nodes=q.nodes.map((x,i)=>x===""||/^(nc|-)$/i.test(x)?"__NC_"+q.label+"_"+i:x));if(!parts.length)throw new Error("No supported elements (R, C, L, V, I, D, Q, M, E, G, X op-amp, AM, VM, POT or PART) were found.");
  {const placed=parts.filter(q=>q.lay&&!q.lay.partial);if(placed.length){if(placed.length<parts.length)throw new Error("Give every part a position with @ x y, or none of them. Missing: "+parts.filter(q=>!q.lay||q.lay.partial).map(q=>q.label).slice(0,6).join(", "));return buildPlaced(d,parts,xw,xg,xn)}
@@ -1150,6 +1153,8 @@ VEE  0    vee  DC 15            ; -15 V supply
 RL   out  0    10k
 .end
 `;
+function codePartList(){const skip=/^(gnd|netlabel|text|wire|res|cap|ind|dcv|acv|idc|diode|zener|led|npn|pnp|nmos|pmos|opamp|vcvs|ammeter|voltmeter|pot)$/;return Object.keys(LIB).filter(t=>!skip.test(t)).map(t=>{const L=LIB[t];const set=(L.fields||[]).map(f=>f[0]+"="+(L.props&&L.props[f[0]]!=null?L.props[f[0]]:"")).join(" ");return `PART ${t} ${L.prefix||"U"}1 ${(()=>{const seen={};return L.pins.map(p=>{let n=String(p[2]).replace("−","-");const bar=/[\u0305\u0304¯̅]|^\/|'$/.test(n);n=n.replace(/[^\w+-]/g,"")||"pin";if(bar||seen[n])n+="bar";seen[n]=1;return n}).join(" ")})()}${set?"  "+set:""}   ${L.name}`}).join("\n")}
+function codeModelList(){const g=(k,lab)=>MODELS[k]?lab+": "+Object.keys(MODELS[k]).join(", "):"";return [g("diode","Diodes"),"Zener diodes: "+Object.keys(ZENERS).join(", "),g("npn","NPN"),g("pnp","PNP"),g("opamp","Op-amps")].filter(Boolean).join("\n")}
 const CODE_PROMPT=`You are helping me enter a circuit into my simulator, CEsim Studio. I will send you a picture (or a description) of a circuit. Reply with ONLY its netlist in the format below, inside one code block, with no explanation.
 
 FORMAT (SPICE style, one part per line):
@@ -1179,6 +1184,16 @@ AM1 plus minus DC              ammeter (current enters at plus); write AC for an
 VM1 plus minus DC              voltmeter (reads plus minus)
 POT1 end1 end2 wiper 1k 50% key=A   potentiometer: resistance, wiper position from end1, keyboard key
 
+OTHER PARTS (gates, flip-flops, 555, regulators, switches, transformer, lamps, displays, instruments ...):
+PART type NAME node1 node2 ... setting=value ...
+- Give the nodes in the pin order listed. Write nc for a pin that is not connected. Settings are optional.
+${codePartList()}
+
+MODELS YOU CAN NAME:
+${codeModelList()}
+
+Any setting of a part can be added at the end of its line as setting=value, for example R1 a b 1k tol=1% or D2 a k LED color=green.
+
 DRAWING (always include it when I send a picture, so the drawing matches it exactly):
 - After the value you may add @ x y (x to the right, y down, on a 10-unit grid, parts about 100 apart), rot=90/180/270 and flip, and label=Name to show a different label.
 - If you give positions, give them to every part, add GND @ x y for each ground symbol, and draw each wire as W x1,y1 x2,y2 x3,y3 ... through its corners. Wire ends must land exactly on pins or on other wires.
@@ -1196,11 +1211,11 @@ function circuitToCode(doc,opt){opt=opt||{};const LAY=!!opt.layout;const keep=D;
   const at=c=>LAY?` @ ${c.x} ${c.y}${c.r?` rot=${(c.r&3)*90}`:""}${c.f?" flip":""}`:"";const q_=v=>/[\s"]/.test(String(v))?`"${String(v).replace(/"/g,"'")}"`:String(v);
   if(LAY)out.push("* Each part has its place: @ x y, rot= and flip. W lines are the wires, point by point.");
   for(const c of doc.comps){
-   if(LAY){const n0=(net.pinNodes.get(c.id)||[]).map(nm);const P0=c.p||{};
-    if(c.t==="gnd"){out.push(`GND${at(c)}`);continue}
-    if(c.t==="netlabel"){out.push(`NET ${q_(P0.name||"net")}${at(c)}`);continue}
-    if(c.t==="ammeter"||c.t==="voltmeter"){let nmx=(c.t==="ammeter"?"AM":"VM")+String(c.label||"1").replace(/\W+/g,"");out.push(`${nmx} ${n0[0]} ${n0[1]} ${P0.mode||"DC"}${c.t==="voltmeter"&&P0.rin&&P0.rin!=="1G"?" rin="+P0.rin:""}${at(c)} label=${q_(c.label||nmx)}`);continue}
-    if(c.t==="pot"){out.push(`POT${String(c.label||"1").replace(/\W+/g,"")} ${n0[0]} ${n0[1]} ${n0[2]} ${P0.resistance} ${P0.wiper}%${P0.key?" key="+P0.key:""}${at(c)} label=${q_(c.label)}`);continue}
+   if(c.t!=="text"){const n0=(net.pinNodes.get(c.id)||[]).map(nm);const P0=c.p||{};
+    if(c.t==="gnd"){if(LAY)out.push(`GND${at(c)}`);continue}
+    if(c.t==="netlabel"){if(LAY)out.push(`NET ${q_(P0.name||"net")}${at(c)}`);continue}
+    if(c.t==="ammeter"||c.t==="voltmeter"){let nmx=(c.t==="ammeter"?"AM":"VM")+String(c.label||"1").replace(/\W+/g,"");out.push(`${nmx} ${n0[0]} ${n0[1]} ${P0.mode||"DC"}${c.t==="voltmeter"&&P0.rin&&P0.rin!=="1G"?" rin="+P0.rin:""}${at(c)}${LAY?" label="+q_(c.label||nmx):""}`);continue}
+    if(c.t==="pot"){out.push(`POT${String(c.label||"1").replace(/\W+/g,"")} ${n0[0]} ${n0[1]} ${n0[2]} ${P0.resistance} ${P0.wiper}%${P0.key?" key="+P0.key:""}${at(c)}${LAY?" label="+q_(c.label):""}`);continue}
     if(!/^(res|cap|ind|dcv|acv|idc|diode|led|zener|npn|pnp|opamp)$/.test(c.t)){const L_=LIB[c.t];const props=Object.entries(P0).filter(([k,v])=>v!=null&&v!=="").map(([k,v])=>`${k}=${q_(v)}`).join(" ");out.push(`PART ${c.t} ${q_(c.label||"-")} ${n0.slice(0,L_.pins.length).join(" ")}${props?" "+props:""}${at(c)}`.replace(/\s+/g," ").trim());continue}}
    const L=codeTypeLetter(c);if(!L){if(!/^(gnd|netlabel|text|wire)$/.test(c.t))skipped.push((c.label||c.t)+" ("+(LIB[c.t]&&LIB[c.t].name||c.t)+")");continue}
    const n=(net.pinNodes.get(c.id)||[]).map(nm);const P_=c.p||{};let name=String(c.label||L+"1").replace(/\W+/g,"");if(name[0].toUpperCase()!==L)name=L+name;while(used.has(name.toUpperCase()))name+="_";used.add(name.toUpperCase());
@@ -1215,13 +1230,16 @@ function circuitToCode(doc,opt){opt=opt||{};const LAY=!!opt.layout;const keep=D;
    else if(c.t==="nmos"||c.t==="pmos")line=`${name} ${n[1]} ${n[0]} ${n[2]} ${n[2]} ${c.t==="nmos"?"NMOS":"PMOS"}`;
    else if(c.t==="opamp")line=`${name} ${n.slice(0,5).join(" ")} ${P_.model||"uA741"}`;
    else if(c.t==="vcvs")line=`${name} ${n[2]} ${n[3]} ${n[0]} ${n[1]} ${P_.gain}`;else if(c.t==="vccs")line=`${name} ${n[3]} ${n[2]} ${n[0]} ${n[1]} ${P_.gm}`;
-   if(line){if(LAY){line+=at(c);if(String(c.label)!==name)line+=` label=${q_(c.label)}`}out.push(line)}}
+   if(line){const ENC={res:["resistance"],cap:["capacitance"],ecap:["capacitance"],ind:["inductance"],dcv:["voltage"],vcc:["voltage"],acv:["offset","amp","freq"],clock:["low","amp","freq","duty"],idc:["current"],diode:["model"],schottky:["model"],zener:["model"],led:[],npn:["model"],pnp:["model"],nmos:[],pmos:[],opamp:["model"],vcvs:["gain"],vccs:["gm"]}[c.t];
+    if(ENC){const D0=(LIB[c.t]&&LIB[c.t].props)||{};for(const [k,v] of Object.entries(P_)){if(ENC.includes(k)||v==null||v===""||String(v)===String(D0[k]))continue;line+=` ${k}=${q_(v)}`}}
+    if(LAY){line+=at(c);if(String(c.label)!==name)line+=` label=${q_(c.label)}`}out.push(line)}}
   if(LAY)for(const w of doc.wires)if(w.pts.length>=2)out.push("W "+w.pts.map(p=>p.x+","+p.y).join(" "));
   if(skipped.length)out.push("* Not written as code (add them on the sheet): "+skipped.join(", "));
   out.push(".end")}finally{D=keep;netCache=null}return out.join("\n")}
 function lintCode(text){const msgs=[];const lines=text.split(/\r?\n/);const cnt={},where={},names={};let parts=0,ground=false;
  const nodesOf=(L,tk)=>L==="Q"?tk.slice(1,4):L==="M"?tk.slice(1,4):L==="X"?tk.slice(1,6):L==="E"||L==="G"?tk.slice(1,5):tk.slice(1,3);
  lines.forEach((raw,i)=>{const l0=raw.replace(/;.*$/,"").trim();if(!l0||/^[*.+]/.test(l0))return;if(/^W\s/i.test(l0))return;const LY=takeLayout(l0);const l=LY.s;if(/^(GND|NET)\b/i.test(l))return;const tk=codeTokens(l);let L=tk[0][0].toUpperCase();
+  if(!/^PART$/i.test(tk[0]))for(let q=tk.length-1;q>0;q--)if(/^[A-Za-z_]\w*=/.test(tk[q]))tk.splice(q,1);
   if(/^PART$/i.test(tk[0])){if(!LIB[tk[1]])msgs.push({line:i+1,err:true,m:`PART: there is no part type "${tk[1]||""}".`});else{parts++;tk.slice(3,3+LIB[tk[1]].pins.length).forEach(n=>{const k=/^(0|gnd)$/i.test(n)?"0":n;if(k==="0")ground=true;cnt[k]=(cnt[k]||0)+1;(where[k]=where[k]||[]).push(i+1)})}return}
   if(/^(AM|VM)/i.test(tk[0])||/^POT/i.test(tk[0])){const np=/^POT/i.test(tk[0])?3:2;if(tk.length<1+np){msgs.push({line:i+1,err:true,m:`${tk[0]}: missing nodes.`});return}if(names[tk[0].toUpperCase()])msgs.push({line:i+1,err:true,m:`${tk[0]} is used twice (also on line ${names[tk[0].toUpperCase()]}).`});names[tk[0].toUpperCase()]=i+1;parts++;tk.slice(1,1+np).forEach(n=>{const k=/^(0|gnd)$/i.test(n)?"0":n;if(k==="0")ground=true;cnt[k]=(cnt[k]||0)+1;(where[k]=where[k]||[]).push(i+1)});return}
   if(!"RCLVIDQMXEG".includes(L)){msgs.push({line:i+1,err:true,m:`"${tk[0]}" is not a part this editor knows. Start the name with R, C, L, V, I, D, Q, M, X, E, G, AM, VM or POT, or write PART type name nodes.`});return}
@@ -1237,13 +1255,524 @@ function openCodeEditor(){const b=document.createElement("div");b.className="ced
  let saved="";try{saved=localStorage.getItem(CODE_KEY)||""}catch(e){}
  b.innerHTML=`<div class="ce-help"><div class="ce-steps"><div><b>1</b>Copy the prompt</div><div><b>2</b>Paste it into any AI chat, with a photo of your circuit</div><div><b>3</b>Paste the answer here, then press Build circuit</div></div><div class="ce-hb"><button class="btn pri" id="ce-copyp">Copy prompt for AI</button><button class="btn" id="ce-showp" aria-expanded="false">Show prompt</button></div></div>
  <pre id="ce-prompt" class="ce-prompt" hidden></pre>
- <div class="ce-grid"><div class="ce-left"><div class="ce-tb"><span class="ce-dim">Circuit code</span><span style="flex:1"></span><select id="ce-ex" aria-label="Insert an example"><option value="">Examples…</option><option value="amp">Non-inverting amplifier</option><option value="div">Voltage divider</option><option value="rc">RC low-pass filter</option><option value="bjt">Transistor LED switch</option><option value="bridge">Bridge rectifier</option><option value="cb">BJT common base, exact layout (Lab 8)</option><option value="l10">Lab 10: inverting amplifier on the oscilloscope</option><option value="l11a">Lab 11: inverting adder</option><option value="l11b">Lab 11: subtractor (Rf = R1)</option><option value="l11c">Lab 11: subtractor (Rf = 12k)</option></select><button class="btn" id="ce-from" title="Write the open design as code">From current design</button><label class="ce-dim" title="Also write where every part and wire is, so the drawing comes back exactly"><input type="checkbox" id="ce-lay" checked> With layout</label><button class="btn" id="ce-copyc">Copy code</button></div>
+ <div class="ce-grid"><div class="ce-left"><div class="ce-tb"><span class="ce-dim">Circuit code</span><span style="flex:1"></span><select id="ce-ex" aria-label="Insert an example"><option value="">Examples…</option><optgroup label="General"><option value="amp">Non-inverting amplifier</option><option value="div">Voltage divider</option><option value="rc">RC low-pass filter</option><option value="bjt">Transistor LED switch</option><option value="bridge">Bridge rectifier</option></optgroup><optgroup label="Workbook labs (Electronics 503413-4)"><option value="lab03f">Lab 3: diode, forward bias</option><option value="lab03r">Lab 3: diode, reverse bias</option><option value="lab04a">Lab 4: zener, static characteristics</option><option value="lab04b">Lab 4: zener, regulation</option><option value="lab05">Lab 5: half-wave rectifier</option><option value="lab06">Lab 6: full-wave centre-tapped rectifier</option><option value="lab07">Lab 7: full-wave bridge rectifier</option><option value="cb">Lab 8: BJT common base</option><option value="lab09">Lab 9: BJT common emitter</option><option value="lab10a">Lab 10: inverting amplifier</option><option value="lab10b">Lab 10: non-inverting amplifier</option><option value="l11a">Lab 11: inverting adder</option><option value="l11b">Lab 11: subtractor (Rf = R1)</option><option value="l11c">Lab 11: subtractor (Rf = 12k)</option><option value="lab12a">Lab 12: integrator</option><option value="lab12b">Lab 12: differentiator</option><option value="lab13a">Lab 13: first-order low-pass filter</option><option value="lab13b">Lab 13: second-order low-pass filter</option><option value="lab14a">Lab 14: high-pass active filter</option><option value="lab14b">Lab 14: second-order high-pass filter</option><option value="lab15a">Lab 15: active band-pass filter</option><option value="lab15b">Lab 15: active notch filter</option></optgroup></select><button class="btn" id="ce-from" title="Write the open design as code">From current design</button><label class="ce-dim" title="Also write where every part and wire is, so the drawing comes back exactly"><input type="checkbox" id="ce-lay" checked> With layout</label><button class="btn" id="ce-copyc">Copy code</button></div>
  <div class="ce-ed"><pre id="ce-ln" aria-hidden="true"></pre><textarea id="ce-code" spellcheck="false" wrap="off" aria-label="Circuit code"></textarea></div><div id="ce-msg" class="ce-msg" role="status"></div></div>
  <div class="ce-right"><div class="ce-tb"><span class="ce-dim">Preview</span><span style="flex:1"></span><span id="ce-count" class="ce-dim"></span></div><div id="ce-prev" class="ce-prev"></div>
  <div class="ce-row"><button class="btn" id="ce-reset">Reset to example</button><span style="flex:1"></span><button class="btn pri" id="ce-build">Build circuit</button></div></div></div>`;
  const w=makeWin("Circuit code",b,{modal:true});const q=x=>b.querySelector(x);const ta=q("#ce-code");
  q("#ce-prompt").textContent=CODE_PROMPT;ta.value=saved.trim()?saved:CODE_EXAMPLE;
- const EX={amp:CODE_EXAMPLE,div:`* Voltage divider: 12 V into 1k and 2k, Vout = 8 V\nV1 vin 0 DC 12\nR1 vin out 1k\nR2 out 0 2k\n.end\n`,rc:`* RC low-pass filter, cutoff about 1 kHz\nV1 vin 0 SIN(0 1 1k)\nR1 vin out 1k\nC1 out 0 159n\n.end\n`,bjt:`* NPN transistor switching an LED\nV1 vcc 0 DC 9\nV2 ctl 0 DC 5\nRB ctl b 10k\nQ1 c b 0 2N2222\nRC vcc a 470\nD1 a c LED\n.end\n`,cb:`* BJT common base: input and output characteristics, drawn exactly\n* Press A or B to turn POT1 or POT2 (Shift turns them back)\nV1 0 vt1 DC 20 @ 100 360 rot=180\nPOT1 0 vt1 w1 1k 6% key=A @ 250 360 rot=270 flip\nAM1 e w1 DC @ 470 190 rot=180 label=Ie\nQ1 c 0 e BC107BP @ 600 200 rot=270 flip\nVM1 0 e DC @ 530 330 rot=270 label=Vbe\nVM2 c 0 DC @ 680 330 rot=90 label=Vcb\nAM2 w2 c DC @ 760 190 rot=180 label=Ic\nPOT2 0 vt2 w2 1k 0% key=B @ 870 360 rot=270\nV2 vt2 0 DC 20 @ 1000 360\nGND @ 600 500\nW 100,330 100,250 250,250 250,330\nW 270,360 330,360 330,190 440,190\nW 500,190 570,190\nW 530,190 530,300\nW 630,190 730,190\nW 680,190 680,300\nW 790,190 850,190 850,360\nW 870,330 870,250 1000,250 1000,330\nW 100,390 100,480 1000,480 1000,390\nW 250,390 250,480\nW 530,360 530,480\nW 600,230 600,480\nW 600,480 600,500\nW 680,360 680,480\nW 870,390 870,480\n.end\n`,l10:`* Lab 10: inverting amplifier, gain -Rf/R1 = -10, seen on the oscilloscope
+ const EX={amp:CODE_EXAMPLE,div:`* Voltage divider: 12 V into 1k and 2k, Vout = 8 V\nV1 vin 0 DC 12\nR1 vin out 1k\nR2 out 0 2k\n.end\n`,rc:`* RC low-pass filter, cutoff about 1 kHz\nV1 vin 0 SIN(0 1 1k)\nR1 vin out 1k\nC1 out 0 159n\n.end\n`,bjt:`* NPN transistor switching an LED\nV1 vcc 0 DC 9\nV2 ctl 0 DC 5\nRB ctl b 10k\nQ1 c b 0 2N2222\nRC vcc a 470\nD1 a c LED\n.end\n`,cb:`* BJT common base: input and output characteristics, drawn exactly\n* Press A or B to turn POT1 or POT2 (Shift turns them back)\nV1 0 vt1 DC 20 @ 100 360 rot=180\nPOT1 0 vt1 w1 1k 6% key=A @ 250 360 rot=270 flip\nAM1 e w1 DC @ 470 190 rot=180 label=Ie\nQ1 c 0 e BC107BP @ 600 200 rot=270 flip\nVM1 0 e DC @ 530 330 rot=270 label=Vbe\nVM2 c 0 DC @ 680 330 rot=90 label=Vcb\nAM2 w2 c DC @ 760 190 rot=180 label=Ic\nPOT2 0 vt2 w2 1k 0% key=B @ 870 360 rot=270\nV2 vt2 0 DC 20 @ 1000 360\nGND @ 600 500\nW 100,330 100,250 250,250 250,330\nW 270,360 330,360 330,190 440,190\nW 500,190 570,190\nW 530,190 530,300\nW 630,190 730,190\nW 680,190 680,300\nW 790,190 850,190 850,360\nW 870,330 870,250 1000,250 1000,330\nW 100,390 100,480 1000,480 1000,390\nW 250,390 250,480\nW 530,360 530,480\nW 600,230 600,480\nW 600,480 600,500\nW 680,360 680,480\nW 870,390 870,480\n.end\n`,lab03f:`* Lab 3, Fig. 3.1: PN junction diode, forward bias
+* Change RPS from 0 to 30 V and read VD and ID for Table 3.1
+V1 vs 0 DC 5 @ 100 300 label=RPS
+D1 vs a 1N4007 @ 260 200
+VM1 vs a DC @ 260 290 label=VD
+AM1 a b DC @ 420 200 label=ID
+R1 b 0 1k @ 560 300 rot=90
+GND @ 100 420
+W 100,270 100,200 230,200
+W 230,290 230,200
+W 290,290 290,200
+W 290,200 390,200
+W 450,200 560,200 560,270
+W 560,330 560,380 100,380
+W 100,380 100,330
+W 100,380 100,420
+.end
+`,lab03r:`* Lab 3, Fig. 3.2: PN junction diode, reverse bias
+* Change RPS from 0 to 30 V and read VD and ID for Table 3.2
+V1 vs 0 DC 10 @ 100 300 label=RPS
+D1 a vs 1N4007 @ 260 200 rot=180
+VM1 vs a DC @ 260 290 label=VD
+AM1 a b DC @ 420 200 label=ID
+R1 b 0 1k @ 560 300 rot=90
+GND @ 100 420
+W 100,270 100,200 230,200
+W 230,290 230,200
+W 290,290 290,200
+W 290,200 390,200
+W 450,200 560,200 560,270
+W 560,330 560,380 100,380
+W 100,380 100,330
+W 100,380 100,420
+.end
+`,lab04a:`* Lab 4, Fig. 4.1: zener diode, static characteristics
+* Change RPS from 0 to 30 V and read VZ and IZ for Table 4.1
+V1 vs 0 DC 10 @ 100 300 label=RPS
+R1 vs a 1k @ 220 180
+AM1 a z DC @ 360 180 label=IZ
+D1 0 z 1N4735A @ 480 300 rot=270
+VM1 z 0 DC @ 600 300 rot=90 label=VZ
+GND @ 100 420
+W 100,270 100,180 190,180
+W 250,180 330,180
+W 390,180 480,180
+W 480,180 480,270
+W 480,180 600,180 600,270
+W 600,330 600,380 480,380
+W 480,380 480,330
+W 480,380 100,380
+W 100,380 100,330
+W 100,380 100,420
+.end
+`,lab04b:`* Lab 4, Fig. 4.2: zener diode, regulation characteristics
+* VE = 10 V. Read VZ without RL (VNL), then with RL = 10k down to 1k (VFL)
+* % regulation = (VNL - VFL) / VFL x 100
+V1 vs 0 DC 10 @ 100 300 label=VE
+R1 vs a 1k @ 220 180
+AM1 a z DC @ 360 180 label=IZ
+D1 0 z 1N4735A @ 480 300 rot=270
+VM1 z 0 DC @ 600 300 rot=90 label=VZ
+RL z 0 10k @ 720 300 rot=90
+GND @ 100 420
+W 100,270 100,180 190,180
+W 250,180 330,180
+W 390,180 480,180
+W 480,180 480,270
+W 480,180 600,180
+W 600,180 600,270
+W 600,180 720,180 720,270
+W 720,330 720,380 600,380
+W 600,380 600,330
+W 600,380 480,380
+W 480,380 480,330
+W 480,380 100,380
+W 100,380 100,330
+W 100,380 100,420
+.end
+`,lab05:`* Lab 5, Fig. 5.1: half-wave rectifier with capacitor filter
+* 220 V 50 Hz mains, transformer to 12 V AC, 1N4007, C = 10 uF, RL = 10k
+* Oscilloscope: A = transformer secondary, B = output. Delete C1 to see the output without filter
+V1 p 0 SIN(0 311.1 50) @ 100 300 label=AC
+PART xfmr T1 p 0 s 0 ratio=18.33 @ 230 300
+D1 s out 1N4007 @ 360 200
+C1 out 0 10u @ 480 300 rot=90
+RL out 0 10k @ 580 300 rot=90
+PART xsc XSC1 s out 0 tb=5m va=10 vb=10 @ 700 100
+GND @ 100 420
+GND @ 720 170
+W 100,270 100,280 200,280
+W 100,330 100,380
+W 100,380 150,380
+W 100,380 100,420
+W 200,320 150,320 150,380
+W 150,380 260,380
+W 260,380 260,320
+W 260,380 480,380
+W 480,380 480,330
+W 480,380 580,380 580,330
+W 260,280 260,200
+W 260,200 330,200
+W 390,200 480,200
+W 480,200 480,270
+W 480,200 580,200
+W 580,200 580,270
+W 700,130 700,200 580,200
+W 680,130 680,160 260,160 260,200
+W 720,130 720,170
+.end
+`,lab06:`* Lab 6, Fig. 6.1: full-wave centre-tapped rectifier with capacitor filter
+* 220 V mains, 6-0-6 V transformer (two 6 V windings in series), 2 x 1N4007, C = 10 uF, RL = 1k
+* Oscilloscope: A = one half of the secondary, B = output. Delete C1 to see the output without filter
+V1 p 0 SIN(0 311.1 50) @ 100 300 label=AC
+PART xfmr T1 p 0 a 0 ratio=36.67 @ 230 250
+PART xfmr T2 p 0 0 b ratio=36.67 @ 230 350
+D1 a out 1N4007 @ 380 150
+D2 b out 1N4007 @ 380 450
+C1 out 0 10u @ 520 300 rot=90
+RL out 0 1k @ 620 300 rot=90
+PART xsc XSC1 a out 0 tb=5m va=10 vb=10 @ 700 60
+GND @ 100 440
+GND @ 300 420
+GND @ 720 130
+W 100,270 100,230 150,230
+W 150,230 200,230
+W 150,230 150,330 200,330
+W 100,330 100,420
+W 100,420 170,420
+W 200,270 170,270 170,370
+W 200,370 170,370
+W 170,370 170,420
+W 100,420 100,440
+W 260,230 260,150
+W 260,150 350,150
+W 260,370 260,450 350,450
+W 410,150 460,150
+W 410,450 460,450 460,150
+W 460,150 520,150
+W 520,150 520,270
+W 520,150 620,150
+W 620,150 620,270
+W 620,150 700,150
+W 700,90 700,150
+W 260,270 260,300
+W 260,300 260,330
+W 260,300 300,300
+W 300,300 300,400
+W 300,400 520,400
+W 300,400 300,420
+W 520,400 520,330
+W 520,400 620,400 620,330
+W 680,90 680,110 260,110 260,150
+W 720,90 720,130
+.end
+`,lab07:`* Lab 7, Fig. 7.1: full-wave bridge rectifier with capacitor filter
+* 220 V mains, transformer to 12 V AC, 4 x 1N4007, C = 10 uF, RL = 1k
+* Oscilloscope B = output. Delete C1 to see the output without filter
+V1 p 0 SIN(0 311.1 50) @ 60 300 label=AC
+PART xfmr T1 p 0 s1 s2 ratio=18.33 @ 160 300
+D1 s1 pos 1N4007 @ 300 240 rot=270
+D2 0 s1 1N4007 @ 300 360 rot=270
+D3 s2 pos 1N4007 @ 560 240 rot=270
+D4 0 s2 1N4007 @ 560 360 rot=270
+C1 pos 0 10u @ 390 300 rot=90
+RL pos 0 1k @ 470 300 rot=90
+PART xsc XSC1 nc pos 0 tb=5m vb=5 @ 700 120
+GND @ 60 380
+GND @ 330 420
+GND @ 720 180
+W 60,270 60,280 130,280
+W 60,330 60,340
+W 60,340 130,340 130,320
+W 60,340 60,380
+W 190,280 240,280 240,300 300,300
+W 300,270 300,330
+W 560,270 560,330
+W 190,320 220,320 220,470 620,470 620,300 560,300
+W 300,210 300,200 560,200
+W 560,200 560,210
+W 300,390 300,400 560,400 560,390
+W 390,270 390,200
+W 470,270 470,200
+W 390,330 390,400
+W 470,330 470,400
+W 330,400 330,420
+W 700,150 700,200 560,200
+W 720,150 720,180
+.end
+`,lab09:`* Lab 9, Fig. 9.1: BJT common emitter configuration
+* Input characteristics: keep VCE constant (RPS2) and change RPS1, read VBE and IB
+* Output characteristics: keep IB constant (RPS1) and change RPS2, read VCE and IC
+V1 v1 0 DC 0.75 @ 100 340 label=RPS1
+R1 v1 a 1k @ 220 200
+AM1 a b DC @ 360 200 label=IB
+Q1 c b 0 BC107BP @ 520 260
+VM1 b 0 DC @ 440 340 rot=90 label=VBE
+AM2 vc c DC @ 640 120 rot=180 label=IC
+VM2 c 0 DC @ 640 340 rot=90 label=VCE
+V2 vc 0 DC 6 @ 760 340 label=RPS2
+GND @ 530 450
+W 100,310 100,200 190,200
+W 250,200 330,200
+W 390,200 440,200 440,260
+W 440,260 490,260
+W 440,310 440,260
+W 530,230 530,120 610,120
+W 670,120 760,120 760,310
+W 640,310 640,180 530,180
+W 100,370 100,420 760,420 760,370
+W 440,370 440,420
+W 530,290 530,420
+W 640,370 640,420
+W 530,420 530,450
+.end
+`,lab10a:`* Lab 10, Fig. 10.5: inverting amplifier
+* Vi = 1 Vp sine, 1 kHz; Ri = 1k, Rf = 2.2k, so Vo = -(Rf/Ri) Vi = -2.2 Vp
+* Oscilloscope: A = Vi, B = Vo. Change Rf to 10k for Fig. 10.4
+PART xfg XFG1 vi 0 nc wave=sine freq=1k amp=1 @ 120 200
+R1 vi n 1k @ 300 330 label=Ri
+XU1 0 n vo nc nc Ideal @ 460 340 flip label=U1
+RF n vo 2.2k @ 460 250 label=Rf
+PART xsc XSC1 vi vo 0 tb=500u va=1 vb=1 @ 640 100
+GND @ 120 270
+GND @ 400 390
+GND @ 660 170
+W 120,230 120,270
+W 100,230 100,330 270,330
+W 620,130 620,180 200,180 200,330
+W 330,330 430,330
+W 430,250 380,250 380,330
+W 490,250 520,250 520,340
+W 490,340 520,340
+W 520,340 640,340
+W 640,130 640,340
+W 430,350 400,350 400,390
+W 660,130 660,170
+.end
+`,lab10b:`* Lab 10, Fig. 10.7: non-inverting amplifier
+* Vi = 1 Vp sine, 1 kHz; R1 = 1k, Rf = 2.2k, so Vo = (1 + Rf/R1) Vi = 3.2 Vp
+* Oscilloscope: A = Vi, B = Vo
+PART xfg XFG1 vi 0 nc wave=sine freq=1k amp=1 @ 120 200
+XU1 vi n vo nc nc Ideal @ 460 340 label=U1
+R1 n 0 1k @ 380 420 rot=90
+RF n vo 2.2k @ 460 420 label=Rf
+PART xsc XSC1 vi vo 0 tb=500u va=1 vb=2 @ 640 100
+GND @ 120 270
+GND @ 380 470
+GND @ 660 170
+W 120,230 120,270
+W 100,230 100,330 430,330
+W 620,130 620,180 200,180 200,330
+W 430,350 380,350 380,390
+W 430,420 410,420 410,350
+W 380,450 380,470
+W 490,420 520,420 520,340
+W 490,340 520,340
+W 520,340 640,340
+W 640,130 640,340
+W 660,130 660,170
+.end
+`,lab12a:`* Lab 12, Fig. 12.5: op-amp integrator
+* Square wave 1 Vp, 10 kHz into R1 = 1k; Rf = 10k and C1 = 10nF in feedback
+* Oscilloscope: channel A on the input, channel B on the output
+PART xfg XFG1 in 0 nc wave=square freq=10k amp=1 @ 120 200
+R1 in n 1k @ 260 330
+RF n out 10k @ 450 230 label=Rf
+C1 n out 10n @ 450 280
+XU4 0 n out nc nc Ideal @ 450 340 flip label=U4
+PART xsc XSC1 in out 0 tb=50u va=1 vb=2 @ 640 100
+GND @ 120 260
+GND @ 400 380
+GND @ 660 170
+W 120,230 120,260
+W 100,230 100,330 230,330
+W 290,330 360,330
+W 360,330 420,330
+W 360,330 360,280
+W 360,280 360,230 420,230
+W 360,280 420,280
+W 480,230 520,230 520,280
+W 480,280 520,280
+W 520,280 520,340
+W 480,340 520,340
+W 520,340 640,340
+W 420,350 400,350 400,380
+W 620,130 620,160 100,160 100,230
+W 640,130 640,340
+W 660,130 660,170
+.end
+`,lab12b:`* Lab 12, Fig. 12.10: op-amp differentiator
+* Triangle 1 Vp, 2 kHz into R1 = 1k and C1 = 10nF; Rf = 10k
+* Oscilloscope: A = input, B = output (a square wave). Try 40 kHz for Fig. 12.9
+PART xfg XFG1 vi 0 nc wave=triangle freq=2k amp=1 @ 120 200
+R1 vi a 1k @ 260 330
+C1 a n 10n @ 360 330
+XU4 0 n vo nc nc Ideal @ 500 340 flip label=U4
+RF n vo 10k @ 500 250 label=Rf
+PART xsc XSC1 vi vo 0 tb=100u va=1 vb=1 @ 680 100
+GND @ 120 270
+GND @ 440 390
+GND @ 700 170
+W 120,230 120,270
+W 100,230 100,330 230,330
+W 660,130 660,180 180,180 180,330
+W 290,330 330,330
+W 390,330 470,330
+W 470,250 420,250 420,330
+W 530,250 560,250 560,340
+W 530,340 560,340
+W 560,340 680,340
+W 680,130 680,340
+W 470,350 440,350 440,390
+W 700,130 700,170
+.end
+`,lab13a:`* Lab 13, Fig. 13.1: first-order low-pass filter
+* R1 = 10k, C1 = 1nF, so fc = 1/(2 pi R C) = 15.9 kHz; the op-amp is a unity-gain follower
+* Sine 1 Vp at 10 kHz: Vo = 0.847 Vp (Table 13.1). Change the generator frequency for the other rows
+PART xfg XFG1 vi 0 nc wave=sine freq=10k amp=1 @ 120 200
+R1 vi a 10k @ 260 330
+C1 a 0 1n @ 340 410 rot=90
+XU1 a n vo nc nc Ideal @ 480 340 label=U1
+R2 n vo 10k @ 480 420
+PART xsc XSC1 vi vo 0 tb=20u va=1 vb=1 @ 680 100
+GND @ 120 270
+GND @ 340 460
+GND @ 700 170
+W 120,230 120,270
+W 100,230 100,330 230,330
+W 660,130 660,180 180,180 180,330
+W 290,330 450,330
+W 340,380 340,330
+W 340,440 340,460
+W 450,350 430,350 430,420 450,420
+W 510,420 540,420 540,340
+W 510,340 540,340
+W 540,340 680,340
+W 680,130 680,340
+W 700,130 700,170
+.end
+`,lab13b:`* Lab 13, Fig. 13.4: second-order low-pass filter
+* R1 = R2 = 6.8k, C1 = C2 = 33nF, gain set by Rf = 22k and Rf1 = 47k
+* Sine 1 Vp at 450 Hz: Vo = 1.28 Vp (observation table)
+PART xfg XFG1 vi 0 nc wave=sine freq=450 amp=1 @ 120 200
+R1 vi a 6.8k @ 240 330
+R2 a b 6.8k @ 340 330
+C1 b 0 33n @ 400 410 rot=90
+C2 a vo 33n @ 400 220
+XU1 b m vo nc nc Ideal @ 520 340 label=U1
+RF m vo 22k @ 520 420 label=Rf
+RF1 m 0 47k @ 460 460 rot=90 label=Rf1
+PART xsc XSC1 vi vo 0 tb=500u va=1 vb=1 @ 700 100
+GND @ 120 270
+GND @ 400 460
+GND @ 460 510
+GND @ 720 170
+W 120,230 120,270
+W 100,230 100,330 210,330
+W 680,130 680,180 180,180 180,330
+W 270,330 310,330
+W 370,220 290,220 290,330
+W 370,330 490,330
+W 400,380 400,330
+W 400,440 400,460
+W 490,350 460,350 460,420
+W 460,420 490,420
+W 460,420 460,430
+W 460,490 460,510
+W 550,420 580,420 580,340
+W 430,220 580,220 580,340
+W 550,340 580,340
+W 580,340 700,340
+W 700,130 700,340
+W 720,130 720,170
+.end
+`,lab14a:`* Lab 14, Fig. 14.1: high-pass active filter
+* C1 = 20nF, C2 = 10nF, R1 = R2 = 110k, R3 = 10k, unity-gain op-amp
+* Sine 2 Vp at 260 Hz. Raise the frequency in steps and watch the output level off
+PART xfg XFG1 vi 0 nc wave=sine freq=260 amp=2 @ 120 200
+C1 vi a 20n @ 240 330
+C2 a b 10n @ 340 330
+R2 b 0 110k @ 400 410 rot=90
+R3 b p 10k @ 460 330
+XU1 p vo vo nc nc Ideal @ 600 340 label=U1
+R1 a vo 110k @ 440 220
+PART xsc XSC1 vi vo 0 tb=1m va=1 vb=1 @ 780 100
+GND @ 120 270
+GND @ 400 460
+GND @ 800 170
+W 120,230 120,270
+W 100,230 100,330 210,330
+W 760,130 760,180 180,180 180,330
+W 270,330 310,330
+W 410,220 290,220 290,330
+W 370,330 430,330
+W 400,380 400,330
+W 400,440 400,460
+W 490,330 570,330
+W 570,350 550,350 550,390 660,390 660,340
+W 630,340 660,340
+W 470,220 660,220 660,340
+W 660,340 780,340
+W 780,130 780,340
+W 800,130 800,170
+.end
+`,lab14b:`* Lab 14, Fig. 14.4: second-order high-pass filter
+* C1 = C2 = 10nF, R1 = 22.5k, R2 = 11.3k, Rf = 22.5k (unity gain)
+* Sine 2 Vp at 2 kHz; roll-off of 40 dB/decade below the cutoff
+PART xfg XFG1 vi 0 nc wave=sine freq=2k amp=2 @ 120 200
+C1 vi a 10n @ 240 330
+C2 a b 10n @ 340 330
+R1 b 0 22.5k @ 400 410 rot=90
+R2 a vo 11.3k @ 440 220
+XU1 b m vo nc nc Ideal @ 520 340 label=U1
+RF m vo 22.5k @ 520 420 label=Rf
+PART xsc XSC1 vi vo 0 tb=200u va=1 vb=1 @ 700 100
+GND @ 120 270
+GND @ 400 460
+GND @ 720 170
+W 120,230 120,270
+W 100,230 100,330 210,330
+W 680,130 680,180 180,180 180,330
+W 270,330 310,330
+W 410,220 290,220 290,330
+W 370,330 490,330
+W 400,380 400,330
+W 400,440 400,460
+W 490,350 470,350 470,420 490,420
+W 550,420 580,420 580,340
+W 470,220 580,220 580,340
+W 550,340 580,340
+W 580,340 700,340
+W 700,130 700,340
+W 720,130 720,170
+.end
+`,lab15a:`* Lab 15, Fig. 15.1: active band-pass filter
+* R1 = 68k, R2 = 2.7k, R3 = 180k, C1 = C2 = 10nF
+* Centre frequency about 736 Hz, centre gain Go = R3 / 2R1 = 1.32. Input 350 mVp, 750 Hz
+PART xfg XFG1 vi 0 nc wave=sine freq=750 amp=0.35 @ 120 200
+R1 vi a 68k @ 240 330
+R2 a 0 2.7k @ 300 410 rot=90
+C1 a m 10n @ 360 330
+C2 a vo 10n @ 440 180
+R3 m vo 180k @ 500 250
+XU1 0 m vo nc nc Ideal @ 560 340 flip label=U1
+PART xsc XSC1 vi vo 0 tb=500u va=0.5 vb=0.5 @ 740 100
+GND @ 120 270
+GND @ 300 460
+GND @ 500 390
+GND @ 760 170
+W 120,230 120,270
+W 100,230 100,330 210,330
+W 720,130 720,160 180,160 180,330
+W 270,330 330,330
+W 300,380 300,330
+W 300,440 300,460
+W 410,180 310,180 310,330
+W 390,330 530,330
+W 470,250 450,250 450,330
+W 470,180 620,180 620,340
+W 530,250 620,250
+W 590,340 620,340
+W 620,340 740,340
+W 740,130 740,340
+W 530,350 500,350 500,390
+W 760,130 760,170
+.end
+`,lab15b:`* Lab 15, Fig. 15.4: active notch filter
+* Band-pass stage U1 (R1 = 68k, R2 = 2.7k, R3 = 180k, C1 = C2 = 10nF) summed with the input by U2
+* V1 = 353.5 mVrms (0.5 Vp). Near 736 Hz the output almost disappears; at 1 kHz it is partly passed
+V1 vi 0 SIN(0 0.5 1k) @ 100 360
+R1 vi a 68k @ 220 330
+R2 a 0 2.7k @ 280 410 rot=90
+C1 a m 10n @ 340 330
+C2 a vbp 10n @ 420 180
+R3 m vbp 180k @ 480 250
+XU1 0 m vbp nc nc Ideal @ 540 340 flip label=U1
+R4 vbp s 15k @ 680 340
+XU2 0 s vo nc nc Ideal @ 820 350 flip label=U2
+R6 s vo 12k @ 820 260
+R5 vi s 12k @ 520 500
+PART xsc XSC1 vi vo 0 tb=500u va=0.5 vb=0.5 @ 960 100
+GND @ 100 420
+GND @ 280 460
+GND @ 490 390
+GND @ 770 400
+GND @ 980 170
+W 100,330 190,330
+W 100,390 100,420
+W 250,330 310,330
+W 280,380 280,330
+W 280,440 280,460
+W 390,180 290,180 290,330
+W 370,330 510,330
+W 450,250 430,250 430,330
+W 450,180 600,180 600,340
+W 510,250 600,250
+W 570,340 600,340
+W 600,340 650,340
+W 710,340 790,340
+W 790,260 760,260 760,340
+W 850,260 880,260 880,350
+W 850,350 880,350
+W 880,350 960,350
+W 960,130 960,350
+W 140,330 140,500 490,500
+W 550,500 740,500 740,340
+W 510,350 490,350 490,390
+W 790,360 770,360 770,400
+W 940,130 940,150 160,150 160,330
+W 980,130 980,170
+.end
+`,l10:`* Lab 10: inverting amplifier, gain -Rf/R1 = -10, seen on the oscilloscope
 V1 in 0 SIN(0 1 1k) @ 120 300
 R1 in n 1k @ 250 230
 RF n out 10k @ 400 160
@@ -1492,7 +2021,7 @@ function openImageTool(){const b=document.createElement("div");b.className="imga
 
 function takeHandoff(){let h=null;try{h=JSON.parse(localStorage.getItem("cesim.handoff.circuit")||"null");localStorage.removeItem("cesim.handoff.circuit")}catch(e){}if(!h||!h.text)return;try{const d=importCir(h.text,(h.name||"from_breadboard").replace(/[^\w ]+/g,"").replace(/\s+/g,"_"));addDoc(d);toast("Opened the circuit from the Breadboard. Press Run to simulate.")}catch(e){toast(e.message,true)}}
 setTimeout(takeHandoff,300);window.addEventListener("focus",()=>setTimeout(takeHandoff,50));window.addEventListener("storage",e=>{if(e.key==="cesim.handoff.circuit"&&e.newValue)takeHandoff()});
-window.CE={openInstWin:c=>openInstWin(c),spiceOf:doc=>{const keep=D;D=doc;netCache=null;try{const net=nets();const probes={};for(const c of doc.comps)if(c.t==="xsc")probes[c.label]=(net.pinNodes.get(c.id)||[]).map(k=>k===0?"0":String(k));return{text:toCir(),probes}}finally{D=keep;netCache=null}},sendToPcb,nets:()=>nets(),openCodeEditor,circuitToCode,lintCode,CODE_PROMPT,CODE_EXAMPLE,openImageTool,aiToSpice,parseAiJson,importCir,serialize,deserialize,addDoc,hitLabel,openProps,openExportDlg,doExportC,renderExport,voltsCsv,render:()=>{resize();render()},docs:()=>docs,D:()=>D,sim:()=>sim,openExample,runSim,stopSim,Sim,switchDoc,LIB,zoomFit,countDB,EXAMPLES,setTheme};
+window.CE={pinPos:(c,i)=>pinPos(c,i),mkComp:(doc,t,x,y,props)=>mkComp(doc,t,x,y,props),openInstWin:c=>openInstWin(c),spiceOf:doc=>{const keep=D;D=doc;netCache=null;try{const net=nets();const probes={};for(const c of doc.comps)if(c.t==="xsc")probes[c.label]=(net.pinNodes.get(c.id)||[]).map(k=>k===0?"0":String(k));return{text:toCir(),probes}}finally{D=keep;netCache=null}},sendToPcb,nets:()=>nets(),openCodeEditor,circuitToCode,lintCode,CODE_PROMPT,CODE_EXAMPLE,openImageTool,aiToSpice,parseAiJson,importCir,serialize,deserialize,addDoc,hitLabel,openProps,openExportDlg,doExportC,renderExport,voltsCsv,render:()=>{resize();render()},docs:()=>docs,D:()=>D,sim:()=>sim,openExample,runSim,stopSim,Sim,switchDoc,LIB,zoomFit,countDB,EXAMPLES,setTheme};
 </script>
 </body>
 </html>

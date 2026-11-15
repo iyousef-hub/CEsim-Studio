@@ -61,13 +61,15 @@ VEE  0    vee  DC 15
 .end
 ```
 
-Meters and potentiometers are written as `AM1 plus minus DC`, `VM1 plus minus DC` and `POT1 end1 end2 wiper 1k 50% key=A`. Any other part can be written as `PART type name nodes… property=value`.
+Meters and potentiometers are written as `AM1 plus minus DC`, `VM1 plus minus DC` and `POT1 end1 end2 wiper 1k 50% key=A`. Every other part in the library (gates, flip-flops, 555, regulators, switches, relay, transformer, lamps, displays, function generator, oscilloscope, multimeter and wattmeter) is written as `PART type name nodes… setting=value`, with `nc` for a pin left open. Any setting of any part can be added as `setting=value`, for example `R1 a b 1k tol=1%` or `D2 a k LED color=green`, so a circuit written as code comes back with all its settings. The prompt for AI lists every part with its pin order and every model name.
+
+**Workbook labs.** The Examples list has the circuits of the Electronics workbook (503413-4), Labs 3 to 15: diode and zener characteristics, the three rectifiers, common base and common emitter, inverting and non-inverting amplifiers, adder and subtractors, integrator and differentiator, and the low-pass, high-pass, band-pass and notch filters. Each one is drawn like the workbook figure, with its meters or oscilloscope.
 
 **Exact drawings.** Add `@ x y` (and `rot=90`, `flip`, `label=Name`) after a part to place it, `GND @ x y` for ground symbols, `NET name @ x y` for net labels, and `W x1,y1 x2,y2 …` for each wire through its corners. With positions, the circuit is drawn exactly as written, and the editor checks that the wires join the same nodes as the names. **From current design** with **With layout** writes any circuit this way, so it comes back identical. The **BJT common base, exact layout** example shows the format.
 
 ```
 AM1 e w1 DC @ 470 190 rot=180 label=Ie
-Q1  c 0 e BC547B @ 600 200 rot=270 flip
+Q1  c 0 e BC107BP @ 600 200 rot=270 flip
 GND @ 600 500
 W 500,190 570,190
 ```
