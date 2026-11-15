@@ -6,5 +6,5 @@ Icon=cesim-studio
 Terminal=false
 Type=Application
 Categories=Education;Engineering;Electronics;Science;
-MimeType=application/x-cesim;application/x-cediag;application/x-ce3d;application/x-cedig;
+MimeType=application/x-cesim;application/x-cediag;application/x-ce3d;application/x-cedig;text/x-asm;text/x-arduino;
 StartupWMClass=CEsim Studio

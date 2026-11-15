@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link href="fonts/fonts.css" rel="stylesheet"><title>CEsim Arduino</title>
+<style>
+:root{--bg:#e9edf2;--panel:#f7f8fa;--line:#cdd3dc;--text:#1b2230;--dim:#5e6979;--hover:#e1e7ef;--accent:#185fa5;--teal:#00878f;--font:"IBM Plex Sans",-apple-system,"Segoe UI",Roboto,Arial,sans-serif;--mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;--lh:20px}
+*{box-sizing:border-box}html,body{height:100%;margin:0}body{background:var(--bg);color:var(--text);font:13px/1.35 var(--font);overflow:hidden}
+#app{display:grid;grid-template-rows:auto 1fr 28px;height:100%}
+#top{display:flex;flex-wrap:wrap;row-gap:2px;align-items:center;gap:2px;padding:4px 10px;min-height:44px;background:var(--panel);border-bottom:1px solid var(--line);user-select:none}
+.logo{flex:none;width:24px;height:24px;border-radius:6px;background:var(--accent);color:#fff;display:grid;place-items:center;font:600 10px var(--mono);margin-right:6px}
+#docname{flex:none;font-weight:600;margin-right:10px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:text;padding:3px 5px;border-radius:3px}#docname:hover{background:var(--hover)}
+.tb{flex:none;height:30px;min-width:30px;padding:0 9px;border:1px solid transparent;border-radius:4px;background:none;color:var(--text);cursor:pointer;font:12.5px var(--font);white-space:nowrap}
+.tb:hover{background:var(--hover);border-color:var(--line)}.tb.pri{background:var(--teal);color:#fff}.tb.pri:hover{filter:brightness(.93)}.tb:disabled{opacity:.4;cursor:default;background:none;border-color:transparent}
+.tb kbd{font:10.5px var(--mono);color:var(--dim);margin-left:4px}.tb.pri kbd{color:#c9f0f2}
+.sep{flex:none;width:1px;height:22px;background:var(--line);margin:0 6px}
+select.s{height:28px;border:1px solid var(--line);border-radius:4px;background:#fff;font:12px var(--font);color:var(--text)}
+#clock{font:12px var(--mono);color:var(--dim);margin-left:8px;min-width:86px}
+#main{display:grid;grid-template-columns:minmax(0,1fr) 480px;min-height:0}
+#left{display:grid;grid-template-rows:minmax(0,1fr) 6px var(--bh,240px);min-height:0;min-width:0}
+#ed{position:relative;display:grid;grid-template-columns:52px minmax(0,1fr);background:#fff;min-height:0;overflow:hidden}
+#gut{position:relative;overflow:hidden;background:#f3f5f8;border-right:1px solid #e1e5eb;user-select:none}
+#gutIn{position:absolute;left:0;right:0;top:0;padding-top:8px;will-change:transform}
+.gl{height:var(--lh);font:12px/var(--lh) var(--mono);color:#98a2b0;text-align:right;padding-right:9px;position:relative}.gl.err{color:#c62828;font-weight:600}.gl.warn{color:#9a6700;font-weight:600}.gl.cur{color:#00666c;font-weight:600}
+#code{position:relative;overflow:hidden;min-width:0}
+#marks,#hl{position:absolute;left:0;top:0;will-change:transform;pointer-events:none}#marks{right:0}.mk{position:absolute;left:0;right:0;height:var(--lh)}.mk.err{background:#fdecec}.mk.warn{background:#fff6dc}.mk.cur{background:#ddf3f4;box-shadow:inset 3px 0 #00878f}
+#hl,#src{margin:0;padding:8px 14px 40px;font:13px/var(--lh) var(--mono);white-space:pre;tab-size:4}
+#src{position:absolute;inset:0;width:100%;height:100%;border:0;outline:0;resize:none;background:transparent;color:transparent;caret-color:#111;overflow:auto;z-index:2}#src::selection{background:rgba(26,140,255,.25)}
+.t-k{color:#0b57a8;font-weight:500}.t-ty{color:#00797f;font-weight:500}.t-f{color:#c45200}.t-c{color:#7d8794;font-style:italic}.t-s{color:#15803d}.t-n{color:#7a3fb5}.t-p{color:#6b4ea0}.t-cn{color:#0d6e8a;font-weight:500}.t-e{color:#c62828;font:italic 12px var(--font)}.t-w{color:#9a6700;font:italic 12px var(--font)}
+#split{background:var(--panel);border-top:1px solid var(--line);border-bottom:1px solid var(--line);cursor:row-resize}#split:hover{background:#d8e2ee}
+#bot{display:grid;grid-template-rows:32px minmax(0,1fr);background:#fff;min-height:0}
+#tabs{display:flex;align-items:stretch;background:var(--panel);border-bottom:1px solid var(--line);padding-left:6px;user-select:none}
+.tab{border:0;background:none;padding:0 13px;font:12.5px var(--font);color:var(--dim);cursor:pointer;border-bottom:2px solid transparent}.tab:hover{color:var(--text)}.tab.on{color:var(--text);border-bottom-color:var(--teal);font-weight:600}
+.tab i{font-style:normal;background:#c62828;color:#fff;border-radius:9px;padding:0 6px;font-size:10.5px;margin-left:5px}.tab i.w{background:#b07b00}
+.pane{min-height:0;position:relative;overflow:auto}
+#p-ser{display:grid;grid-template-rows:minmax(0,1fr) 38px;overflow:hidden}
+#serOut{font:12.5px/1.45 var(--mono);padding:8px 12px;white-space:pre-wrap;word-break:break-all;overflow:auto;background:#fff;user-select:text}#serOut .hint{color:var(--dim);font-style:italic;font-family:var(--font)}
+.serIn{display:flex;gap:6px;align-items:center;padding:5px 8px;border-top:1px solid var(--line);background:var(--panel)}
+.serIn input[type=text]{flex:1;height:27px;border:1px solid var(--line);border-radius:4px;padding:0 8px;font:12.5px var(--mono)}
+.btn{height:27px;padding:0 11px;border:1px solid var(--line);border-radius:4px;background:#fff;color:var(--text);cursor:pointer;font:12px var(--font)}.btn:hover{background:var(--hover)}.btn.pri{background:var(--teal);border-color:var(--teal);color:#fff}
+.serIn label{font-size:12px;color:var(--dim);display:flex;align-items:center;gap:3px;white-space:nowrap}
+#plot{width:100%;height:100%;display:block}
+table.g{border-collapse:collapse;font:12.5px/1.5 var(--mono);width:100%}table.g th{position:sticky;top:0;background:#f3f6fa;font:600 11.5px var(--font);color:var(--dim);text-align:left;padding:4px 12px;border-bottom:1px solid var(--line)}table.g td{padding:2px 12px;border-bottom:1px solid #f0f2f5;white-space:nowrap}td.chg{background:#ffe08a}
+.prob{display:flex;gap:10px;padding:6px 12px;border-bottom:1px solid #f0f2f5;cursor:pointer;font-size:12.5px}.prob:hover{background:#f5f8fc}.prob b{font:600 12px var(--mono);min-width:64px;color:#c62828}.prob.w b{color:#9a6700}
+.empty{padding:16px;color:var(--dim);font-size:12.5px}
+/* right */
+#right{background:var(--panel);border-left:1px solid var(--line);overflow:auto;padding:10px 12px 20px;user-select:none}
+#board{display:block;width:100%;height:auto}
+.rh{display:flex;align-items:center;justify-content:space-between;margin:12px 0 8px}.rh b{font:600 11px var(--font);color:var(--dim);text-transform:uppercase;letter-spacing:.06em}
+#parts{display:flex;flex-direction:column;gap:8px}
+.part{background:#fff;border:1px solid #dde2e9;border-radius:8px;padding:9px 10px;display:grid;grid-template-columns:62px 1fr;gap:4px 10px;align-items:center;position:relative}
+.part .vis{grid-row:span 3;display:grid;place-items:center;min-height:56px}
+.part h4{margin:0;font:600 12.5px var(--font);display:flex;gap:6px;align-items:center}.part h4 span{font:400 11.5px var(--font);color:var(--dim)}
+.part .x{position:absolute;right:6px;top:5px;border:0;background:none;color:#98a2b0;cursor:pointer;font-size:15px;line-height:1;padding:3px 5px;border-radius:4px}.part .x:hover{background:#fdecec;color:#c62828}
+.row{display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:12px;color:var(--dim)}.row select{height:24px;border:1px solid var(--line);border-radius:4px;font:11.5px var(--font);background:#fff}
+.row input[type=range]{flex:1;min-width:120px;accent-color:var(--teal)}.row .val{font:12px var(--mono);color:var(--text);min-width:70px}
+.note{font-size:11.5px;color:#9a6700;grid-column:2}
+.pbtn{width:46px;height:46px;border-radius:50%;border:4px solid #3c4450;background:radial-gradient(circle at 40% 35%,#444c58,#1d232b);cursor:pointer;box-shadow:0 2px 0 #222}.pbtn.on{transform:translateY(2px);box-shadow:none;background:radial-gradient(circle at 40% 35%,#5a6575,#2b333d)}
+.tog{width:46px;height:24px;border-radius:12px;background:#c4ccd6;border:0;position:relative;cursor:pointer}.tog::after{content:"";position:absolute;left:3px;top:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:left .12s}.tog.on{background:var(--teal)}.tog.on::after{left:25px}
+.lcdw{grid-column:1/-1;background:#2a3a0a;border-radius:6px;padding:8px;display:flex;justify-content:center}
+.lcd{font:20px/1.15 var(--mono);color:#1c2a00;background:#9dbb2c;padding:6px 8px;border-radius:3px;white-space:pre;letter-spacing:.07em;box-shadow:inset 0 0 0 2px #7f9a1f}.lcd.dark{background:#5e7020;color:#2b3600}
+.addm{position:fixed;z-index:80;background:#fff;border:1px solid var(--line);border-radius:6px;box-shadow:0 10px 30px rgba(20,30,50,.18);padding:4px;display:grid;grid-template-columns:1fr 1fr;gap:2px;width:340px}
+.addm button{border:0;background:none;text-align:left;padding:7px 9px;border-radius:4px;cursor:pointer;font:12.5px var(--font);color:var(--text)}.addm button:hover{background:#eaf3ff}.addm button span{display:block;font-size:11px;color:var(--dim)}
+#statusbar{display:flex;align-items:center;gap:16px;padding:0 12px;background:var(--panel);border-top:1px solid var(--line);font-size:11.5px;color:var(--dim);white-space:nowrap;overflow:hidden}
+#status b{color:var(--text)}#status.err b{color:#b3261e}#status.ok b{color:#1f7a37}#pos{margin-left:auto;font-family:var(--mono)}
+.toast{position:fixed;left:50%;bottom:44px;transform:translateX(-50%);background:#1b2230;color:#fff;padding:9px 14px;border-radius:6px;font-size:12.5px;z-index:90;max-width:70vw}.toast.warn{background:#8a3a00}
+.menu{position:fixed;z-index:80;background:#fff;border:1px solid var(--line);border-radius:6px;box-shadow:0 10px 30px rgba(20,30,50,.18);padding:4px;min-width:250px;display:flex;flex-direction:column;max-height:80vh;overflow:auto}
+.menu button{display:flex;justify-content:space-between;gap:20px;border:none;background:none;text-align:left;padding:7px 10px;font:12.5px var(--font);border-radius:4px;cursor:pointer;color:var(--text)}.menu button:hover{background:#eaf3ff}.menu button span{color:var(--dim)}.menu hr{border:none;border-top:1px solid var(--line);margin:4px 0}
+.ov{position:fixed;inset:0;background:rgba(15,20,30,.35);display:grid;place-items:center;z-index:70}
+.mdl{background:#fff;border-radius:10px;box-shadow:0 20px 50px rgba(0,0,0,.3);width:min(860px,92vw);max-height:86vh;display:flex;flex-direction:column}
+.mdl .mh2{display:flex;justify-content:space-between;align-items:center;padding:10px 16px;border-bottom:1px solid var(--line)}.mdl .mb{padding:6px 18px 18px;overflow:auto;font-size:13px;line-height:1.55}
+.mdl h4{margin:14px 0 4px;font-size:13px}.mdl code{font:12px var(--mono);background:#f1f4f8;padding:1px 4px;border-radius:3px}
+.edit{height:24px;font:13px var(--font);border:1px solid var(--accent);border-radius:4px;padding:0 4px}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+[hidden]{display:none!important}
+</style></head>
+<body><div id="app">
+<div id="top">
+ <div class="logo">CE</div><span id="docname" title="Click to rename">sketch</span>
+ <button class="tb" id="bFile">File ▾</button><button class="tb" id="bEx">Examples ▾</button><div class="sep"></div>
+ <button class="tb" id="bVerify" title="Check the sketch for mistakes (Ctrl+R)">Verify</button>
+ <button class="tb pri" id="bRun" title="Upload and run (F5)">Run<kbd>F5</kbd></button>
+ <button class="tb" id="bStop" title="Stop the board (Shift+F5)">Stop</button>
+ <button class="tb" id="bReset" title="Press the reset button: the sketch starts again">Reset</button>
+ <select class="s" id="speed" aria-label="Simulation speed" title="Simulation speed"><option value="0.1">0.1× speed</option><option value="0.25">0.25× speed</option><option value="0.5">0.5× speed</option><option value="1" selected>Real time</option><option value="2">2× speed</option><option value="5">5× speed</option></select>
+ <span id="clock" title="Time on the board since reset"></span>
+ <div class="sep"></div><button class="tb" id="bRef">Reference</button>
+</div>
+<div id="main">
+ <div id="left">
+  <div id="ed"><div id="gut"><div id="gutIn"></div></div><div id="code"><div id="marks"></div><pre id="hl" aria-hidden="true"></pre><textarea id="src" spellcheck="false" autocapitalize="off" autocomplete="off" wrap="off" aria-label="Sketch"></textarea></div></div>
+  <div id="split" title="Drag to resize"></div>
+  <div id="bot">
+   <div id="tabs"><button class="tab on" data-p="ser">Serial Monitor</button><button class="tab" data-p="plot">Serial Plotter</button><button class="tab" data-p="vars">Variables</button><button class="tab" data-p="prob">Problems</button></div>
+   <div class="pane" id="p-ser"><div id="serOut"></div><div class="serIn"><input type="text" id="serTxt" placeholder="Message to send to the board (Enter)" aria-label="Message to send"><button class="btn pri" id="serSend">Send</button><select class="s" id="serEnd" aria-label="Line ending"><option value="none">No line ending</option><option value="nl" selected>Newline</option><option value="cr">Carriage return</option><option value="both">Both NL and CR</option></select><label><input type="checkbox" id="serAuto" checked>Autoscroll</label><span id="baud" style="font:11.5px var(--mono);color:var(--dim)"></span><button class="btn" id="serClr">Clear</button></div></div>
+   <div class="pane" id="p-plot" hidden><canvas id="plot"></canvas></div>
+   <div class="pane" id="p-vars" hidden><div id="varv"></div></div>
+   <div class="pane" id="p-prob" hidden><div id="probv"></div></div>
+  </div>
+ </div>
+ <div id="right">
+  <svg id="board" viewBox="0 0 460 300" role="img" aria-label="Arduino Uno board"></svg>
+  <div class="rh"><b>Parts</b><button class="btn" id="bAdd">+ Add part</button></div>
+  <div id="parts"></div>
+ </div>
+</div>
+<div id="statusbar"><span id="status"><b>Ready.</b> Press F5 to run the sketch</span><span id="lineInfo"></span><span id="pos">Ln 1, Col 1</span></div>
+</div>
+<input type="file" id="fileIn" accept=".ino,.cpp,.c,.h,.txt" hidden>
+<script src="ino-core.js"></script>
+<script src="ino-examples.js"></script>
+<script>
+'use strict';
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];const N=window.cesimNative;
+const src=$('#src'),hl=$('#hl'),marks=$('#marks'),gutIn=$('#gutIn');
+const ST={sim:null,prog:null,running:false,dirty:true,parts:[],name:'sketch',filePath:null,errLines:new Map(),warnLines:new Map(),compiled:null,T:0,lt:0,tab:'ser',plot:[],plotNames:[],serLen:0,uid:1,audio:null};
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const PIN=p=>p>=14?'A'+(p-14):String(p);
+/* ---------- editor ---------- */
+const KW=new Set(['if','else','for','while','do','switch','case','default','break','continue','return','const','static','volatile','unsigned','signed','sizeof','enum','struct','class','true','false','new','delete','goto','inline','typedef','using','namespace','public','private']);
+const TY=new Set(['void','int','char','long','short','float','double','bool','boolean','byte','word','String','uint8_t','int8_t','uint16_t','int16_t','uint32_t','int32_t','size_t','Servo','LiquidCrystal','LiquidCrystal_I2C']);
+const FN=new Set(['setup','loop','pinMode','digitalWrite','digitalRead','analogRead','analogWrite','delay','delayMicroseconds','millis','micros','map','constrain','min','max','abs','sqrt','pow','random','randomSeed','tone','noTone','pulseIn','Serial','attachInterrupt','detachInterrupt','digitalPinToInterrupt','bitRead','bitWrite','bitSet','bitClear','sin','cos','tan','round','floor','ceil','lcd']);
+const CN=new Set(['HIGH','LOW','INPUT','OUTPUT','INPUT_PULLUP','LED_BUILTIN','A0','A1','A2','A3','A4','A5','PI','HEX','DEC','BIN','OCT','RISING','FALLING','CHANGE']);
+function hlAll(text){const L=text.split('\n');let inC=false;return L.map(l=>{let o='',i=0;const n=l.length;
+ if(!inC&&/^\s*#/.test(l)){const m=l.match(/^(\s*#\s*\w+)(.*)$/);return`<span class="t-p">${esc(m?m[1]:l)}</span>${m?hlFrag(m[2]):''}`}
+ while(i<n){if(inC){const j=l.indexOf('*/',i);if(j<0){o+=`<span class="t-c">${esc(l.slice(i))}</span>`;i=n;break}o+=`<span class="t-c">${esc(l.slice(i,j+2))}</span>`;i=j+2;inC=false;continue}
+  if(l.startsWith('//',i)){o+=`<span class="t-c">${esc(l.slice(i))}</span>`;break}
+  if(l.startsWith('/*',i)){inC=true;continue}
+  const c=l[i];if(c==='"'||c==="'"){let j=i+1;while(j<n&&l[j]!==c){if(l[j]==='\\')j++;j++}o+=`<span class="t-s">${esc(l.slice(i,j+1))}</span>`;i=j+1;continue}
+  if(/[0-9]/.test(c)||(c==='.'&&/[0-9]/.test(l[i+1]))){let j=i;while(j<n&&/[0-9a-zA-Z_.]/.test(l[j]))j++;o+=`<span class="t-n">${esc(l.slice(i,j))}</span>`;i=j;continue}
+  if(/[A-Za-z_]/.test(c)){let j=i;while(j<n&&/\w/.test(l[j]))j++;const w=l.slice(i,j);const cls=KW.has(w)?'t-k':TY.has(w)?'t-ty':CN.has(w)?'t-cn':FN.has(w)?'t-f':'';o+=cls?`<span class="${cls}">${w}</span>`:w;i=j;continue}
+  o+=esc(c);i++}
+ return o})}
+function hlFrag(s){return esc(s).replace(/(&lt;.*?&gt;|"[^"]*")/g,'<span class="t-s">$1</span>')}
+function lines(){return src.value.split('\n')}
+function curLine(){return ST.sim&&!ST.running&&ST.sim.state==='paused'&&!ST.dirty?ST.sim.ln:0}
+function renderEditor(){const H=hlAll(src.value);let h='';H.forEach((x,i)=>{h+=x;const e=ST.errLines.get(i+1),w=ST.warnLines.get(i+1);if(e)h+=`<span class="t-e">    ◂ ${esc(e)}</span>`;else if(w)h+=`<span class="t-w">    ◂ ${esc(w)}</span>`;h+='\n'});hl.innerHTML=h;renderGutter()}
+function renderGutter(){const n=lines().length,cur=curLine();let h='';for(let i=1;i<=n;i++){const c=['gl'];if(ST.errLines.has(i))c.push('err');else if(ST.warnLines.has(i))c.push('warn');if(i===cur)c.push('cur');const t=ST.errLines.get(i)||ST.warnLines.get(i);h+=`<div class="${c.join(' ')}"${t?` title="${esc(t)}"`:''}>${i}</div>`}gutIn.innerHTML=h;
+ let m='';const add=(l,c)=>{m+=`<div class="mk ${c}" style="top:${8+(l-1)*20}px"></div>`};ST.warnLines.forEach((v,l)=>{if(!ST.errLines.has(l))add(l,'warn')});ST.errLines.forEach((v,l)=>add(l,'err'));if(cur)add(cur,'cur');marks.innerHTML=m;marks.style.height=(n*20+60)+'px'}
+function syncScroll(){hl.style.transform=`translate(${-src.scrollLeft}px,${-src.scrollTop}px)`;marks.style.transform=`translate(0,${-src.scrollTop}px)`;gutIn.style.transform=`translateY(${-src.scrollTop}px)`}
+src.addEventListener('scroll',syncScroll);
+src.addEventListener('input',()=>{ST.dirty=true;refreshButtons();if(ST.errLines.size){ST.errLines=new Map();ST.warnLines=new Map()}renderEditor();syncScroll();saveLocal();updPos()});
+src.addEventListener('keydown',e=>{
+ if(e.key==='Tab'&&!e.ctrlKey&&!e.metaKey){e.preventDefault();document.execCommand('insertText',false,'  ');return}
+ if(e.key==='Enter'&&!e.shiftKey){const s=src.selectionStart,ln=src.value.lastIndexOf('\n',s-1)+1;let ind=(src.value.slice(ln,s).match(/^\s*/)||[''])[0];const before=src.value.slice(ln,s).trimEnd();const after=src.value[s];if(before.endsWith('{'))ind+='  ';e.preventDefault();if(before.endsWith('{')&&after==='}'){document.execCommand('insertText',false,'\n'+ind+'\n'+ind.slice(2));src.selectionStart=src.selectionEnd=s+1+ind.length}else document.execCommand('insertText',false,'\n'+ind);return}
+ if(e.key==='}'){const s=src.selectionStart,ln=src.value.lastIndexOf('\n',s-1)+1;const pre=src.value.slice(ln,s);if(/^\s+$/.test(pre)&&pre.length>=2){e.preventDefault();src.setSelectionRange(s-2,s);document.execCommand('insertText',false,'}');return}}
+ if((e.ctrlKey||e.metaKey)&&e.key==='/'){e.preventDefault();toggleComment()}});
+['keyup','click','select'].forEach(ev=>src.addEventListener(ev,updPos));
+function updPos(){const s=src.selectionStart,b=src.value.slice(0,s);$('#pos').textContent=`Ln ${b.split('\n').length}, Col ${s-b.lastIndexOf('\n')}`}
+function toggleComment(){const v=src.value;let a=v.lastIndexOf('\n',src.selectionStart-1)+1;let e=v.indexOf('\n',src.selectionEnd);if(e<0)e=v.length;const blk=v.slice(a,e).split('\n');const all=blk.every(l=>/^\s*\/\//.test(l)||!l.trim());const nb=blk.map(l=>all?l.replace(/^(\s*)\/\/\s?/,'$1'):(l.trim()?'// '+l:l)).join('\n');src.setSelectionRange(a,e);document.execCommand('insertText',false,nb);src.setSelectionRange(a,a+nb.length)}
+function gotoLine(l){const ls=lines();l=Math.max(1,Math.min(l,ls.length));let p=0;for(let i=0;i<l-1;i++)p+=ls[i].length+1;src.focus();src.setSelectionRange(p,p+ls[l-1].length);const top=(l-1)*20;if(top<src.scrollTop+20||top>src.scrollTop+src.clientHeight-60)src.scrollTop=Math.max(0,top-src.clientHeight/3);syncScroll();updPos()}
+
+/* ---------- compile and run ---------- */
+function verify(quiet){const r=INO.compile(src.value);ST.errLines=new Map();ST.warnLines=new Map();for(const e of r.errors)if(e.line)ST.errLines.set(e.line,e.msg);for(const w of r.warnings)if(!ST.warnLines.has(w.line))ST.warnLines.set(w.line,w.msg);ST.compiled=r;renderEditor();renderProblems();
+ if(!r.ok){setStatus(`<b>Error on line ${r.errors[0].line}:</b> ${esc(r.errors[0].msg)}`,'err');showTab('prob');if(r.errors[0].line)gotoLine(r.errors[0].line);return null}
+ if(!quiet)setStatus(`<b>The sketch is correct.</b>${r.warnings.length?` ${r.warnings.length} note${r.warnings.length>1?'s':''} in Problems`:''}`,'ok');return r}
+function upload(){const r=verify(true);if(!r)return false;ST.prog=r;ST.dirty=false;
+ if(!ST.parts.length)autoParts(r);
+ ST.sim=new INO.Sim(r,ST.parts);ST.T=0;ST.serLen=0;$('#serOut').textContent='';ST.plot=[];ST.plotNames=[];ST.lastWarn=0;
+ if(ST.sim.state==='error'){setStatus(`<b>Error:</b> ${esc(ST.sim.error.msg)}`,'err');return false}return true}
+function autoParts(r){const t=new INO.Sim(r,[]);try{t.run(1500000,150)}catch(e){}const add=[];const used=new Set();
+ for(const L of t.lcds){add.push({type:'lcd'});}
+ for(const s of t.servos)if(s.pin>=0){add.push({type:'servo',pin:s.pin});used.add(s.pin)}
+ const pulse=[...(t.pulsePins||[])];for(const e of pulse){const trig=t.pins.findIndex((p,i)=>i!==e&&p.mode===1&&p.lastHigh!=null&&!used.has(i));add.push({type:'ultrasonic',trig:trig>=0?trig:7,echo:e,value:60});used.add(e);if(trig>=0)used.add(trig)}
+ const lcdPins=new Set();for(const L of t.lcds)for(const a of L.args)if(!L.i2c)lcdPins.add(a);
+ t.pins.forEach((p,i)=>{if(used.has(i)||lcdPins.has(i)||i===0||i===1&&false)return;if(p.lastTone){add.push({type:'buzzer',pin:i});used.add(i);return}if(p.mode===1&&p.touched&&i<14){add.push({type:'led',pin:i,color:['red','green','yellow','blue'][add.filter(x=>x.type==='led').length%4]});used.add(i)}else if(p.mode===2&&i<14&&!p.pullupByWrite){add.push({type:'button',pin:i,wiring:'gnd'});used.add(i)}else if(p.mode===0&&p.touched&&i<14){add.push({type:'button',pin:i,wiring:'vcc'});used.add(i)}});
+ for(const a of t.readA||[])if(!used.has(a))add.push({type:'pot',pin:a,value:512});
+ if(add.length){for(const p of add)ST.parts.push(Object.assign({id:ST.uid++},defaults(p.type),p));renderParts();saveLocal();toast(`Added ${add.length} part${add.length>1?'s':''} for the pins your sketch uses. Change them on the right`)}}
+function run(){if(ST.running&&!ST.dirty){pause();return}ST.running=false;if(ST.dirty||!ST.sim||ST.sim.state==='error'||ST.sim.state==='done'){if(!upload())return;setStatus('<b>Running.</b> The sketch was uploaded to the board','ok')}else setStatus('<b>Running.</b>','ok');ST.running=true;ST.lt=performance.now();refreshButtons();requestAnimationFrame(frame)}
+function pause(){ST.running=false;refreshButtons();if(ST.sim&&ST.sim.state!=='error')setStatus(`<b>Paused</b> at line ${ST.sim.ln}. Press F5 to continue`);renderAll();stopAudio()}
+function stop(){ST.running=false;if(ST.sim){ST.sim=null}ST.dirty=true;refreshButtons();setStatus('<b>Stopped.</b> Press F5 to run again');renderAll();stopAudio()}
+function reset(){const was=ST.running;ST.running=false;if(!upload()){refreshButtons();return}setStatus('<b>Reset.</b> The sketch starts again from setup()','ok');renderAll();if(was||true){ST.running=true;ST.lt=performance.now();refreshButtons();requestAnimationFrame(frame)}}
+function frame(t){if(!ST.running)return;const s=ST.sim;const now=performance.now();const dt=Math.min(100,now-ST.lt);ST.lt=now;const sp=+$('#speed').value;ST.T+=dt*1000*sp;if(ST.T-s.us>250000*sp)ST.T=s.us+250000*sp;
+ const st=s.run(ST.T,28);
+ if(st==='error'){ST.running=false;const e=s.error;setStatus(`<b>The sketch stopped on line ${e.line}:</b> ${esc(e.msg)}`,'err');ST.errLines=new Map([[e.line,e.msg]]);renderEditor();renderProblems();gotoLine(e.line);showTab('prob');refreshButtons();renderAll();stopAudio();return}
+ if(st==='done'){ST.running=false;setStatus('<b>The sketch ended.</b>');refreshButtons()}
+ renderAll(true);if(ST.running)requestAnimationFrame(frame)}
+function refreshButtons(){$('#bRun').innerHTML=(ST.running&&!ST.dirty?'Pause':'Run')+'<kbd>F5</kbd>';$('#bStop').disabled=!ST.sim;$('#bReset').disabled=false}
+function setStatus(h,k){const s=$('#status');s.innerHTML=h;s.className=k||''}
+
+/* ---------- board ---------- */
+const DIG_TOP=[['SCL',-1],['SDA',-1],['AREF',-1],['GND',-1],['13',13],['12',12],['~11',11],['~10',10],['~9',9],['8',8],null,['7',7],['~6',6],['~5',5],['4',4],['~3',3],['2',2],['TX 1',1],['RX 0',0]];
+const BOT=[['IOREF',-1],['RESET',-1],['3.3V',-1],['5V',-1],['GND',-1],['GND',-1],['VIN',-1],null,['A0',14],['A1',15],['A2',16],['A3',17],['A4',18],['A5',19]];
+function pinXY(p){let x=120;for(const d of DIG_TOP){if(!d){x+=10;continue}if(d[1]===p)return[x,24];x+=16}x=160;for(const d of BOT){if(!d){x+=10;continue}if(d[1]===p)return[x,276];x+=16}return null}
+function boardSVG(){let h=`<defs><linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0a8f98"/><stop offset="1" stop-color="#05747c"/></linearGradient><filter id="glow" x="-1" y="-1" width="3" height="3"><feGaussianBlur stdDeviation="3"/></filter></defs>`;
+ h+=`<path d="M14 6h420l12 12v40l10 10v150l-10 10v54l-12 12H14a8 8 0 0 1-8-8V14a8 8 0 0 1 8-8z" fill="url(#bg)" stroke="#035e65" stroke-width="2"/>`;
+ h+=`<rect x="-2" y="40" width="62" height="56" rx="3" fill="#b8c0c8" stroke="#7d8790"/><rect x="2" y="46" width="52" height="44" fill="#d5dbe0"/><text x="28" y="72" text-anchor="middle" font-size="9" fill="#55606b" font-family="IBM Plex Sans">USB</text>`;
+ h+=`<rect x="0" y="200" width="54" height="46" rx="4" fill="#1c1f23"/><circle cx="27" cy="223" r="10" fill="#3a3f45"/>`;
+ h+=`<g id="rst" style="cursor:pointer"><rect x="70" y="10" width="28" height="22" rx="3" fill="#c9ced3"/><circle cx="84" cy="21" r="7" fill="#d83a2b" stroke="#8d1e14"/><text x="84" y="44" text-anchor="middle" font-size="7.5" fill="#d9f3f4" font-family="IBM Plex Sans">RESET</text></g>`;
+ h+=`<rect x="190" y="150" width="190" height="44" rx="3" fill="#1f2328"/>${Array.from({length:14},(_,i)=>`<rect x="${196+i*13.4}" y="144" width="6" height="7" fill="#b9bfc5"/><rect x="${196+i*13.4}" y="193" width="6" height="7" fill="#b9bfc5"/>`).join('')}<text x="285" y="177" text-anchor="middle" font-size="10" fill="#8d959e" font-family="IBM Plex Mono">ATMEGA328P</text>`;
+ h+=`<text x="320" y="124" text-anchor="middle" font-size="30" font-weight="700" fill="#e9fbfc" font-family="IBM Plex Sans" letter-spacing="2">UNO</text><text x="150" y="128" font-size="13" font-weight="600" fill="#bfeff1" font-family="IBM Plex Sans">ARDUINO</text>`;
+ h+=`<g font-size="7.5" fill="#d9f3f4" font-family="IBM Plex Sans"><rect x="96" y="60" width="11" height="7" rx="1" fill="#3b4a10" id="ledL"/><text x="91" y="66" text-anchor="end">L</text><rect x="96" y="74" width="11" height="7" rx="1" fill="#3b2a10" id="ledTX"/><text x="91" y="80" text-anchor="end">TX</text><rect x="96" y="88" width="11" height="7" rx="1" fill="#3b2a10" id="ledRX"/><text x="91" y="94" text-anchor="end">RX</text><rect x="400" y="96" width="11" height="7" rx="1" fill="#39ff6a"/><text x="415" y="102">ON</text></g>`;
+ h+=`<rect x="112" y="14" width="${DIG_TOP.filter(Boolean).length*16+14}" height="20" rx="2" fill="#1d2126"/><rect x="152" y="266" width="${BOT.filter(Boolean).length*16+14}" height="20" rx="2" fill="#1d2126"/>`;
+ let x=120;for(const d of DIG_TOP){if(!d){x+=10;continue}h+=`<rect x="${x-3.5}" y="20.5" width="7" height="7" fill="#0d0f12"/><circle id="pin${d[1]}_${x}" cx="${x}" cy="24" r="0" fill="#ff3b30"/><text x="${x}" y="39" text-anchor="start" transform="rotate(90 ${x} 39)" font-size="7.5" fill="#e3f7f8" font-family="IBM Plex Mono" dy="2.5">${d[0]}</text>`;x+=16}
+ x=160;for(const d of BOT){if(!d){x+=10;continue}h+=`<rect x="${x-3.5}" y="272.5" width="7" height="7" fill="#0d0f12"/><circle id="pin${d[1]}_${x}" cx="${x}" cy="276" r="0" fill="#ff3b30"/><text x="${x}" y="258" text-anchor="start" transform="rotate(-90 ${x} 258)" font-size="7.5" fill="#e3f7f8" font-family="IBM Plex Mono" dy="2.5">${d[0]}</text>`;x+=16}
+ h+=`<text x="270" y="74" text-anchor="middle" font-size="8" fill="#bfeff1" font-family="IBM Plex Sans" letter-spacing="1">DIGITAL (PWM ~)</text><text x="208" y="226" text-anchor="middle" font-size="8" fill="#bfeff1" font-family="IBM Plex Sans" letter-spacing="1">POWER</text><text x="340" y="226" text-anchor="middle" font-size="8" fill="#bfeff1" font-family="IBM Plex Sans" letter-spacing="1">ANALOG IN</text>`;
+ h+=`<g id="pinDots"></g>`;
+ $('#board').innerHTML=h;$('#rst').onclick=()=>{reset();toast('Reset: the sketch starts again')}}
+function renderBoard(){const s=ST.sim;let h='';const used=new Set();for(const p of ST.parts)for(const k of['pin','trig','echo','r','g','b'])if(p[k]!=null)used.add(p[k]);
+ for(let p=0;p<20;p++){const xy=pinXY(p);if(!xy)continue;const st=s?s.pins[p]:null;let col=null,op=1,glow=false;
+  if(st&&st.mode===1){if(st.pwm>=0){col='#ff3b30';op=Math.max(.15,st.pwm/255);glow=st.pwm>0}else if(st.v){col='#ff3b30';glow=true}else col='#3a4a55'}else if(st&&st.mode===2)col='#4aa3ff';else if(used.has(p))col='#f5c542';
+  if(col){if(glow)h+=`<circle cx="${xy[0]}" cy="${xy[1]}" r="6" fill="${col}" opacity="${op*.6}" filter="url(#glow)"/>`;h+=`<circle cx="${xy[0]}" cy="${xy[1]}" r="3.2" fill="${col}" opacity="${glow?Math.max(op,.5):.9}"><title>Pin ${PIN(p)}${st?` · ${st.mode===1?'OUTPUT':st.mode===2?'INPUT_PULLUP':'INPUT'}${st.mode===1?(st.pwm>=0?' · PWM '+st.pwm:st.v?' · HIGH':' · LOW'):''}`:''}</title></circle>`}}
+ $('#pinDots').innerHTML=h;const L=s?s.pins[13]:null;const lv=L&&L.mode===1?(L.pwm>=0?L.pwm/255:L.v):L&&L.mode===2?.15:0;$('#ledL').setAttribute('fill',lv?`rgba(255,200,40,${.35+.65*lv})`:'#3b4a10');
+ const tx=s&&s.serial.length&&s.us-s.txBlink<60000;$('#ledTX').setAttribute('fill',tx?'#ffb030':'#3b2a10');const rx=s&&ST.rxBlink&&performance.now()-ST.rxBlink<120;$('#ledRX').setAttribute('fill',rx?'#ffb030':'#3b2a10')}
+
+/* ---------- parts ---------- */
+const PT={led:{name:'LED',desc:'Light on a digital pin'},rgb:{name:'RGB LED',desc:'Three colours, three pins'},button:{name:'Push button',desc:'Press and hold'},switch:{name:'Slide switch',desc:'On or off'},pot:{name:'Potentiometer',desc:'Knob on an analog pin'},ldr:{name:'Light sensor',desc:'LDR on an analog pin'},lm35:{name:'Temperature sensor',desc:'LM35, 10 mV per °C'},ultrasonic:{name:'Ultrasonic sensor',desc:'HC-SR04 distance'},pir:{name:'Motion sensor',desc:'PIR, digital output'},servo:{name:'Servo motor',desc:'0 to 180 degrees'},buzzer:{name:'Buzzer',desc:'Plays tone()'},lcd:{name:'LCD 16×2',desc:'LiquidCrystal display'}};
+function defaults(t){switch(t){case'led':return{pin:13,color:'red'};case'rgb':return{r:9,g:10,b:11,common:'cathode'};case'button':return{pin:2,wiring:'gnd',pressed:false};case'switch':return{pin:4,wiring:'gnd',on:false};case'pot':return{pin:14,value:512};case'ldr':return{pin:15,value:60};case'lm35':return{pin:16,value:25};case'ultrasonic':return{trig:7,echo:6,value:50};case'pir':return{pin:8,on:false};case'servo':return{pin:9};case'buzzer':return{pin:8};case'lcd':return{}}return{}}
+const DPINS=[...Array(14).keys(),14,15,16,17,18,19],APINS=[14,15,16,17,18,19];
+const pinSel=(id,k,v,list,label)=>`${label?`<span>${label}</span>`:''}<select data-id="${id}" data-k="${k}" aria-label="${label||'Pin'}">${(list||DPINS).map(p=>`<option value="${p}" ${p===v?'selected':''}>${p>=14?'A'+(p-14):'pin '+p}${INO.PWM.has(p)?' ~':''}</option>`).join('')}</select>`;
+const COLORS={red:'#ff3b30',green:'#2ee66b',yellow:'#ffd60a',blue:'#2f8bff',white:'#f4f7ff'};
+function pinLevel(p){const s=ST.sim;if(!s||p==null)return 0;const st=s.pins[p];if(st.mode===1)return st.pwm>=0?st.pwm/255:st.v;if(st.mode===2&&st.pullupByWrite)return .08;return 0}
+function partHTML(p){const id=p.id,info=PT[p.type];let vis='',ctl='',note='';
+ switch(p.type){
+  case'led':{const b=pinLevel(p.pin),c=COLORS[p.color]||'#ff3b30';vis=`<svg width="44" height="54" viewBox="0 0 44 54"><circle cx="22" cy="20" r="${14+b*6}" fill="${c}" opacity="${b*.45}" style="filter:blur(4px)"/><path d="M12 22a10 10 0 0 1 20 0v12H12z" fill="${c}" opacity="${.25+.75*b}" stroke="#00000033"/><rect x="10" y="33" width="24" height="4" rx="1" fill="${c}" opacity="${.35+.6*b}"/><path d="M17 37v15M27 37v12" stroke="#9aa3ad" stroke-width="2"/></svg>`;
+   ctl=`<div class="row">${pinSel(id,'pin',p.pin)}<select data-id="${id}" data-k="color" aria-label="Colour">${Object.keys(COLORS).map(k=>`<option ${k===p.color?'selected':''}>${k}</option>`).join('')}</select><span class="val">${b?(b<1?Math.round(b*100)+'%':'on'):'off'}</span></div>`;
+   const st=ST.sim&&ST.sim.pins[p.pin];if(st&&st.v&&st.mode!==1)note='The pin is not set as OUTPUT, so the LED is very dim. Add pinMode('+PIN(p.pin)+', OUTPUT)';break}
+  case'rgb':{const f=k=>{const v=pinLevel(p[k]);return p.common==='anode'?1-v:v};const r=f('r'),g=f('g'),b=f('b');const col=`rgb(${Math.round(r*255)},${Math.round(g*255)},${Math.round(b*255)})`;const on=Math.max(r,g,b);vis=`<svg width="44" height="54" viewBox="0 0 44 54"><circle cx="22" cy="20" r="18" fill="${col}" opacity="${on*.5}" style="filter:blur(4px)"/><path d="M12 22a10 10 0 0 1 20 0v12H12z" fill="${on?col:'#e8ecef'}" stroke="#00000033"/><path d="M14 36v16M19 36v18M25 36v16M30 36v14" stroke="#9aa3ad" stroke-width="2"/></svg>`;
+   ctl=`<div class="row">${pinSel(id,'r',p.r,null,'R')}${pinSel(id,'g',p.g,null,'G')}${pinSel(id,'b',p.b,null,'B')}</div><div class="row"><select data-id="${id}" data-k="common" aria-label="Common pin"><option value="cathode" ${p.common==='cathode'?'selected':''}>Common cathode (GND)</option><option value="anode" ${p.common==='anode'?'selected':''}>Common anode (5V)</option></select></div>`;break}
+  case'button':vis=`<button class="pbtn ${p.pressed?'on':''}" data-press="${id}" aria-label="Press the button" title="Press and hold (or hold Space while it has focus)"></button>`;ctl=`<div class="row">${pinSel(id,'pin',p.pin)}<span class="val">${p.pressed?'pressed':'released'}</span></div><div class="row"><select data-id="${id}" data-k="wiring" aria-label="Wiring"><option value="gnd" ${p.wiring!=='vcc'?'selected':''}>Pin to GND: use INPUT_PULLUP</option><option value="vcc" ${p.wiring==='vcc'?'selected':''}>Pin to 5V, with pull-down resistor</option></select></div>`;
+   {const st=ST.sim&&ST.sim.pins[p.pin];if(st&&st.touched&&p.wiring!=='vcc'&&st.mode===0)note='This pin is INPUT without a pull-up, so it floats and reads random values. Use INPUT_PULLUP'}break;
+  case'switch':vis=`<button class="tog ${p.on?'on':''}" data-toggle="${id}" aria-label="Switch"></button>`;ctl=`<div class="row">${pinSel(id,'pin',p.pin)}<span class="val">${p.on?'on':'off'}</span></div><div class="row"><select data-id="${id}" data-k="wiring"><option value="gnd" ${p.wiring!=='vcc'?'selected':''}>Pin to GND: use INPUT_PULLUP</option><option value="vcc" ${p.wiring==='vcc'?'selected':''}>Pin to 5V, with pull-down resistor</option></select></div>`;break;
+  case'pir':vis=`<button class="tog ${p.on?'on':''}" data-toggle="${id}" aria-label="Motion"></button>`;ctl=`<div class="row">${pinSel(id,'pin',p.pin)}<span class="val">${p.on?'motion':'no motion'}</span></div>`;break;
+  case'pot':{const v=Math.round(p.value);vis=`<svg width="48" height="48" viewBox="0 0 48 48"><circle cx="24" cy="24" r="19" fill="#2b5fa8" stroke="#1d4277" stroke-width="2"/><circle cx="24" cy="24" r="11" fill="#e8edf3"/><line x1="24" y1="24" x2="${24+10*Math.cos((-225+v/1023*270)*Math.PI/180)}" y2="${24+10*Math.sin((-225+v/1023*270)*Math.PI/180)}" stroke="#1b2230" stroke-width="3" stroke-linecap="round"/></svg>`;ctl=`<div class="row">${pinSel(id,'pin',p.pin,APINS)}<span class="val">${v} · ${(v*5/1023).toFixed(2)} V</span></div><div class="row"><input type="range" min="0" max="1023" value="${v}" data-id="${id}" data-k="value" aria-label="Potentiometer position"></div>`;break}
+  case'ldr':vis=`<svg width="46" height="46" viewBox="0 0 46 46"><circle cx="23" cy="23" r="15" fill="#f2e2c4" stroke="#c9a96b" stroke-width="2"/><path d="M14 18h18M14 23h18M14 28h18" stroke="#c0392b" stroke-width="2"/><circle cx="23" cy="23" r="21" fill="#ffd60a" opacity="${p.value/220}"/></svg>`;ctl=`<div class="row">${pinSel(id,'pin',p.pin,APINS)}<span class="val">light ${Math.round(p.value)}%</span></div><div class="row"><input type="range" min="0" max="100" value="${p.value}" data-id="${id}" data-k="value" aria-label="Light level"></div>`;break;
+  case'lm35':vis=`<svg width="40" height="50" viewBox="0 0 40 50"><path d="M8 22a12 12 0 0 1 24 0v8H8z" fill="#22262b"/><path d="M13 30v18M20 30v18M27 30v18" stroke="#9aa3ad" stroke-width="2"/><text x="20" y="24" fill="#d3d8de" font-size="7" text-anchor="middle" font-family="IBM Plex Mono">LM35</text></svg>`;ctl=`<div class="row">${pinSel(id,'pin',p.pin,APINS)}<span class="val">${(+p.value).toFixed(1)} °C</span></div><div class="row"><input type="range" min="-10" max="110" step="0.5" value="${p.value}" data-id="${id}" data-k="value" aria-label="Temperature"></div>`;break;
+  case'ultrasonic':vis=`<svg width="58" height="40" viewBox="0 0 58 40"><rect x="1" y="6" width="56" height="28" rx="3" fill="#1f63b0"/><circle cx="16" cy="20" r="11" fill="#c9ced3" stroke="#7d8790"/><circle cx="42" cy="20" r="11" fill="#c9ced3" stroke="#7d8790"/><circle cx="16" cy="20" r="6" fill="#4a525c"/><circle cx="42" cy="20" r="6" fill="#4a525c"/></svg>`;ctl=`<div class="row">${pinSel(id,'trig',p.trig,null,'Trig')}${pinSel(id,'echo',p.echo,null,'Echo')}</div><div class="row"><input type="range" min="2" max="450" value="${p.value}" data-id="${id}" data-k="value" aria-label="Distance"><span class="val">${p.value>400?'out of range':Math.round(p.value)+' cm'}</span></div>`;break;
+  case'servo':{const sv=ST.sim&&ST.sim.servos.find(s=>s.pin===p.pin);const a=sv?sv.angle:90;vis=`<svg width="56" height="50" viewBox="0 0 56 50"><rect x="6" y="18" width="44" height="26" rx="3" fill="#1f63b0"/><circle cx="20" cy="31" r="7" fill="#e8edf3"/><g transform="rotate(${-a+90} 20 31)"><path d="M20 31L20 6" stroke="#f4f6f8" stroke-width="7" stroke-linecap="round"/><path d="M20 31L20 6" stroke="#c4ccd6" stroke-width="1"/></g><circle cx="20" cy="31" r="3" fill="#7d8790"/></svg>`;ctl=`<div class="row">${pinSel(id,'pin',p.pin)}<span class="val">${sv?a+'°':'not attached'}</span></div>`;break}
+  case'buzzer':{const st=ST.sim&&ST.sim.pins[p.pin];const f=st&&st.tone||0;vis=`<svg width="44" height="44" viewBox="0 0 44 44"><circle cx="22" cy="22" r="17" fill="#1d2126"/><circle cx="22" cy="22" r="4" fill="#3a4048"/>${f?'<path d="M36 10a18 18 0 0 1 0 24M40 6a24 24 0 0 1 0 32" stroke="#00878f" stroke-width="2" fill="none"/>':''}</svg>`;ctl=`<div class="row">${pinSel(id,'pin',p.pin)}<span class="val">${f?f+' Hz':'silent'}</span></div><div class="row"><label style="display:flex;gap:4px;align-items:center"><input type="checkbox" data-id="${id}" data-k="sound" ${p.sound?'checked':''}>Play sound</label></div>`;break}
+  case'lcd':{const L=ST.sim&&ST.sim.lcds[0];const t=L?L.text():['',''];const dark=L&&(!L.light||!L.on);return`<div class="part" data-pid="${id}"><button class="x" data-del="${id}" aria-label="Remove">×</button><h4 style="grid-column:1/-1">${info.name}<span>${L?`${L.name}${L.i2c?' (I2C)':' (pins '+L.args.join(', ')+')'}`:'Create it in the sketch: LiquidCrystal lcd(12, 11, 5, 4, 3, 2);'}</span></h4><div class="lcdw"><div class="lcd ${dark?'dark':''}">${esc((L&&L.on?t:Array(L?L.rows:2).fill(' '.repeat(L?L.cols:16))).map(r=>r.padEnd(16)).join('\n'))}</div></div></div>`}
+ }
+ return`<div class="part" data-pid="${id}"><button class="x" data-del="${id}" aria-label="Remove ${info.name}">×</button><div class="vis">${vis}</div><h4>${info.name}<span>${info.desc}</span></h4>${ctl}${note?`<div class="note">${esc(note)}</div>`:''}</div>`}
+function renderParts(){const box=$('#parts');if(!ST.parts.length){box.innerHTML='<div class="empty" style="padding:6px 2px">No parts yet. Add parts, or press Run: parts are added for the pins your sketch uses.</div>';return}
+ const focus=document.activeElement;const keep=focus&&focus.closest&&focus.closest('#parts')?{id:focus.dataset.id,k:focus.dataset.k}:null;
+ box.innerHTML=ST.parts.map(partHTML).join('');if(keep&&keep.id){const el=box.querySelector(`[data-id="${keep.id}"][data-k="${keep.k}"]`);if(el)el.focus()}}
+function partsLive(){/* update visuals without rebuilding focused range inputs */const box=$('#parts');const act=document.activeElement;if(act&&act.type==='range'&&box.contains(act)&&ST.dragging)return;if(ST.pressing)return;renderParts()}
+$('#parts').addEventListener('change',e=>{const el=e.target;const p=ST.parts.find(x=>x.id==el.dataset.id);if(!p)return;const k=el.dataset.k;if(el.type==='checkbox')p[k]=el.checked;else if(k==='color'||k==='wiring'||k==='common')p[k]=el.value;else p[k]=+el.value;if(k==='sound'&&el.checked)ensureAudio();if(ST.sim)ST.sim.parts=ST.parts;saveLocal();renderParts();renderBoard()});
+$('#parts').addEventListener('input',e=>{const el=e.target;if(el.type!=='range')return;const p=ST.parts.find(x=>x.id==el.dataset.id);if(!p)return;p[el.dataset.k]=+el.value;ST.dragging=true;const card=el.closest('.part');const tmp=document.createElement('div');tmp.innerHTML=partHTML(p);const nv=tmp.querySelector('.val'),ov=card.querySelector('.val');if(nv&&ov)ov.textContent=nv.textContent;const nvis=tmp.querySelector('.vis'),ovis=card.querySelector('.vis');if(nvis&&ovis)ovis.innerHTML=nvis.innerHTML;saveLocal()});
+$('#parts').addEventListener('pointerup',()=>{ST.dragging=false});
+$('#parts').addEventListener('click',e=>{const d=e.target.closest('[data-del]');if(d){ST.parts=ST.parts.filter(x=>x.id!=d.dataset.del);if(ST.sim)ST.sim.parts=ST.parts;renderParts();renderBoard();saveLocal();return}const t=e.target.closest('[data-toggle]');if(t){const p=ST.parts.find(x=>x.id==t.dataset.toggle);p.on=!p.on;renderParts();saveLocal()}});
+$('#parts').addEventListener('pointerdown',e=>{const b=e.target.closest('[data-press]');if(!b)return;e.preventDefault();const p=ST.parts.find(x=>x.id==b.dataset.press);p.pressed=true;ST.pressing=true;b.classList.add('on');b.setPointerCapture(e.pointerId);const up=()=>{p.pressed=false;ST.pressing=false;b.classList.remove('on');b.removeEventListener('pointerup',up);b.removeEventListener('pointercancel',up);renderParts()};b.addEventListener('pointerup',up);b.addEventListener('pointercancel',up)});
+$('#parts').addEventListener('keydown',e=>{const b=e.target.closest('[data-press]');if(b&&(e.key===' '||e.key==='Enter')&&!e.repeat){e.preventDefault();const p=ST.parts.find(x=>x.id==b.dataset.press);p.pressed=true;ST.pressing=true;b.classList.add('on')}});
+$('#parts').addEventListener('keyup',e=>{const b=e.target.closest('[data-press]');if(b&&(e.key===' '||e.key==='Enter')){const p=ST.parts.find(x=>x.id==b.dataset.press);p.pressed=false;ST.pressing=false;b.classList.remove('on')}});
+$('#bAdd').onclick=e=>{closeMenu();const m=document.createElement('div');m.className='addm';m.id='menu';m.innerHTML=Object.entries(PT).map(([k,v])=>`<button data-add="${k}">${v.name}<span>${v.desc}</span></button>`).join('');document.body.appendChild(m);const r=e.currentTarget.getBoundingClientRect();m.style.left=Math.max(8,r.right-340)+'px';m.style.top=(r.bottom+4)+'px';m.onclick=ev=>{const b=ev.target.closest('[data-add]');if(!b)return;const t=b.dataset.add;const p=Object.assign({id:ST.uid++,type:t},defaults(t));if(p.pin!=null){const used=new Set(ST.parts.map(x=>x.pin));if(used.has(p.pin)){const free=(APINS.includes(p.pin)?APINS:[2,3,4,5,6,7,8,9,10,11,12,13]).find(x=>!used.has(x));if(free!=null)p.pin=free}}ST.parts.push(p);if(ST.sim)ST.sim.parts=ST.parts;closeMenu();renderParts();renderBoard();saveLocal()};setTimeout(()=>document.addEventListener('pointerdown',outside,true),0)};
+
+/* ---------- audio ---------- */
+function ensureAudio(){if(ST.audio)return;try{const C=new(window.AudioContext||window.webkitAudioContext)();const o=C.createOscillator(),g=C.createGain();o.type='square';g.gain.value=0;o.connect(g);g.connect(C.destination);o.start();ST.audio={C,o,g}}catch(e){}}
+function updAudio(){if(!ST.audio)return;let f=0;if(ST.running&&ST.sim)for(const p of ST.parts)if(p.type==='buzzer'&&p.sound){const t=ST.sim.pins[p.pin].tone;if(t)f=t}const a=ST.audio;if(f){a.o.frequency.setTargetAtTime(Math.min(8000,f),a.C.currentTime,.005);a.g.gain.setTargetAtTime(.04,a.C.currentTime,.005)}else a.g.gain.setTargetAtTime(0,a.C.currentTime,.005)}
+function stopAudio(){if(ST.audio)ST.audio.g.gain.setTargetAtTime(0,ST.audio.C.currentTime,.005)}
+
+/* ---------- serial ---------- */
+function renderSerial(){const s=ST.sim,el=$('#serOut');if(!s){if(!el.textContent)el.innerHTML='<span class="hint">Messages from Serial.print() appear here. Type below to send text to the board.</span>';$('#baud').textContent='';return}
+ if(el.querySelector('.hint'))el.textContent='';const t=s.serial;if(t.length<ST.serLen){el.textContent='';ST.serLen=0}if(t.length>ST.serLen){const add=t.slice(ST.serLen);ST.serLen=t.length;el.appendChild(document.createTextNode(add.replace(/\r\n/g,'\n').replace(/\r/g,'\n')));if(el.textContent.length>120000)el.textContent=el.textContent.slice(-90000);if($('#serAuto').checked)el.scrollTop=el.scrollHeight;feedPlot(add)}
+ $('#baud').textContent=s.serOn?s.serBaud+' baud':''}
+function send(){const v=$('#serTxt').value;if(!ST.sim||ST.dirty){toast('Run the sketch first');return}ST.sim.send(v+({none:'',nl:'\n',cr:'\r',both:'\r\n'})[$('#serEnd').value]);ST.rxBlink=performance.now();$('#serTxt').value='';$('#serTxt').focus()}
+$('#serSend').onclick=send;$('#serTxt').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();send()}};$('#serClr').onclick=()=>{$('#serOut').textContent='';ST.plot=[];drawPlot()};
+let plotBuf='';function feedPlot(t){plotBuf+=t;const parts=plotBuf.split(/\r?\n/);plotBuf=parts.pop();for(const ln of parts){const items=ln.trim().split(/[\s,\t]+/).filter(Boolean);const vals=[];const names=[];for(const it of items){const m=it.match(/^(?:([^:]+):)?(-?\d+(?:\.\d+)?)$/);if(m){vals.push(+m[2]);names.push(m[1]||'')}}if(!vals.length)continue;ST.plot.push(vals);if(names.some(Boolean))ST.plotNames=names;if(ST.plot.length>500)ST.plot.shift()}if(ST.tab==='plot')drawPlot()}
+function drawPlot(){const c=$('#plot');const r=c.getBoundingClientRect();const dpr=devicePixelRatio||1;c.width=r.width*dpr;c.height=r.height*dpr;const g=c.getContext('2d');g.scale(dpr,dpr);const W=r.width,H=r.height;g.clearRect(0,0,W,H);g.font='12px IBM Plex Sans';
+ if(!ST.plot.length){g.fillStyle='#5e6979';g.fillText('Print numbers with Serial.println(value) to plot them. Several values on one line, separated by spaces or commas, give several lines.',14,24);return}
+ let lo=Infinity,hi=-Infinity;for(const v of ST.plot)for(const x of v){lo=Math.min(lo,x);hi=Math.max(hi,x)}if(lo===hi){lo-=1;hi+=1}const pad=(hi-lo)*.08;lo-=pad;hi+=pad;const L=54,R=W-12,T=12,B=H-22;
+ g.strokeStyle='#e6eaf0';g.fillStyle='#5e6979';g.lineWidth=1;for(let i=0;i<=4;i++){const y=T+(B-T)*i/4;g.beginPath();g.moveTo(L,y);g.lineTo(R,y);g.stroke();const v=hi-(hi-lo)*i/4;g.fillText(Math.abs(v)>=1000?v.toFixed(0):v.toFixed(Math.abs(v)<10?2:1),4,y+4)}
+ const n=500;const cols=['#00878f','#c45200','#7a3fb5','#1f8a3a','#c62828','#2f6fd0'];const k=Math.max(...ST.plot.map(v=>v.length));
+ for(let s=0;s<k;s++){g.strokeStyle=cols[s%cols.length];g.lineWidth=1.8;g.beginPath();let first=true;ST.plot.forEach((v,i)=>{if(v[s]==null)return;const x=R-(ST.plot.length-1-i)*(R-L)/(n-1),y=B-(v[s]-lo)/(hi-lo)*(B-T);if(first){g.moveTo(x,y);first=false}else g.lineTo(x,y)});g.stroke();g.fillStyle=cols[s%cols.length];g.fillText(ST.plotNames[s]||('value '+(s+1)),L+8+s*110,H-6)}}
+
+/* ---------- variables and problems ---------- */
+let lastVars={};function renderVars(){const el=$('#varv');const s=ST.sim;if(!s){el.innerHTML='<div class="empty">Run the sketch to watch its global variables change.</div>';return}const w=s.watch().filter(x=>x[2]!==null);if(!w.length){el.innerHTML='<div class="empty">This sketch has no global variables. Variables declared outside setup() and loop() appear here.</div>';return}
+ const f=(v,t)=>Array.isArray(v)?(t.startsWith('char')?'"'+s.cs(v.flat())+'"':'['+v.map(x=>Array.isArray(x)?'['+x.join(', ')+']':typeof x==='string'?JSON.stringify(x):fmtN(x,t)).join(', ')+']'):typeof v==='string'?JSON.stringify(v):fmtN(v,t);
+ const fmtN=(v,t)=>t==='float'?(+v).toFixed(4).replace(/0+$/,'').replace(/\.$/,'.0'):t==='char'?`${v} '${v>=32&&v<127?String.fromCharCode(v):'?'}'`:t==='bool'?(v?'true':'false'):String(v);
+ let h='<table class="g"><tr><th>Name</th><th>Type</th><th>Value</th></tr>';for(const[n,t,v]of w){const txt=f(v,t);const ch=lastVars[n]!=null&&lastVars[n]!==txt;lastVars[n]=txt;h+=`<tr><td>${esc(n)}</td><td style="color:var(--dim)">${esc(t)}</td><td class="${ch?'chg':''}">${esc(txt.length>300?txt.slice(0,300)+'…':txt)}</td></tr>`}el.innerHTML=h+'</table>'}
+function renderProblems(){const r=ST.compiled;const el=$('#probv');const errs=r?r.errors:[];const warns=(r?r.warnings:[]).concat(ST.sim?ST.sim.events:[]);if(ST.sim&&ST.sim.state==='error')errs.push(ST.sim.error);
+ $('[data-p=prob]').innerHTML='Problems'+(errs.length?`<i>${errs.length}</i>`:warns.length?`<i class="w">${warns.length}</i>`:'');
+ if(!errs.length&&!warns.length){el.innerHTML='<div class="empty">No problems.</div>';return}
+ el.innerHTML=errs.map(e=>`<div class="prob" data-l="${e.line}"><b>Line ${e.line}</b><span>${esc(e.msg)}</span></div>`).join('')+warns.map(e=>`<div class="prob w" data-l="${e.line}"><b>${e.line?'Line '+e.line:'Note'}</b><span>${esc(e.msg)}</span></div>`).join('')}
+$('#probv').addEventListener('click',e=>{const d=e.target.closest('.prob');if(d&&+d.dataset.l)gotoLine(+d.dataset.l)});
+
+let lastSlow=0;function renderAll(fast){const s=ST.sim;renderBoard();renderSerial();updAudio();const now=performance.now();
+ if(!fast||now-lastSlow>120){lastSlow=now;partsLive();if(ST.tab==='vars')renderVars();if(s&&s.events.length!==ST.lastWarn){ST.lastWarn=s.events.length;renderProblems();for(const e of s.events)if(e.line&&!ST.warnLines.has(e.line))ST.warnLines.set(e.line,e.msg);renderEditor()}}
+ const t=s?Math.min(s.us,ST.T)/1e6:0;$('#clock').textContent=s?`${t<60?t.toFixed(2)+' s':Math.floor(t/60)+' min '+(t%60).toFixed(0)+' s'}`:'';$('#lineInfo').textContent=s&&!ST.running&&s.ln?`line ${s.ln}`:'';if(!fast)renderGutter()}
+
+/* ---------- tabs, split, menus, files ---------- */
+function showTab(p){ST.tab=p;$$('.tab').forEach(t=>t.classList.toggle('on',t.dataset.p===p));$$('.pane').forEach(x=>x.hidden=x.id!=='p-'+p);if(p==='plot')drawPlot();if(p==='vars')renderVars();if(p==='prob')renderProblems()}
+$('#tabs').addEventListener('click',e=>{const t=e.target.closest('.tab');if(t)showTab(t.dataset.p)});
+(()=>{const sp=$('#split');let y0,h0;sp.onpointerdown=e=>{y0=e.clientY;h0=$('#bot').getBoundingClientRect().height;sp.setPointerCapture(e.pointerId);sp.onpointermove=ev=>{const h=Math.max(120,Math.min(window.innerHeight-220,h0-(ev.clientY-y0)));$('#left').style.setProperty('--bh',h+'px');if(ST.tab==='plot')drawPlot()}};sp.onpointerup=()=>{sp.onpointermove=null}})();
+window.addEventListener('resize',()=>{if(ST.tab==='plot')drawPlot()});
+function toast(m,warn){$$('.toast').forEach(x=>x.remove());const t=document.createElement('div');t.className='toast'+(warn?' warn':'');t.textContent=m;document.body.appendChild(t);setTimeout(()=>t.remove(),warn?5500:3000)}
+function menu(btn,items){closeMenu();const m=document.createElement('div');m.className='menu';m.id='menu';for(const it of items){if(it==='-'){m.appendChild(document.createElement('hr'));continue}const b=document.createElement('button');b.innerHTML=`${esc(it[0])}${it[2]?`<span>${it[2]}</span>`:''}`;b.onclick=()=>{closeMenu();it[1]()};m.appendChild(b)}document.body.appendChild(m);const r=btn.getBoundingClientRect();m.style.left=r.left+'px';m.style.top=(r.bottom+4)+'px';setTimeout(()=>document.addEventListener('pointerdown',outside,true),0)}
+function outside(e){if(!e.target.closest('#menu'))closeMenu()}
+function closeMenu(){const m=$('#menu');if(m)m.remove();document.removeEventListener('pointerdown',outside,true)}
+function setName(n){ST.name=n||'sketch';$('#docname').textContent=ST.name;document.title=ST.name+' · CEsim Arduino'}
+const PARTS_RE=/\n?\/\/ cesim-parts: (.*)\s*$/;
+function loadSketch(text,name,parts,path){if(ST.running)pause();ST.sim=null;text=text.replace(/\r\n/g,'\n');const m=text.match(PARTS_RE);if(m){try{parts=JSON.parse(m[1])}catch(e){}text=text.replace(PARTS_RE,'\n').replace(/\n+$/,'\n')}
+ src.value=text;setName(name);ST.filePath=path||null;ST.parts=(parts||[]).map(p=>Object.assign({id:ST.uid++},defaults(p.type),p));ST.dirty=true;ST.errLines=new Map();ST.warnLines=new Map();ST.compiled=null;$('#serOut').textContent='';ST.serLen=0;ST.plot=[];renderEditor();src.scrollTop=0;syncScroll();renderParts();renderProblems();renderAll();refreshButtons();setStatus('<b>Ready.</b> Press F5 to run the sketch');saveLocal()}
+window.cesimOpenText=(name,text,path)=>{loadSketch(text,name.replace(/\.[^.]+$/,''),[],path);toast('Opened '+name)};
+$('#fileIn').addEventListener('change',async e=>{const f=e.target.files[0];if(f)window.cesimOpenText(f.name,await f.text(),N&&N.pathFor?N.pathFor(f):null);e.target.value=''});
+function sketchText(withParts){let t=src.value.replace(/\n+$/,'')+'\n';if(withParts&&ST.parts.length)t+='\n// cesim-parts: '+JSON.stringify(ST.parts.map(p=>{const o=Object.assign({},p);delete o.id;delete o.pressed;return o}))+'\n';return t}
+async function saveFile(asNew){const nm=ST.name.replace(/[^\w.-]+/g,'_')+'.ino';const text=sketchText(true);
+ if(N&&N.write&&ST.filePath&&!asNew){await N.write(ST.filePath,text);toast('Saved '+ST.filePath.split(/[\\/]/).pop());return}
+ if(N&&N.save){const r=await N.save(nm,text);if(r){ST.filePath=r;setName(r.split(/[\\/]/).pop().replace(/\.[^.]+$/,''));toast('Saved '+r.split(/[\\/]/).pop())}return}
+ const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:'text/plain'}));a.download=nm;document.body.appendChild(a);a.click();a.remove()}
+const NEW=`void setup() {\n  // put your setup code here, to run once:\n\n}\n\nvoid loop() {\n  // put your main code here, to run repeatedly:\n\n}\n`;
+$('#bFile').onclick=e=>menu(e.currentTarget,[['New sketch',()=>loadSketch(NEW,'sketch',[]),''],['Open…',()=>$('#fileIn').click(),'Ctrl+O'],'-',['Save',()=>saveFile(false),'Ctrl+S'],['Save as…',()=>saveFile(true),'Ctrl+Shift+S'],'-',['Copy the sketch without the parts list',()=>{navigator.clipboard&&navigator.clipboard.writeText(sketchText(false)).then(()=>toast('Copied. Paste it into the Arduino IDE to upload to a real board'))},''],['Copy Serial Monitor text',()=>{navigator.clipboard&&navigator.clipboard.writeText($('#serOut').textContent).then(()=>toast('Copied'))},'']]);
+$('#bEx').onclick=e=>menu(e.currentTarget,Object.keys(INO_EXAMPLES).map(k=>[k,()=>{const ex=INO_EXAMPLES[k];loadSketch(ex.code,k.toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,''),ex.parts);toast('Loaded: '+k+'. Press F5 to run')}]));
+$('#docname').onclick=()=>{const el=$('#docname');const inp=document.createElement('input');inp.className='edit';inp.value=ST.name;el.textContent='';el.appendChild(inp);inp.focus();inp.select();let done=false;const fin=ok=>{if(done)return;done=true;setName(ok&&inp.value.trim()?inp.value.trim():ST.name);saveLocal()};inp.onkeydown=e=>{if(e.key==='Enter')fin(true);if(e.key==='Escape')fin(false);e.stopPropagation()};inp.onblur=()=>fin(true)};
+$('#bVerify').onclick=()=>verify(false);$('#bRun').onclick=run;$('#bStop').onclick=stop;$('#bReset').onclick=reset;$('#bRef').onclick=showRef;
+document.addEventListener('keydown',e=>{const k=e.key;if(k==='F5'){e.preventDefault();if(e.shiftKey)stop();else run()}else if((e.ctrlKey||e.metaKey)&&k.toLowerCase()==='r'){e.preventDefault();verify(false)}else if((e.ctrlKey||e.metaKey)&&k.toLowerCase()==='u'){e.preventDefault();ST.dirty=true;run()}else if((e.ctrlKey||e.metaKey)&&k.toLowerCase()==='s'){e.preventDefault();saveFile(e.shiftKey)}else if((e.ctrlKey||e.metaKey)&&k.toLowerCase()==='o'){e.preventDefault();$('#fileIn').click()}else if(k==='Escape'){closeMenu();const o=$('.ov');if(o)o.remove()}});
+document.addEventListener('dragover',e=>e.preventDefault());document.addEventListener('drop',async e=>{e.preventDefault();const f=e.dataTransfer.files[0];if(f)window.cesimOpenText(f.name,await f.text(),N&&N.pathFor?N.pathFor(f):null)});
+function showRef(){const o=document.createElement('div');o.className='ov';o.innerHTML=`<div class="mdl" role="dialog" aria-label="Reference"><div class="mh2"><b>Arduino reference</b><button class="btn" id="refX">Close</button></div><div class="mb">
+<h4>How it works</h4><p>The sketch runs on a simulated Arduino Uno. <code>setup()</code> runs once, then <code>loop()</code> runs again and again. Time on the board is simulated, so <code>delay()</code> and <code>millis()</code> behave like on the real board. Numbers behave like the real chip too: <code>int</code> is 16-bit (−32768 to 32767), <code>long</code> is 32-bit.</p>
+<h4>Pins</h4><p><code>pinMode(pin, OUTPUT / INPUT / INPUT_PULLUP)</code> · <code>digitalWrite</code> · <code>digitalRead</code> · <code>analogRead(A0…A5)</code> gives 0 to 1023 · <code>analogWrite(pin, 0…255)</code> on PWM pins 3, 5, 6, 9, 10, 11 · <code>tone</code> · <code>noTone</code> · <code>pulseIn</code> · <code>attachInterrupt</code> on pins 2 and 3</p>
+<h4>Time and maths</h4><p><code>delay</code> · <code>delayMicroseconds</code> · <code>millis</code> · <code>micros</code> · <code>map</code> · <code>constrain</code> · <code>min</code> · <code>max</code> · <code>abs</code> · <code>sq</code> · <code>sqrt</code> · <code>pow</code> · <code>sin</code>/<code>cos</code>/<code>tan</code> · <code>random</code> · <code>randomSeed</code> · <code>bitRead</code> / <code>bitWrite</code> / <code>bitSet</code> / <code>bitClear</code></p>
+<h4>Serial</h4><p><code>Serial.begin(9600)</code> · <code>print</code> · <code>println</code> (with <code>HEX</code>, <code>BIN</code> or a number of decimals) · <code>write</code> · <code>available</code> · <code>read</code> · <code>parseInt</code> · <code>parseFloat</code> · <code>readString</code> · <code>readStringUntil</code>. The Serial Plotter draws numbers printed one line at a time.</p>
+<h4>Language</h4><p>Types: <code>int</code>, <code>unsigned int</code>, <code>long</code>, <code>unsigned long</code>, <code>byte</code>, <code>char</code>, <code>bool</code>, <code>float</code>, <code>String</code>, arrays (also 2D), <code>const</code>, <code>static</code>, <code>volatile</code>, <code>#define</code>, <code>enum</code>. Functions, recursion, <code>if</code>, <code>for</code>, <code>while</code>, <code>do</code>, <code>switch</code>. Not yet: pointers, references, structs and classes.</p>
+<h4>Libraries</h4><p><code>Servo</code>: attach, write, read · <code>LiquidCrystal</code> and <code>LiquidCrystal_I2C</code>: begin, init, backlight, print, setCursor, clear</p>
+<h4>Parts</h4><p>Add parts on the right and choose their pins. A button wired to GND needs <code>INPUT_PULLUP</code>: it reads LOW when pressed. When you save, the parts list is kept on the last line of the .ino file as a comment, so the file still works in the Arduino IDE.</p>
+<h4>Keys</h4><p>F5 run or pause · Shift+F5 stop · Ctrl+R verify · Ctrl+S save · Ctrl+/ comment lines</p></div></div>`;document.body.appendChild(o);o.onclick=e=>{if(e.target===o||e.target.id==='refX')o.remove()}}
+let svT=null;function saveLocal(){clearTimeout(svT);svT=setTimeout(()=>{try{localStorage.setItem('cesim.ino.doc',JSON.stringify({name:ST.name,src:src.value,parts:ST.parts.map(p=>{const o=Object.assign({},p);delete o.pressed;return o})}))}catch(e){}},300)}
+function start(){boardSVG();let d=null;if(!/blank/.test(location.search)){try{d=JSON.parse(localStorage.getItem('cesim.ino.doc')||'null')}catch(e){}}
+ if(d&&typeof d.src==='string'){src.value=d.src;setName(d.name);ST.parts=(d.parts||[]).map(p=>Object.assign({},p,{id:ST.uid++}))}else{const ex=INO_EXAMPLES['Blink'];src.value=ex.code;setName('blink');ST.parts=ex.parts.map(p=>Object.assign({id:ST.uid++},defaults(p.type),p))}
+ renderEditor();renderParts();renderProblems();renderAll();refreshButtons();updPos()}
+window.CEI={ST,verify,run,pause,stop,reset,loadSketch,showTab,renderAll,get sim(){return ST.sim},src,sketchText};
+start();
+</script>
+</body></html>

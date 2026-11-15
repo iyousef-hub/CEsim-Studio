@@ -1,6 +1,6 @@
 # CEsim Studio
 
-**Circuit simulator, diagrams and 3D in one desktop app.**
+**Circuits, digital logic, 8086 assembly, Arduino, diagrams and 3D in one desktop app.**
 BY. YOUSEF
 
 CEsim Studio is a launcher that opens several tools, each in its own window:
@@ -12,6 +12,8 @@ CEsim Studio is a launcher that opens several tools, each in its own window:
 | **Circuit from image** | Turns a photo or screenshot of a schematic into an editable circuit, using a vision model that runs on your own computer with [Ollama](https://ollama.com). Nothing is uploaded. | `.png` · `.jpg` · paste |
 | **Logic** | Digital circuits with gates, multiplexers, decoders, adders, flip-flops, registers, counters and displays, on single wires or multi-bit buses. Live simulation, clock, timing diagram and truth table. Opens `.circ` files. | `.cedig` · `.circ` |
 | **Boolean tools** | Truth tables, K-maps with groups, minimal SOP and POS, canonical forms, and a state machine (FSM) designer that writes the flip-flop equations. Builds any result as a circuit in Logic. | |
+| **8086** | Assembler and emulator for the 8086. Step forward and back, breakpoints, registers and flags, memory, stack, variables, machine-code listing, a DOS console (INT 21h, 10h, 16h) and virtual ports with LEDs, a 7-segment display and switches. Saves `.COM` programs. | `.asm` · `.com` |
+| **Arduino** | Runs Arduino sketches on a virtual Uno in real time: LEDs, RGB LED, buttons, switches, potentiometer, light, temperature, ultrasonic and motion sensors, servo, buzzer and a 16×2 LCD. Serial Monitor, Serial Plotter and live variables. | `.ino` |
 | **Diagram** | Flowcharts, state machines, datapaths and networks with smart connectors, auto layout, text-to-diagram, minimap and find. | `.cediag` · `.drawio` · `.mmd` |
 | **3D** | Millimetre-accurate modelling with holes, groups, arrays, shells, a board library and enclosure maker. Adjustable zoom / rotate / pan speed. | `.ce3d` · `.stl` · `.obj` · `.3mf` · `.glb` |
 
@@ -61,6 +63,21 @@ VEE  0    vee  DC 15
 - In **Boolean tools**, type an expression (`A'B + AC`), minterms (`Σm(1,3,5) + d(0,2)`), or click the truth table. The K-map shows the groups of the minimal result. **Build circuit in Logic** draws it with AND, OR and NOT gates.
 - The **State machine** tab turns a state table into a state diagram, a state assignment and the flip-flop equations, and can build the whole machine with D flip-flops.
 
+## 8086
+
+- Write a program with `org 100h` (one segment) or with `.model small`, `.data` and `.code`. The **Examples** menu has nine programs to start from.
+- **F9** assembles, **F5** runs or pauses, **F8** runs one instruction, **F10** runs a whole `CALL`, **F7** steps back. Click a line number to set a breakpoint.
+- Registers, flags and memory bytes can be changed by clicking them. Values that changed in the last step are highlighted.
+- Error messages point to the line and explain the fix, for example when operand sizes do not match or a conditional jump is out of range.
+- **Reference** lists the supported instructions, directives, interrupts and ports.
+
+## Arduino
+
+- Open an example, press **F5**, and use the parts on the right: press buttons, turn the potentiometer, change the light, temperature or distance.
+- A new sketch gets parts automatically for the pins it uses. Add or remove parts with **+ Add part** and choose their pins.
+- Time is simulated, so `delay()` and `millis()` behave like on a real board, and `int` is 16-bit like on the Uno.
+- When a sketch is saved, the parts list is kept as a comment on its last line, so the file still opens in the Arduino IDE.
+
 ## Circuit from image
 
 1. Install Ollama from [ollama.com](https://ollama.com) and open it.
@@ -92,7 +109,7 @@ Installers:
 ## Project layout
 
 ```
-app/            Electron app (studio.html launcher, circuit / diagram / 3d tools, main.js, preload.js)
+app/            Electron app (studio.html launcher, circuit, logic, bool, asm, ino, diagram and 3d tools, main.js, preload.js)
 app/lib/        Bundled libraries (3D bundle, canvas2svg)
 app/fonts/      IBM Plex fonts (SIL Open Font License)
 src3d/          Source of the 3D tool bundle (three.js, three-bvh-csg)
@@ -108,7 +125,7 @@ Electron, three.js, three-bvh-csg and three-mesh-bvh (MIT), canvas2svg (MIT, see
 
 ### بالعربي
 
-**CEsim Studio** برنامج سطح مكتب فيه محاكي دوائر، وأداة رسم مخططات، وتصميم ثلاثي الأبعاد بقياسات حقيقية، وأداة تحول صورة الدائرة إلى دائرة قابلة للمحاكاة عن طريق ذكاء اصطناعي يشتغل على جهازك (Ollama).
+**CEsim Studio** برنامج سطح مكتب فيه محاكي دوائر، ومحاكي دوائر رقمية وأدوات الجبر البولياني، ومحاكي 8086 بلغة التجميع، ومحاكي Arduino بقطع افتراضية، وأداة رسم مخططات، وتصميم ثلاثي الأبعاد بقياسات حقيقية، وأداة تحول صورة الدائرة إلى دائرة قابلة للمحاكاة عن طريق ذكاء اصطناعي يشتغل على جهازك (Ollama).
 النسخ متوفرة للماك (Apple Silicon) والويندوز واللينكس من صفحة **Releases**.
 
 BY. YOUSEF

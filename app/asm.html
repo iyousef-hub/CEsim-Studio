@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link href="fonts/fonts.css" rel="stylesheet"><title>CEsim 8086</title>
+<style>
+:root{--bg:#e9edf2;--panel:#f7f8fa;--line:#cdd3dc;--text:#1b2230;--dim:#5e6979;--hover:#e1e7ef;--accent:#185fa5;--font:"IBM Plex Sans",-apple-system,"Segoe UI",Roboto,Arial,sans-serif;--mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;--lh:20px}
+*{box-sizing:border-box}html,body{height:100%;margin:0}body{background:var(--bg);color:var(--text);font:13px/1.35 var(--font);overflow:hidden}
+#app{display:grid;grid-template-rows:auto 1fr 28px;height:100%}
+#top{display:flex;flex-wrap:wrap;row-gap:2px;align-items:center;gap:2px;padding:4px 10px;min-height:44px;background:var(--panel);border-bottom:1px solid var(--line);user-select:none}
+.logo{flex:none;width:24px;height:24px;border-radius:6px;background:var(--accent);color:#fff;display:grid;place-items:center;font:600 10px var(--mono);margin-right:6px}
+#docname{flex:none;font-weight:600;margin-right:10px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:text;padding:3px 5px;border-radius:3px}#docname:hover{background:var(--hover)}
+.tb{flex:none;height:30px;min-width:30px;padding:0 9px;border:1px solid transparent;border-radius:4px;background:none;color:var(--text);cursor:pointer;font:12.5px var(--font);white-space:nowrap}
+.tb:hover{background:var(--hover);border-color:var(--line)}.tb.pri{background:var(--accent);color:#fff}.tb.pri:hover{filter:brightness(.92)}.tb:disabled{opacity:.4;cursor:default;background:none;border-color:transparent}
+.tb kbd{font:10.5px var(--mono);color:var(--dim);margin-left:4px}.tb.pri kbd{color:#cfe0f5}
+.sep{flex:none;width:1px;height:22px;background:var(--line);margin:0 6px}
+select.s{height:28px;border:1px solid var(--line);border-radius:4px;background:#fff;font:12px var(--font);color:var(--text)}
+#main{display:grid;grid-template-columns:minmax(0,1fr) 330px;min-height:0}
+#left{display:grid;grid-template-rows:minmax(0,1fr) 6px var(--bh,250px);min-height:0;min-width:0}
+/* editor */
+#ed{position:relative;display:grid;grid-template-columns:58px minmax(0,1fr);background:#fff;min-height:0;overflow:hidden}
+#gut{position:relative;overflow:hidden;background:#f3f5f8;border-right:1px solid #e1e5eb;cursor:pointer;user-select:none}
+#gutIn{position:absolute;left:0;right:0;top:0;padding-top:8px;will-change:transform}
+.gl{height:var(--lh);font:12px/var(--lh) var(--mono);color:#98a2b0;text-align:right;padding-right:9px;position:relative}
+.gl:hover{color:var(--text)}.gl.bp::before{content:"";position:absolute;left:7px;top:5px;width:10px;height:10px;border-radius:50%;background:#d93025}
+.gl.cur{color:#7a5a00;font-weight:600}.gl.cur::after{content:"";position:absolute;left:20px;top:5px;border:5px solid transparent;border-left:8px solid #e0a100}
+.gl.err{color:#c62828;font-weight:600}
+#code{position:relative;overflow:hidden;min-width:0}
+#marks,#hl{position:absolute;left:0;top:0;will-change:transform;pointer-events:none}
+#marks{right:0}.mk{position:absolute;left:0;right:0;height:var(--lh)}.mk.cur{background:#fff3c4;box-shadow:inset 3px 0 #e0a100}.mk.err{background:#fdecec}.mk.bp{background:#fbeaea}.mk.hit{background:#e5f1ff}
+#hl,#src{margin:0;padding:8px 14px 40px;font:13px/var(--lh) var(--mono);white-space:pre;tab-size:8;letter-spacing:0}
+#src{position:absolute;inset:0;width:100%;height:100%;border:0;outline:0;resize:none;background:transparent;color:transparent;caret-color:#111;overflow:auto;z-index:2}
+#src::selection{background:rgba(26,140,255,.25)}
+.t-k{color:#1d4ed8;font-weight:500}.t-r{color:#8b2fc9}.t-n{color:#b45309}.t-s{color:#15803d}.t-c{color:#7d8794;font-style:italic}.t-d{color:#0e7490;font-weight:500}.t-l{color:#b42318}.t-e{color:#c62828;font:italic 12px var(--font);opacity:.9}
+#split{background:var(--panel);border-top:1px solid var(--line);border-bottom:1px solid var(--line);cursor:row-resize}#split:hover{background:#d8e2ee}
+/* bottom tabs */
+#bot{display:grid;grid-template-rows:32px minmax(0,1fr);background:#fff;min-height:0}
+#tabs{display:flex;align-items:stretch;gap:0;background:var(--panel);border-bottom:1px solid var(--line);padding-left:6px;user-select:none}
+.tab{border:0;background:none;padding:0 13px;font:12.5px var(--font);color:var(--dim);cursor:pointer;border-bottom:2px solid transparent}.tab:hover{color:var(--text)}.tab.on{color:var(--text);border-bottom-color:var(--accent);font-weight:600}
+.tab i{font-style:normal;background:#c62828;color:#fff;border-radius:9px;padding:0 6px;font-size:10.5px;margin-left:5px}
+.pane{overflow:auto;min-height:0;position:relative}
+#con{background:#10161f;color:#d7e2ef;font:13px/1.45 var(--mono);padding:10px 14px;white-space:pre-wrap;word-break:break-all;outline:none;cursor:text;height:100%;overflow:auto}
+#con:focus{box-shadow:inset 0 0 0 2px #2f6fb5}#con .cur{display:inline-block;width:.6em;background:#9fb7d3;animation:bl 1s steps(1) infinite}#con .pend{color:#ffd479}
+#con .hintc{color:#6d7d90;font-style:italic}@keyframes bl{50%{opacity:0}}
+.mh{display:flex;align-items:center;gap:6px;padding:6px 10px;border-bottom:1px solid #eef1f4;position:sticky;top:0;background:#fff;z-index:1;flex-wrap:wrap}
+.mh input{height:26px;width:76px;border:1px solid var(--line);border-radius:4px;font:12px var(--mono);padding:0 6px}
+.btn{height:26px;padding:0 10px;border:1px solid var(--line);border-radius:4px;background:#fff;color:var(--text);cursor:pointer;font:12px var(--font)}.btn:hover{background:var(--hover)}.btn.pri{background:var(--accent);border-color:var(--accent);color:#fff}
+table.g{border-collapse:collapse;font:12px/1.5 var(--mono);width:100%}table.g th{position:sticky;top:0;background:#f3f6fa;font:600 11.5px var(--font);color:var(--dim);text-align:left;padding:4px 10px;border-bottom:1px solid var(--line);z-index:1}
+table.g td{padding:2px 10px;border-bottom:1px solid #f0f2f5;white-space:nowrap}table.g tr.cur td{background:#fff3c4}table.g tr.bp td:first-child{color:#d93025;font-weight:600}
+.mem td.b{padding:2px 3px;text-align:center;cursor:pointer;min-width:22px}.mem td.b:hover{background:#eaf3ff}.mem td.a{color:#7d8794}.mem td.ch{color:#4f5b6a;letter-spacing:.06em}
+.mem td.w{background:#ffe08a}.mem td.ipb{background:#d8ecff}.mem td.spb{background:#e6dcff}.mem td.z{color:#b3bcc7}
+.vv{max-width:520px;overflow:hidden;text-overflow:ellipsis}.chg{background:#ffe08a}
+.prob{display:flex;gap:10px;padding:6px 12px;border-bottom:1px solid #f0f2f5;cursor:pointer;font-size:12.5px}.prob:hover{background:#f5f8fc}.prob b{font:600 12px var(--mono);min-width:64px;color:#c62828}.prob.w b{color:#9a6700}
+.empty{padding:16px;color:var(--dim);font-size:12.5px}
+/* devices */
+#devs{display:flex;flex-wrap:wrap;gap:22px;padding:14px 16px}
+.dev{border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:#fbfcfd}.dev h4{margin:0 0 8px;font:600 12px var(--font)}.dev h4 span{font:11px var(--mono);color:var(--dim);margin-left:6px}
+.leds{display:flex;gap:8px}.led{display:flex;flex-direction:column;align-items:center;gap:3px;font:10px var(--mono);color:var(--dim)}.led b{width:20px;height:20px;border-radius:50%;background:#3a1010;border:2px solid #5a2020}.led b.on{background:#ff3b30;border-color:#ff8a80;box-shadow:0 0 10px #ff3b30}
+.sw{display:flex;gap:6px}.sw button{width:22px;height:40px;border:1px solid #9aa6b5;border-radius:4px;background:linear-gradient(#f4f6f8 50%,#c9d1db 50%);cursor:pointer;padding:0;font:9px var(--mono);color:#333}.sw button.on{background:linear-gradient(#5aa95a 50%,#f4f6f8 50%);color:#fff}
+.pb{width:52px;height:52px;border-radius:50%;border:3px solid #8a96a6;background:radial-gradient(#e3504a,#a8231e);cursor:pointer}.pb:active,.pb.on{transform:scale(.95);filter:brightness(1.3)}
+.portlist{font:12px var(--mono);max-height:120px;overflow:auto;min-width:150px}
+/* right */
+#right{background:var(--panel);border-left:1px solid var(--line);overflow:auto;padding:4px 12px 16px;user-select:none}
+#right h3{font:600 11px var(--font);color:var(--dim);text-transform:uppercase;letter-spacing:.06em;margin:12px 0 6px;display:flex;justify-content:space-between;align-items:center}
+#right h3 span{text-transform:none;letter-spacing:0;font-weight:400}
+.regs{display:grid;grid-template-columns:34px 1fr 44px 1fr;gap:2px 6px;align-items:center;font:13px var(--mono)}
+.regs .n{font-weight:600;color:#33404f}.regs .v{background:#fff;border:1px solid #dde2e9;border-radius:4px;padding:2px 6px;cursor:pointer;text-align:center}.regs .v:hover{border-color:var(--accent)}
+.regs .v.chg{background:#ffe08a;border-color:#e0b400}.regs .d{font-size:11.5px;color:var(--dim);text-align:right}
+.regs .hl{display:flex;gap:2px}.regs .hl .v{flex:1;padding:2px 2px}
+.flags{display:grid;grid-template-columns:repeat(9,1fr);gap:3px}
+.fl{border:1px solid #dde2e9;background:#fff;border-radius:4px;text-align:center;padding:2px 0;cursor:pointer;font:11px var(--mono)}.fl b{display:block;font:600 14px var(--mono)}.fl.on b{color:var(--accent)}.fl.chg{background:#ffe08a}.fl:hover{border-color:var(--accent)}
+.stk{font:12.5px var(--mono);background:#fff;border:1px solid #dde2e9;border-radius:6px;overflow:hidden}
+.stk div{display:flex;justify-content:space-between;padding:2px 8px;border-bottom:1px solid #f0f2f5}.stk div.top{background:#efe8ff;font-weight:600}.stk i{font-style:normal;color:var(--dim);font-size:11px}
+.nx{background:#fff;border:1px solid #dde2e9;border-radius:6px;padding:6px 9px;font:12.5px var(--mono);min-height:32px;white-space:pre;overflow:hidden;text-overflow:ellipsis}
+.edit{width:100%;height:24px;font:13px var(--mono);border:1px solid var(--accent);border-radius:4px;text-align:center;padding:0}
+#statusbar{display:flex;align-items:center;gap:16px;padding:0 12px;background:var(--panel);border-top:1px solid var(--line);font-size:11.5px;color:var(--dim);white-space:nowrap;overflow:hidden}
+#status b{color:var(--text)}#status.err b{color:#b3261e}#status.ok b{color:#1f7a37}#pos{margin-left:auto;font-family:var(--mono)}
+.toast{position:fixed;left:50%;bottom:44px;transform:translateX(-50%);background:#1b2230;color:#fff;padding:9px 14px;border-radius:6px;font-size:12.5px;z-index:90;max-width:70vw}.toast.warn{background:#8a3a00}
+.menu{position:fixed;z-index:80;background:#fff;border:1px solid var(--line);border-radius:6px;box-shadow:0 10px 30px rgba(20,30,50,.18);padding:4px;min-width:250px;display:flex;flex-direction:column;max-height:80vh;overflow:auto}
+.menu button{display:flex;justify-content:space-between;gap:20px;border:none;background:none;text-align:left;padding:7px 10px;font:12.5px var(--font);border-radius:4px;cursor:pointer;color:var(--text)}.menu button:hover{background:#eaf3ff}.menu button span{color:var(--dim)}.menu hr{border:none;border-top:1px solid var(--line);margin:4px 0}.menu .mt{font:600 11px var(--font);color:var(--dim);padding:6px 10px 2px;text-transform:uppercase;letter-spacing:.05em}
+.ov{position:fixed;inset:0;background:rgba(15,20,30,.35);display:grid;place-items:center;z-index:70}
+.mdl{background:#fff;border-radius:10px;box-shadow:0 20px 50px rgba(0,0,0,.3);width:min(860px,92vw);max-height:86vh;display:flex;flex-direction:column}
+.mdl .mh2{display:flex;justify-content:space-between;align-items:center;padding:10px 16px;border-bottom:1px solid var(--line)}.mdl .mb{padding:6px 18px 18px;overflow:auto;font-size:13px;line-height:1.55}
+.mdl h4{margin:14px 0 4px;font-size:13px}.mdl code{font:12px var(--mono);background:#f1f4f8;padding:1px 4px;border-radius:3px}.mdl table{border-collapse:collapse;font-size:12.5px}.mdl td{padding:3px 10px 3px 0;vertical-align:top}.mdl td:first-child{font:12px var(--mono);white-space:nowrap}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+[hidden]{display:none!important}
+</style></head>
+<body><div id="app">
+<div id="top">
+ <div class="logo">CE</div><span id="docname" title="Click to rename">program</span>
+ <button class="tb" id="bFile">File ▾</button><button class="tb" id="bEx">Examples ▾</button><div class="sep"></div>
+ <button class="tb" id="bAsm" title="Assemble and load (F9)">Assemble<kbd>F9</kbd></button>
+ <button class="tb pri" id="bRun" title="Run or pause (F5)">Run<kbd>F5</kbd></button>
+ <button class="tb" id="bStep" title="Run one instruction (F8)">Step<kbd>F8</kbd></button>
+ <button class="tb" id="bOver" title="Run a CALL or INT as one step (F10)">Step over<kbd>F10</kbd></button>
+ <button class="tb" id="bBack" title="Undo the last instruction (F7)">Step back<kbd>F7</kbd></button>
+ <button class="tb" id="bReset" title="Reload the program (Ctrl+R)">Reset</button>
+ <select class="s" id="speed" aria-label="Speed" title="Run speed"><option value="2">2 per second</option><option value="10">10 per second</option><option value="50">50 per second</option><option value="400" selected>400 per second</option><option value="0">Full speed</option></select>
+ <div class="sep"></div><button class="tb" id="bRef">Reference</button>
+</div>
+<div id="main">
+ <div id="left">
+  <div id="ed"><div id="gut"><div id="gutIn"></div></div><div id="code"><div id="marks"></div><pre id="hl" aria-hidden="true"></pre><textarea id="src" spellcheck="false" autocapitalize="off" autocomplete="off" wrap="off" aria-label="Assembly source"></textarea></div></div>
+  <div id="split" title="Drag to resize"></div>
+  <div id="bot">
+   <div id="tabs" role="tablist">
+    <button class="tab on" data-p="con">Console</button><button class="tab" data-p="mem">Memory</button><button class="tab" data-p="vars">Variables</button><button class="tab" data-p="lst">Listing</button><button class="tab" data-p="dev">Ports and devices</button><button class="tab" data-p="prob">Problems</button>
+   </div>
+   <div class="pane" id="p-con"><div id="con" tabindex="0" aria-label="Console. Click here and type when the program asks for input"></div></div>
+   <div class="pane" id="p-mem" hidden><div class="mh"><select class="s" id="mSeg" aria-label="Segment"><option value="ds">DS</option><option value="es">ES</option><option value="ss">SS</option><option value="cs">CS</option><option value="abs">Address</option></select><input id="mSegV" aria-label="Segment value" title="Segment (hex)"><span>:</span><input id="mOff" aria-label="Offset" title="Offset (hex)" value="0000"><button class="btn" id="mGo">Go</button><button class="btn" id="mPrev">◀ Page</button><button class="btn" id="mNext">Page ▶</button><span class="dim" style="color:var(--dim);font-size:11.5px;margin-left:6px">Click a byte to change it. Yellow: written by the last step</span></div><div id="memv"></div></div>
+   <div class="pane" id="p-vars" hidden><div class="mh"><span style="font-size:12px;color:var(--dim)">Show values as</span><select class="s" id="vFmt"><option value="hex">Hex</option><option value="dec">Decimal</option><option value="sdec">Signed decimal</option><option value="bin">Binary</option><option value="chr">Characters</option></select></div><div id="varv"></div></div>
+   <div class="pane" id="p-lst" hidden><div id="lstv"></div></div>
+   <div class="pane" id="p-dev" hidden><div id="devs"></div></div>
+   <div class="pane" id="p-prob" hidden><div id="probv"></div></div>
+  </div>
+ </div>
+ <div id="right">
+  <h3>Next instruction <span id="nxLine"></span></h3><div class="nx" id="nx">—</div>
+  <h3>Registers <span>click a value to change it</span></h3>
+  <div class="regs" id="regs"></div>
+  <h3>Flags <span id="flagsHex"></span></h3><div class="flags" id="flags"></div>
+  <h3>Stack <span id="stkInfo"></span></h3><div class="stk" id="stk"></div>
+ </div>
+</div>
+<div id="statusbar"><span id="status"><b>Ready.</b> Press F5 to run or F8 to step</span><span id="steps"></span><span id="pos">Ln 1, Col 1</span></div>
+</div>
+<input type="file" id="fileIn" accept=".asm,.s,.inc,.txt,.8086" hidden multiple>
+<script src="asm-core.js"></script>
+<script src="asm-examples.js"></script>
+<script>
+'use strict';
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const N=window.cesimNative;const A=window.ASM86;const H=A.hex;
+const src=$('#src'),hl=$('#hl'),marks=$('#marks'),gutIn=$('#gutIn');
+const ST={prog:null,cpu:null,dirty:true,running:false,bps:new Set(),errLines:new Map(),warnLines:new Map(),name:'program',filePath:null,prev:null,memBase:null,tab:'con',skipBp:false,stopAt:null,lastRender:0};
+const KW=new Set(['mov','add','adc','sub','sbb','cmp','and','or','xor','not','neg','test','inc','dec','mul','imul','div','idiv','push','pop','pushf','popf','lea','lds','les','xchg','jmp','call','ret','retf','retn','iret','int','into','loop','loope','loopz','loopne','loopnz','jcxz','nop','hlt','clc','stc','cmc','cld','std','cli','sti','cbw','cwd','lahf','sahf','xlat','xlatb','in','out','rol','ror','rcl','rcr','shl','sal','shr','sar','movsb','movsw','cmpsb','cmpsw','stosb','stosw','lodsb','lodsw','scasb','scasw','rep','repe','repz','repne','repnz','aaa','aas','daa','das','aam','aad','wait','lock','ja','jae','jb','jbe','jc','je','jg','jge','jl','jle','jna','jnae','jnb','jnbe','jnc','jne','jng','jnge','jnl','jnle','jno','jnp','jns','jnz','jo','jp','jpe','jpo','js','jz']);
+const REGS=new Set(['ax','bx','cx','dx','si','di','bp','sp','al','ah','bl','bh','cl','ch','dl','dh','cs','ds','es','ss']);
+const DIRS=new Set(['db','dw','dd','equ','org','proc','endp','end','segment','ends','assume','offset','ptr','byte','word','dword','dup','short','near','far','seg','type','length','size','label','even','align','mod','shl','shr','low','high','.model','.stack','.data','.code','.startup','.exit','@data','@code','small','tiny','.8086']);
+const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+/* ---------------- editor ---------------- */
+function hlLine(l){let out='',i=0,first=true;const n=l.length;
+ while(i<n){const c=l[i];
+  if(c===';'){out+=`<span class="t-c">${esc(l.slice(i))}</span>`;break}
+  if(c==="'"||c==='"'){let j=l.indexOf(c,i+1);if(j<0)j=n-1;out+=`<span class="t-s">${esc(l.slice(i,j+1))}</span>`;i=j+1;continue}
+  if(/[0-9]/.test(c)){let j=i;while(j<n&&/[0-9a-zA-Z_]/.test(l[j]))j++;out+=`<span class="t-n">${esc(l.slice(i,j))}</span>`;i=j;continue}
+  if(/[A-Za-z_@.?$]/.test(c)){let j=i;while(j<n&&/[\w@.?$]/.test(l[j]))j++;const w=l.slice(i,j),lw=w.toLowerCase();let k=j;while(k<n&&l[k]===' ')k++;
+   let cls='';if(REGS.has(lw))cls='t-r';else if(KW.has(lw))cls='t-k';else if(DIRS.has(lw))cls='t-d';else if(first&&(l[k]===':'||/^(db|dw|dd|equ|proc|endp|segment|ends|label|=)\b/i.test(l.slice(k))))cls='t-l';
+   out+=cls?`<span class="${cls}">${esc(w)}</span>`:esc(w);i=j;first=false;continue}
+  out+=esc(c);if(c!==' '&&c!=='\t')first=false;i++}
+ return out}
+function lines(){return src.value.split('\n')}
+function renderEditor(){const ls=lines();let h='';ls.forEach((l,i)=>{h+=hlLine(l);const e=ST.errLines.get(i+1);if(e)h+=`<span class="t-e">    ◂ ${esc(e)}</span>`;h+='\n'});hl.innerHTML=h;renderGutter(ls.length);renderMarks()}
+function renderGutter(n){n=n||lines().length;const cur=curLine();let h='';for(let i=1;i<=n;i++){const c=['gl'];if(ST.bps.has(i))c.push('bp');if(i===cur)c.push('cur');if(ST.errLines.has(i))c.push('err');const t=ST.errLines.get(i)||ST.warnLines.get(i);h+=`<div class="${c.join(' ')}" data-l="${i}"${t?` title="${esc(t)}"`:''}>${i}</div>`}gutIn.innerHTML=h}
+function renderMarks(){const cur=curLine();let h='';const add=(l,c)=>{h+=`<div class="mk ${c}" style="top:${8+(l-1)*20}px"></div>`};ST.errLines.forEach((v,l)=>add(l,'err'));ST.bps.forEach(l=>add(l,'bp'));if(cur)add(cur,'cur');marks.innerHTML=h;marks.style.height=(lines().length*20+60)+'px'}
+function syncScroll(){const t=`translate(${-src.scrollLeft}px,${-src.scrollTop}px)`;hl.style.transform=t;marks.style.transform=`translate(0,${-src.scrollTop}px)`;gutIn.style.transform=`translateY(${-src.scrollTop}px)`}
+src.addEventListener('scroll',syncScroll);
+src.addEventListener('input',()=>{markDirty();renderEditor();syncScroll();saveLocal();updPos()});
+src.addEventListener('keydown',e=>{
+ if(e.key==='Tab'&&!e.ctrlKey&&!e.metaKey){e.preventDefault();const s=src.selectionStart,ln=src.value.lastIndexOf('\n',s-1)+1,col=s-ln;const n=8-(col%8);document.execCommand('insertText',false,' '.repeat(n));return}
+ if(e.key==='Enter'&&!e.shiftKey){const s=src.selectionStart,ln=src.value.lastIndexOf('\n',s-1)+1;const ind=(src.value.slice(ln,s).match(/^\s*/)||[''])[0];e.preventDefault();document.execCommand('insertText',false,'\n'+ind);return}
+ if((e.ctrlKey||e.metaKey)&&e.key==='/'){e.preventDefault();toggleComment()}});
+['keyup','click','select'].forEach(ev=>src.addEventListener(ev,updPos));
+function updPos(){const s=src.selectionStart,b=src.value.slice(0,s);const l=b.split('\n').length,c=s-b.lastIndexOf('\n');$('#pos').textContent=`Ln ${l}, Col ${c}`}
+function toggleComment(){const v=src.value;let a=src.selectionStart,b=src.selectionEnd;a=v.lastIndexOf('\n',a-1)+1;let e=v.indexOf('\n',b);if(e<0)e=v.length;const blk=v.slice(a,e).split('\n');const all=blk.every(l=>/^\s*;/.test(l)||!l.trim());const nb=blk.map(l=>all?l.replace(/^(\s*);\s?/,'$1'):(l.trim()?'; '+l:l)).join('\n');src.setSelectionRange(a,e);document.execCommand('insertText',false,nb);src.setSelectionRange(a,a+nb.length)}
+$('#gut').addEventListener('click',e=>{const g=e.target.closest('.gl');if(!g)return;const l=+g.dataset.l;if(ST.bps.has(l))ST.bps.delete(l);else ST.bps.add(l);renderGutter();renderMarks();renderListing();saveLocal()});
+function gotoLine(l){const ls=lines();l=Math.max(1,Math.min(l,ls.length));let p=0;for(let i=0;i<l-1;i++)p+=ls[i].length+1;src.focus();src.setSelectionRange(p,p+ls[l-1].length);const top=(l-1)*20;if(top<src.scrollTop+20||top>src.scrollTop+src.clientHeight-60)src.scrollTop=Math.max(0,top-src.clientHeight/3);syncScroll();updPos()}
+function revealLine(l){if(!l)return;const top=(l-1)*20;if(top<src.scrollTop+8||top>src.scrollTop+src.clientHeight-48){src.scrollTop=Math.max(0,top-src.clientHeight/3);syncScroll()}}
+function curLine(){return ST.cpu&&!ST.dirty&&['ready','paused','waiting','running'].includes(state())?ST.cpu.line:0}
+
+/* ---------------- program control ---------------- */
+function state(){if(!ST.cpu)return'none';if(ST.running&&ST.cpu.state!=='done'&&ST.cpu.state!=='error'&&ST.cpu.state!=='halted')return'running';return ST.cpu.state}
+function markDirty(){if(ST.dirty)return;ST.dirty=true;if(ST.running)pause();setStatus('<b>Edited.</b> The program will be assembled again when you run or step');refreshButtons();renderGutter();renderMarks()}
+function assemble(quiet){const r=A.assemble(src.value);ST.errLines=new Map();ST.warnLines=new Map();for(const e of r.errors)if(e.line&&!ST.errLines.has(e.line))ST.errLines.set(e.line,e.msg);for(const w of r.warnings)ST.warnLines.set(w.line,w.msg);ST.lastAsm=r;renderProblems();
+ if(!r.ok){ST.prog=null;ST.cpu=null;ST.dirty=true;renderEditor();setStatus(`<b>${r.errors.length} error${r.errors.length>1?'s':''}.</b> ${esc(r.errors[0].msg)}${r.errors[0].line?' (line '+r.errors[0].line+')':''}`,'err');showTab('prob');if(r.errors[0].line)gotoLine(r.errors[0].line);refreshButtons();renderAll();return false}
+ ST.prog=r;ST.cpu=new A.CPU(r);ST.cpu.inPorts=DEV.inPorts;ST.dirty=false;ST.prev=null;ST.memBase=null;renderEditor();
+ const size=r.exe?`${r.codeEnd} bytes of code, ${r.dataEnd} bytes of data`:`${r.codeEnd-0x100} bytes (COM program)`;
+ if(!quiet)setStatus(`<b>Assembled.</b> ${size}${r.warnings.length?'. '+r.warnings.length+' note'+(r.warnings.length>1?'s':'')+' in Problems':''}`,'ok');
+ if(ST.tab==='prob'&&!r.warnings.length)showTab('con');refreshButtons();renderAll();revealLine(ST.cpu.line);return true}
+function ensure(){if(ST.dirty||!ST.cpu)return assemble(true)?'new':false;return'old'}
+function run(){const e=ensure();if(!e)return;const c=ST.cpu;if(['done','error','halted'].includes(c.state)){c.reset();ST.prev=null}ST.running=true;ST.skipBp=true;ST.stopAt=null;ST.acc=0;ST.t0=performance.now();setStatus('<b>Running…</b> Press F5 or Esc to pause');refreshButtons();requestAnimationFrame(loop)}
+function pause(){ST.running=false;ST.stopAt=null;refreshButtons();if(ST.cpu&&ST.cpu.state!=='error'&&ST.cpu.state!=='done')setStatus(`<b>Paused</b> at line ${ST.cpu.line}`);renderAll();revealLine(ST.cpu&&ST.cpu.line)}
+function stepOnce(){if(ST.running)pause();const e=ensure();if(!e)return;if(e==='new'){setStatus('<b>Loaded.</b> The yellow line runs next. Press F8 again to run it');renderAll();revealLine(ST.cpu.line);return}const c=ST.cpu;if(['done','error','halted'].includes(c.state)){toast('The program has ended. Press Reset to start again, or Step back');return}
+ snapPrev();const r=c.step();after(r);renderAll();revealLine(c.line)}
+function stepOver(){if(ST.running)pause();const e=ensure();if(!e)return;if(e==='new'){stepOnce();return}const c=ST.cpu;const ins=c.cur();if(!ins){stepOnce();return}
+ const isCall=ins.m==='call'||(ins.m==='int'&&c.rw(((ins.ops[0]||{}).v||0)*4+2)===c.prog.seg.code&&c.rw(((ins.ops[0]||{}).v||0)*4));
+ if(!isCall){stepOnce();return}
+ ST.stopAt={ip:(ins.addr+ins.len)&0xFFFF,sp:c.r[4]};ST.running=true;ST.skipBp=true;ST.acc=0;snapPrev();setStatus('<b>Running</b> the call…');refreshButtons();requestAnimationFrame(loop)}
+function stepBack(){if(ST.running)pause();const c=ST.cpu;if(!c||ST.dirty){toast('Nothing to undo yet');return}snapPrev();if(!c.back()){toast('Already at the start of the program');return}setStatus(`<b>Stepped back</b> to line ${c.line}`);renderAll();revealLine(c.line)}
+function reset(){if(ST.running)ST.running=false;if(ST.dirty||!ST.cpu){if(!assemble(true))return}else{ST.cpu.reset();ST.cpu.inPorts=DEV.inPorts}ST.prev=null;setStatus('<b>Reset.</b> Press F5 to run or F8 to step');renderAll();refreshButtons();revealLine(ST.cpu.line)}
+function snapPrev(){const c=ST.cpu;ST.prev={r:c.r.slice(),s:c.s.slice(),ip:c.ip,f:c.flags}}
+function after(r){const c=ST.cpu;
+ if(r==='done'){ST.running=false;setStatus(`<b>${esc(c.msg)}.</b>`,'ok')}
+ else if(r==='halted'){ST.running=false;setStatus(`<b>${esc(c.msg)}.</b>`)}
+ else if(r==='error'){ST.running=false;setStatus(`<b>Stopped:</b> ${esc(c.msg)}`,'err');showTab('con')}
+ else if(r==='wait'){setStatus(`<b>Waiting for ${c.waitKind==='line'?'a line of text':'a key'}.</b> Click the console and type${c.waitKind==='line'?', then press Enter':''}`);showTab('con');$('#con').focus()}
+ else if(r==='bp'){ST.running=false;setStatus(`<b>Paused</b> at INT 3 (line ${c.line})`)}
+ refreshButtons()}
+function loop(t){if(!ST.running)return;const c=ST.cpu;const sp=+$('#speed').value;let n;const now=performance.now();
+ if(sp===0)n=Infinity;else{ST.acc+=Math.min(250,now-(ST.lt||now))*sp/1000;n=Math.floor(ST.acc);ST.acc-=n}ST.lt=now;
+ const t0=performance.now();let i=0,r='ok';
+ while(i<n){if(c.state==='waiting'&&!c.inQ.length){r='wait';break}
+  const ins=c.cur();
+  if(ST.stopAt&&c.ip===ST.stopAt.ip&&c.r[4]>=ST.stopAt.sp){ST.running=false;ST.stopAt=null;setStatus(`<b>Paused</b> at line ${c.line}`);break}
+  if(ins&&ST.bps.has(ins.line)&&!ST.skipBp){ST.running=false;ST.stopAt=null;setStatus(`<b>Breakpoint</b> at line ${ins.line}. Press F5 to continue or F8 to step`);break}
+  ST.skipBp=false;if(sp!==0||i%64===0)snapPrev();r=c.step();i++;
+  if(r!=='ok')break;if(sp===0&&(i&1023)===0&&performance.now()-t0>14)break}
+ if(r!=='ok')after(r);
+ if(!ST.running){refreshButtons();renderAll();revealLine(c.line);return}
+ if(r!=='wait'){if(sp!==0||now-ST.lastRender>60){renderAll(sp===0);ST.lastRender=now;if(sp!==0&&sp<=50)revealLine(c.line)}}else renderAll();
+ requestAnimationFrame(loop)}
+function refreshButtons(){const s=state();$('#bRun').innerHTML=(s==='running'?'Pause':'Run')+'<kbd>F5</kbd>';$('#bBack').disabled=!ST.cpu||ST.dirty||!ST.cpu.hist.length;const steps=ST.cpu&&!ST.dirty?ST.cpu.steps:0;$('#steps').textContent=ST.cpu&&!ST.dirty?`${steps.toLocaleString()} instruction${steps===1?'':'s'}`:''}
+function setStatus(h,k){const s=$('#status');s.innerHTML=h;s.className=k||''}
+
+/* ---------------- rendering ---------------- */
+function renderAll(light){renderRegs();renderFlags();renderStack();renderNext();renderConsole();if(!light||ST.tab!=='con'){if(ST.tab==='mem')renderMem();if(ST.tab==='vars')renderVars();if(ST.tab==='lst')renderListing();if(ST.tab==='dev')renderDevices()}renderGutter();renderMarks();refreshButtons()}
+const RN=['ax','bx','cx','dx'],RIDX={ax:0,cx:1,dx:2,bx:3,sp:4,bp:5,si:6,di:7},SIDX={es:0,cs:1,ss:2,ds:3};
+function renderRegs(){const c=ST.cpu,p=ST.prev;let h='';
+ const val=(k,i)=>c?(k==='s'?c.s[i]:c.r[i]):0,chg=(k,i,m)=>p&&c&&((k==='s'?p.s[i]:p.r[i])&m)!==((k==='s'?c.s[i]:c.r[i])&m);
+ for(const n of RN){const i=RIDX[n],v=val('r',i);h+=`<span class="n">${n.toUpperCase()}</span><span class="hl"><span class="v ${chg('r',i,0xFF00)?'chg':''}" data-r="${n[0]}h" title="${n[0].toUpperCase()}H = ${v>>8}">${H(v>>8,2)}</span><span class="v ${chg('r',i,0xFF)?'chg':''}" data-r="${n[0]}l" title="${n[0].toUpperCase()}L = ${v&255}">${H(v&255,2)}</span></span><span class="d" style="grid-column:span 2" title="Signed: ${(v<<16)>>16}">${v}</span>`}
+ for(const n of['si','di','bp','sp']){const i=RIDX[n],v=val('r',i);h+=`<span class="n">${n.toUpperCase()}</span><span class="v ${chg('r',i,0xFFFF)?'chg':''}" data-r="${n}" title="${v} (signed ${(v<<16)>>16})">${H(v,4)}</span><span class="d" style="grid-column:span 2">${v}</span>`}
+ const segs=['cs','ds','es','ss'];for(let k=0;k<4;k+=2){h+='<span class="n">'+segs[k].toUpperCase()+'</span>';const[a,b2]=segs.slice(k,k+2);const va=val('s',SIDX[a]),vb=val('s',SIDX[b2]);h+=`<span class="v ${chg('s',SIDX[a],0xFFFF)?'chg':''}" data-r="${a}">${H(va,4)}</span><span class="n" style="text-align:right">${b2.toUpperCase()}</span><span class="v ${chg('s',SIDX[b2],0xFFFF)?'chg':''}" data-r="${b2}">${H(vb,4)}</span>`}
+ const ip=c?c.ip:0;h+=`<span class="n">IP</span><span class="v ${p&&c&&p.ip!==c.ip?'chg':''}" data-r="ip">${H(ip,4)}</span><span class="d" style="grid-column:span 2;text-align:left">${c?`physical ${H(((c.s[1]<<4)+ip)&0xFFFFF,5)}`:''}</span>`;
+ $('#regs').innerHTML=h}
+const FL=[['OF',11,'Overflow'],['DF',10,'Direction'],['IF',9,'Interrupt enable'],['TF',8,'Trap'],['SF',7,'Sign'],['ZF',6,'Zero'],['AF',4,'Auxiliary carry'],['PF',2,'Parity'],['CF',0,'Carry']];
+function renderFlags(){const c=ST.cpu,p=ST.prev;const f=c?c.flags:0x0202;$('#flags').innerHTML=FL.map(([n,b,t])=>{const v=(f>>b)&1;const ch=p&&c&&((p.f>>b)&1)!==v;return`<button class="fl ${v?'on':''} ${ch?'chg':''}" data-b="${b}" title="${t} flag (${n}). Click to toggle">${n}<b>${v}</b></button>`}).join('');$('#flagsHex').textContent=c?'FLAGS = '+H(f,4)+'h':''}
+function renderStack(){const c=ST.cpu;if(!c){$('#stk').innerHTML='<div><i>Assemble to see the stack</i></div>';$('#stkInfo').textContent='';return}const sp=c.r[4],bp=c.r[5],ss=c.s[2];let h='';const top=c.prog.exe?c.prog.seg.stackSize&0xFFFF:0;
+ const depth=top?((top-sp)&0xFFFF)/2:((0x10000-sp)&0xFFFF)/2;
+ for(let i=0;i<10;i++){const off=(sp+i*2)&0xFFFF;if(top&&off>=top)break;if(!top&&i>0&&off===0)break;const v=c.rb(c.pa(ss,off))|(c.rb(c.pa(ss,off+1))<<8);const tags=[];if(i===0)tags.push('SP');if(off===bp)tags.push('BP');h+=`<div class="${i===0?'top':''}"><span>${H(off,4)}</span><span>${H(v,4)}</span><i>${tags.join(' ')||'&nbsp;'}</i></div>`}
+ if(!h)h='<div><i>The stack is empty</i></div>';$('#stk').innerHTML=h;$('#stkInfo').textContent=depth?`${depth} word${depth>1?'s':''} pushed`:'empty'}
+function insText(ins){const l=(lines()[ins.line-1]||'').replace(/;.*$/,'').trim();const m=l.match(/^[\w@.?$]+:\s*(.*)$/);return(m?m[1]:l)||ins.m}
+function renderNext(){const c=ST.cpu;const nx=$('#nx');if(!c||ST.dirty){nx.textContent='Press F8 to load the program';$('#nxLine').textContent='';return}
+ if(['done','error','halted'].includes(c.state)){nx.textContent=c.state==='done'?'Program ended':c.state==='halted'?'Halted':'Stopped with an error';$('#nxLine').textContent='';return}
+ const ins=c.cur();if(!ins){nx.textContent='—';return}nx.textContent=ins.psp?'INT 20h  (return to DOS)':insText(ins);nx.title=ins.bytes?ins.bytes.map(b=>H(b,2)).join(' '):'';$('#nxLine').textContent=ins.line?`line ${ins.line} · ${H(c.s[1],4)}:${H(ins.addr,4)}`:''}
+function renderConsole(){const c=ST.cpu,el=$('#con');if(!c){el.innerHTML='<span class="hintc">Program output appears here. When the program asks for input, click here and type.</span>';return}
+ let t=c.text;const ls=t.lastIndexOf('\n')+1;const line=t.slice(ls);const col=c.col;const before=t.slice(0,ls)+line.slice(0,col),cur=line.slice(col,col+1)||' ',aft=line.slice(col+1);
+ let pend='';if(c.state==='waiting'&&c.waitKind==='line'){const a=[];for(const k of c.inQ){if(k===8)a.pop();else if(k!==13)a.push(String.fromCharCode(k))}pend=a.join('')}
+ const atBottom=el.scrollTop+el.clientHeight>=el.scrollHeight-30;
+ el.innerHTML=esc(before)+(pend?`<span class="pend">${esc(pend)}</span>`:'')+(['done','error','halted'].includes(c.state)?esc(cur===' '?'':cur)+esc(aft):`<span class="cur">${esc(cur)}</span>${esc(aft)}`)+(c.state==='error'?`\n\n<span style="color:#ff8a80">${esc(c.msg)}</span>`:c.state==='done'?`\n\n<span class="hintc">${esc(c.msg)}.</span>`:'');
+ if(atBottom)el.scrollTop=el.scrollHeight}
+$('#con').addEventListener('keydown',e=>{const c=ST.cpu;if(e.ctrlKey||e.metaKey||e.altKey||/^F\d+$/.test(e.key))return;let k=null;if(e.key==='Enter')k=13;else if(e.key==='Backspace')k=8;else if(e.key==='Escape')return;else if(e.key==='Tab')k=9;else if(e.key.length===1)k=e.key.charCodeAt(0)&255;if(k==null)return;e.preventDefault();
+ if(!c||ST.dirty){toast('Run the program first, then type here');return}if(['done','error','halted'].includes(c.state)){toast('The program has ended');return}
+ c.key(k);if(c.state==='waiting'){if(ST.running){renderConsole();return}if(c.waitKind==='key'||k===13){const r=c.step();after(r);if(r==='ok'&&ST.wasRunning)run()}renderAll()}else renderConsole()});
+$('#con').addEventListener('paste',e=>{const c=ST.cpu;if(!c)return;e.preventDefault();const t=(e.clipboardData||window.clipboardData).getData('text');for(const ch of t.replace(/\r?\n/g,'\r'))c.key(ch.charCodeAt(0));renderConsole()});
+
+/* memory */
+function memSeg(){const c=ST.cpu;const k=$('#mSeg').value;if(k==='abs')return 0;if(!c)return 0;return c.s[SIDX[k]]}
+function renderMem(){const c=ST.cpu,el=$('#memv');if(!c){el.innerHTML='<div class="empty">Assemble the program to see memory.</div>';return}
+ const k=$('#mSeg').value;const seg=k==='abs'?(parseInt($('#mSegV').value,16)||0):memSeg();if(k!=='abs')$('#mSegV').value=H(seg,4);
+ if(ST.memBase==null){ST.memBase=k==='ds'&&c.prog.exe?0:k==='cs'?(c.prog.exe?0:0x100):k==='ss'?(c.r[4]&0xFFF0):0;$('#mOff').value=H(ST.memBase,4)}
+ const off0=ST.memBase&0xFFF0;const w=new Set();for(let i=0;i<c.lastWrites.length;i+=2)w.add(c.lastWrites[i]);
+ const ipA=c.pa(c.s[1],c.ip),ins=c.cur(),ipL=ins?ins.len:0,spA=c.pa(c.s[2],c.r[4]);
+ let h='<table class="g mem"><tr><th>Address</th>'+Array.from({length:16},(_,i)=>`<th style="text-align:center;padding:4px 3px">${H(i,1)}</th>`).join('')+'<th>Text</th></tr>';
+ for(let r=0;r<32;r++){const off=(off0+r*16)&0xFFFF;h+=`<tr><td class="a">${H(seg,4)}:${H(off,4)}</td>`;let ch='';
+  for(let i=0;i<16;i++){const a=c.pa(seg,off+i),v=c.mem[a];const cls=['b'];if(w.has(a))cls.push('w');else if(a>=ipA&&a<ipA+ipL)cls.push('ipb');else if(a===spA||a===spA+1)cls.push('spb');else if(!v)cls.push('z');h+=`<td class="${cls.join(' ')}" data-a="${a}" title="${H(seg,4)}:${H((off+i)&0xFFFF,4)} = ${v} (physical ${H(a,5)}h)">${H(v,2)}</td>`;ch+=v>=32&&v<127?String.fromCharCode(v):'·'}
+  h+=`<td class="ch">${esc(ch)}</td></tr>`}
+ el.innerHTML=h+'</table>'}
+$('#mSeg').onchange=()=>{ST.memBase=null;$('#mSegV').disabled=$('#mSeg').value!=='abs';renderMem()};$('#mSegV').disabled=true;
+$('#mGo').onclick=()=>{ST.memBase=parseInt($('#mOff').value,16)||0;renderMem()};$('#mOff').onkeydown=e=>{if(e.key==='Enter')$('#mGo').click()};$('#mSegV').onkeydown=e=>{if(e.key==='Enter')$('#mGo').click()};
+$('#mPrev').onclick=()=>{ST.memBase=((ST.memBase||0)-512)&0xFFFF;$('#mOff').value=H(ST.memBase,4);renderMem()};$('#mNext').onclick=()=>{ST.memBase=((ST.memBase||0)+512)&0xFFFF;$('#mOff').value=H(ST.memBase,4);renderMem()};
+$('#memv').addEventListener('click',e=>{const td=e.target.closest('td.b');if(!td||!ST.cpu||ST.running)return;const a=+td.dataset.a;inlineEdit(td,H(ST.cpu.mem[a],2),v=>{const n=parseInt(v,16);if(isNaN(n)||n<0||n>255){toast('Enter a hex byte from 00 to FF',true);return}ST.cpu.mem[a]=n;ST.cpu.hist=[];renderAll()})});
+/* variables */
+function fmtV(v,w,f){switch(f){case'dec':return String(v);case'sdec':return String(w===1?(v<<24)>>24:(v<<16)>>16);case'bin':return v.toString(2).padStart(w*8,'0');case'chr':return w===1?(v>=32&&v<127?`'${String.fromCharCode(v)}'`:H(v,2)+'h'):H(v,4)+'h';default:return H(v,w*2)+'h'}}
+function renderVars(){const c=ST.cpu,el=$('#varv');const syms=(ST.prog||ST.lastAsm||{symbols:[]}).symbols||[];const vars=syms.filter(s=>s.kind==='var'),consts=syms.filter(s=>s.kind==='const');
+ if(!c||!vars.length&&!consts.length){el.innerHTML='<div class="empty">'+(c?'This program defines no variables. Variables are made with DB or DW, for example <code>count dw 5</code>.':'Assemble the program to see its variables.')+'</div>';return}
+ const f=$('#vFmt').value;const w=new Set();for(let i=0;i<c.lastWrites.length;i+=2)w.add(c.lastWrites[i]);
+ let h='<table class="g"><tr><th>Name</th><th>Address</th><th>Type</th><th>Value</th></tr>';
+ for(const s of vars){const seg=s.sec==='code'?c.prog.seg.code:s.sec==='data'?c.prog.seg.data:c.prog.seg.stack;const n=Math.min(s.count,64);const vals=[];let ch=false;
+  for(let i=0;i<n;i++){const a=c.pa(seg,s.value+i*s.type);const v=s.type===1?c.mem[a]:c.mem[a]|(c.mem[(a+1)&0xFFFFF]<<8);if(w.has(a)||(s.type===2&&w.has((a+1)&0xFFFFF)))ch=true;vals.push(fmtV(v,s.type,f))}
+  let shown=s.count>1?`[${vals.join(', ')}${s.count>n?', …':''}]`:vals[0];
+  if(s.type===1&&s.count>1&&f!=='chr'){let t='';for(let i=0;i<n;i++){const v=c.mem[c.pa(seg,s.value+i)];if(v===36||v===0)break;t+=v>=32&&v<127?String.fromCharCode(v):'·'}if(t.length>=2)shown+=`   "${t}"`}
+  h+=`<tr class="${ch?'':''}"><td>${esc(s.name)}</td><td>${H(seg,4)}:${H(s.value,4)}</td><td>${s.type===1?'BYTE':'WORD'}${s.count>1?' × '+s.count:''}</td><td class="vv ${ch?'chg':''}" title="${esc(shown)}">${esc(shown)}</td></tr>`}
+ for(const s of consts)h+=`<tr><td>${esc(s.name)}</td><td style="color:var(--dim)">constant</td><td>EQU</td><td>${fmtV(s.value&0xFFFF,2,f==='chr'?'hex':f)}</td></tr>`;
+ el.innerHTML=h+'</table>'}
+$('#vFmt').onchange=renderVars;
+/* listing */
+function renderListing(){const el=$('#lstv');const r=ST.prog||ST.lastAsm;if(!r){el.innerHTML='<div class="empty">Assemble the program to see the machine code of every line.</div>';return}
+ const cur=curLine();const ls=lines();let h='<table class="g"><tr><th>Line</th><th>Address</th><th>Machine code</th><th>Source</th></tr>';
+ for(const rec of r.listing){if(!rec.bytes.length&&!(ls[rec.line-1]||'').trim())continue;const bytes=rec.bytes.slice(0,8).map(b=>H(b,2)).join(' ')+(rec.bytes.length>8?' …':'');const seg=rec.sec==='code'?'CS':rec.sec==='data'?'DS':'SS';
+  h+=`<tr class="${rec.line===cur?'cur':''} ${ST.bps.has(rec.line)?'bp':''}" data-l="${rec.line}"><td>${rec.line}</td><td>${rec.bytes.length||rec.ins?seg+':'+H(rec.addr,4):''}</td><td>${bytes}</td><td>${hlLine(ls[rec.line-1]||'')}</td></tr>`}
+ h+='</table>';const syms=r.symbols||[];if(syms.length){h+='<table class="g" style="margin-top:10px"><tr><th>Symbol</th><th>Kind</th><th>Segment</th><th>Value</th><th>Line</th></tr>';for(const s of syms)h+=`<tr data-l="${s.line||0}"><td>${esc(s.name)}</td><td>${s.kind==='var'?(s.type===1?'byte variable':'word variable'):s.kind==='const'?'constant':s.kind==='seg'?'segment':'label'}</td><td>${s.kind==='const'?'':s.sec}</td><td>${H(s.value&0xFFFF,4)}h</td><td>${s.line||''}</td></tr>`;h+='</table>'}
+ el.innerHTML=h}
+$('#lstv').addEventListener('click',e=>{const tr=e.target.closest('tr[data-l]');if(tr&&+tr.dataset.l)gotoLine(+tr.dataset.l)});
+/* problems */
+function renderProblems(){const r=ST.lastAsm;const el=$('#probv');const errs=r?r.errors:[],warns=r?r.warnings:[];
+ $('[data-p=prob]').innerHTML='Problems'+(errs.length?`<i>${errs.length}</i>`:'');
+ if(!errs.length&&!warns.length){el.innerHTML='<div class="empty">No problems.</div>';return}
+ el.innerHTML=errs.map(e=>`<div class="prob" data-l="${e.line}"><b>${e.line?'Line '+e.line:'Program'}</b><span>${esc(e.msg)}</span></div>`).join('')+warns.map(e=>`<div class="prob w" data-l="${e.line}"><b>Line ${e.line}</b><span>Note: ${esc(e.msg)}</span></div>`).join('')}
+$('#probv').addEventListener('click',e=>{const d=e.target.closest('.prob');if(d&&+d.dataset.l)gotoLine(+d.dataset.l)});
+/* devices */
+const DEV={inPorts:{0x30:0,0x31:0}};
+const SEG7=[0x3F,0x06,0x5B,0x4F,0x66,0x6D,0x7D,0x07,0x7F,0x6F,0x77,0x7C,0x39,0x5E,0x79,0x71];
+function seg7svg(bits,w){const on='#ff3b30',off='#3a1414';const s=(b,d)=>`<path d="${d}" fill="${bits>>b&1?on:off}"/>`;return`<svg width="${w||46}" viewBox="0 0 46 76" style="background:#1a0b0b;border-radius:5px">${s(0,'M10 6h24l-4 5H14z')}${s(1,'M35 8l4 4v24l-4 3-3-3V13z')}${s(2,'M35 40l4 3v24l-4 4-3-5V43z')}${s(3,'M10 71h24l-4-5H14z')}${s(4,'M8 40l3 3v23l-3 4-4-4V43z')}${s(5,'M8 8l3 5v23l-3 3-4-3V12z')}${s(6,'M11 38l3-3h18l3 3-3 3H14z')}<circle cx="41" cy="70" r="2.5" fill="${bits>>7&1?on:off}"/></svg>`}
+function renderDevices(){const c=ST.cpu;const p=c?c.ports:{};const leds=p[0x10]||0,raw=p[0x11]||0,hx=p[0x12];const sw=DEV.inPorts[0x30];
+ let h=`<div class="dev"><h4>LEDs<span>OUT 10h</span></h4><div class="leds">${[7,6,5,4,3,2,1,0].map(b=>`<div class="led"><b class="${leds>>b&1?'on':''}"></b>${b}</div>`).join('')}</div></div>`;
+ h+=`<div class="dev"><h4>7-segment<span>OUT 11h · bits gfedcba</span></h4>${seg7svg(raw)}</div>`;
+ h+=`<div class="dev"><h4>Hex display<span>OUT 12h</span></h4><div style="display:flex;gap:4px">${hx==null?seg7svg(0)+seg7svg(0):seg7svg(SEG7[(hx>>4)&15])+seg7svg(SEG7[hx&15])}</div></div>`;
+ h+=`<div class="dev"><h4>Switches<span>IN 30h</span></h4><div class="sw">${[7,6,5,4,3,2,1,0].map(b=>`<button data-sw="${b}" class="${sw>>b&1?'on':''}" title="Bit ${b}">${b}</button>`).join('')}</div><div style="font:11px var(--mono);color:var(--dim);margin-top:6px">value = ${H(sw,2)}h</div></div>`;
+ h+=`<div class="dev"><h4>Push button<span>IN 31h · bit 0</span></h4><button class="pb" id="pbtn" aria-label="Push button" title="Hold to press"></button></div>`;
+ const ent=Object.entries(p).sort((a,b)=>a[0]-b[0]);
+ h+=`<div class="dev"><h4>Ports written<span>OUT</span></h4><div class="portlist">${ent.length?ent.map(([k,v])=>`<div>${H(+k,2)}h = ${H(v,v>255?4:2)}h  (${v})</div>`).join(''):'<span style="color:var(--dim)">none yet</span>'}</div></div>`;
+ $('#devs').innerHTML=h;const pb=$('#pbtn');const set=v=>{DEV.inPorts[0x31]=v;pb.classList.toggle('on',!!v)};pb.onpointerdown=()=>set(1);pb.onpointerup=pb.onpointerleave=()=>set(0)}
+$('#devs').addEventListener('click',e=>{const b=e.target.closest('[data-sw]');if(!b)return;DEV.inPorts[0x30]^=1<<+b.dataset.sw;renderDevices()});
+
+/* register and flag editing */
+function inlineEdit(el,val,done){const inp=document.createElement('input');inp.className='edit';inp.value=val;const old=el.innerHTML;el.innerHTML='';el.appendChild(inp);inp.focus();inp.select();let fin=false;const end=ok=>{if(fin)return;fin=true;if(ok)done(inp.value.trim().replace(/h$/i,''));else el.innerHTML=old;if(!ok)return};inp.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();end(true)}if(e.key==='Escape')end(false);e.stopPropagation()};inp.onblur=()=>end(false)}
+$('#regs').addEventListener('click',e=>{const v=e.target.closest('.v');if(!v||v.querySelector('input'))return;if(!ST.cpu||ST.dirty){toast('Assemble the program first (F9)');return}if(ST.running){toast('Pause the program to change registers');return}const c=ST.cpu;const n=v.dataset.r;
+ const get=()=>n==='ip'?c.ip:n in RIDX?c.r[RIDX[n]]:n in SIDX?c.s[SIDX[n]]:n[1]==='h'?c.r[RIDX[n[0]+'x']]>>8:c.r[RIDX[n[0]+'x']]&255;const w=/[hl]$/.test(n)&&n.length===2&&!['bh','bl','ch','cl','dh','dl','ah','al'].includes('x')?(['ah','al','bh','bl','ch','cl','dh','dl'].includes(n)?1:2):2;
+ inlineEdit(v,H(get(),w*2),s=>{const x=parseInt(s,16);if(isNaN(x)||x<0||x>(w===1?255:65535)){toast(`Enter a hex value from 0 to ${w===1?'FF':'FFFF'}`,true);renderRegs();return}
+  if(n==='ip')c.ip=x;else if(n in RIDX)c.r[RIDX[n]]=x;else if(n in SIDX)c.s[SIDX[n]]=x;else{const i=RIDX[n[0]+'x'];c.r[i]=n[1]==='h'?(c.r[i]&255)|(x<<8):(c.r[i]&0xFF00)|x}c.hist=[];ST.prev=null;renderAll()})});
+$('#flags').addEventListener('click',e=>{const b=e.target.closest('.fl');if(!b)return;if(!ST.cpu||ST.dirty){toast('Assemble the program first (F9)');return}if(ST.running)return;ST.cpu.flags^=1<<+b.dataset.b;ST.cpu.hist=[];ST.prev=null;renderAll()});
+
+/* tabs and split */
+function showTab(p){ST.tab=p;$$('.tab').forEach(t=>t.classList.toggle('on',t.dataset.p===p));$$('.pane').forEach(x=>x.hidden=x.id!=='p-'+p);renderAll()}
+$('#tabs').addEventListener('click',e=>{const t=e.target.closest('.tab');if(t)showTab(t.dataset.p)});
+(()=>{const sp=$('#split');let y0,h0;sp.onpointerdown=e=>{y0=e.clientY;h0=$('#bot').getBoundingClientRect().height;sp.setPointerCapture(e.pointerId);sp.onpointermove=ev=>{const h=Math.max(120,Math.min(window.innerHeight-220,h0-(ev.clientY-y0)));$('#left').style.setProperty('--bh',h+'px')}};sp.onpointerup=()=>{sp.onpointermove=null}})();
+
+/* files */
+function toast(m,warn){$$('.toast').forEach(x=>x.remove());const t=document.createElement('div');t.className='toast'+(warn?' warn':'');t.textContent=m;document.body.appendChild(t);setTimeout(()=>t.remove(),warn?5500:2800)}
+function setName(n){ST.name=n||'program';$('#docname').textContent=ST.name;document.title=ST.name+' · CEsim 8086'}
+function loadText(text,name,path){if(ST.running)pause();src.value=text.replace(/\r\n/g,'\n');setName(name);ST.filePath=path||null;ST.bps.clear();ST.errLines=new Map();ST.lastAsm=null;ST.cpu=null;ST.prog=null;ST.dirty=true;renderProblems();renderEditor();src.scrollTop=0;syncScroll();renderAll();setStatus('<b>Ready.</b> Press F5 to run or F8 to step');saveLocal()}
+window.cesimOpenText=(name,text,path)=>{loadText(text,name.replace(/\.[^.]+$/,''),path);toast('Opened '+name)};
+$('#fileIn').addEventListener('change',async e=>{const f=e.target.files[0];if(f)window.cesimOpenText(f.name,await f.text(),N&&N.pathFor?N.pathFor(f):null);e.target.value=''});
+async function saveFile(asNew){const nm=ST.name.replace(/[^\w.-]+/g,'_')+'.asm';const text=src.value;
+ if(N&&N.write&&ST.filePath&&!asNew){await N.write(ST.filePath,text);toast('Saved '+ST.filePath.split(/[\\/]/).pop());return}
+ if(N&&N.save){const r=await N.save(nm,text);if(r){ST.filePath=r;setName(r.split(/[\\/]/).pop().replace(/\.[^.]+$/,''));toast('Saved '+r.split(/[\\/]/).pop())}return}download(nm,new Blob([text],{type:'text/plain'}))}
+function download(name,blob){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove()}
+function exportCom(){if(ST.dirty||!ST.prog){if(!assemble(true))return}const p=ST.prog;if(p.exe){toast('Only single-segment programs (ORG 100h, no .DATA or .CODE) can be saved as .COM',true);return}
+ const bytes=new Uint8Array(Math.max(0,p.codeEnd-0x100));for(const r of p.listing)if(r.sec==='code')for(let i=0;i<r.bytes.length;i++){const a=r.addr+i-0x100;if(a>=0&&a<bytes.length)bytes[a]=r.bytes[i]}
+ const nm=ST.name.replace(/[^\w.-]+/g,'_').slice(0,8)+'.com';if(N&&N.saveBinary){let b='';bytes.forEach(x=>b+=String.fromCharCode(x));N.saveBinary(nm,btoa(b))}else download(nm,new Blob([bytes],{type:'application/octet-stream'}));toast(`${bytes.length} bytes. The file runs in any DOS emulator`)}
+function menu(btn,items){closeMenu();const m=document.createElement('div');m.className='menu';m.id='menu';for(const it of items){if(it==='-'){m.appendChild(document.createElement('hr'));continue}if(it.title){const d=document.createElement('div');d.className='mt';d.textContent=it.title;m.appendChild(d);continue}const b=document.createElement('button');b.innerHTML=`${esc(it[0])}${it[2]?`<span>${it[2]}</span>`:''}`;b.onclick=()=>{closeMenu();it[1]()};m.appendChild(b)}document.body.appendChild(m);const r=btn.getBoundingClientRect();m.style.left=r.left+'px';m.style.top=(r.bottom+4)+'px';setTimeout(()=>document.addEventListener('pointerdown',outside,true),0)}
+function outside(e){if(!e.target.closest('#menu'))closeMenu()}
+function closeMenu(){const m=$('#menu');if(m)m.remove();document.removeEventListener('pointerdown',outside,true)}
+const NEW_TPL=`; New program\n.model small\n.stack 100h\n.data\n\n.code\nmain proc\n        mov  ax, @data\n        mov  ds, ax\n\n        ; your code here\n\n        mov  ax, 4C00h        ; end the program\n        int  21h\nmain endp\nend main\n`;
+$('#bFile').onclick=e=>menu(e.currentTarget,[['New',()=>loadText(NEW_TPL,'program'),''],['Open…',()=>$('#fileIn').click(),'Ctrl+O'],'-',['Save',()=>saveFile(false),'Ctrl+S'],['Save as…',()=>saveFile(true),'Ctrl+Shift+S'],'-',['Save as .COM program',exportCom,''],['Copy console output',()=>{const t=ST.cpu?ST.cpu.text:'';navigator.clipboard&&navigator.clipboard.writeText(t).then(()=>toast('Copied'))},'']]);
+$('#bEx').onclick=e=>menu(e.currentTarget,Object.keys(window.ASM_EXAMPLES).map(k=>[k,()=>{loadText(window.ASM_EXAMPLES[k],k.toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,''));toast('Loaded: '+k)}]));
+$('#docname').onclick=()=>{const el=$('#docname');inlineEdit(el,ST.name,v=>{setName(v||ST.name);saveLocal()})};
+$('#bAsm').onclick=()=>{if(ST.running)pause();assemble()};
+$('#bRun').onclick=()=>{if(state()==='running')pause();else run()};
+$('#bStep').onclick=stepOnce;$('#bOver').onclick=stepOver;$('#bBack').onclick=stepBack;$('#bReset').onclick=reset;
+$('#bRef').onclick=showRef;
+document.addEventListener('keydown',e=>{const k=e.key;
+ if(k==='F5'){e.preventDefault();$('#bRun').click()}else if(k==='F8'&&e.shiftKey||k==='F7'){e.preventDefault();stepBack()}else if(k==='F8'){e.preventDefault();stepOnce()}else if(k==='F10'){e.preventDefault();stepOver()}else if(k==='F9'){e.preventDefault();$('#bAsm').click()}
+ else if(k==='Escape'){closeMenu();const o=$('.ov');if(o)o.remove();else if(ST.running)pause()}
+ else if((e.ctrlKey||e.metaKey)&&k.toLowerCase()==='s'){e.preventDefault();saveFile(e.shiftKey)}else if((e.ctrlKey||e.metaKey)&&k.toLowerCase()==='o'){e.preventDefault();$('#fileIn').click()}else if((e.ctrlKey||e.metaKey)&&k.toLowerCase()==='r'){e.preventDefault();reset()}});
+document.addEventListener('dragover',e=>e.preventDefault());document.addEventListener('drop',async e=>{e.preventDefault();const f=e.dataTransfer.files[0];if(f)window.cesimOpenText(f.name,await f.text(),N&&N.pathFor?N.pathFor(f):null)});
+function showRef(){const o=document.createElement('div');o.className='ov';o.innerHTML=`<div class="mdl" role="dialog" aria-label="Reference"><div class="mh2"><b>8086 reference</b><button class="btn" id="refX">Close</button></div><div class="mb">
+<h4>Program layouts</h4><table><tr><td>org 100h</td><td>One segment (COM). Code starts at 100h. Put data after the code or jump over it.</td></tr><tr><td>.model small</td><td>Separate segments: <code>.stack</code>, <code>.data</code>, <code>.code</code>. Start with <code>mov ax, @data</code> and <code>mov ds, ax</code>. <code>.startup</code> and <code>.exit</code> also work, and so do <code>SEGMENT</code> / <code>ENDS</code>.</td></tr></table>
+<h4>Data and directives</h4><table><tr><td>x db 5</td><td>Byte. <code>dw</code> word, <code>dd</code> double word. <code>?</code> leaves it empty.</td></tr><tr><td>s db 'Hi$'</td><td>A string. INT 21h function 09h prints up to <code>$</code>.</td></tr><tr><td>a dw 10 dup(0)</td><td>Ten words set to 0.</td></tr><tr><td>n equ 10</td><td>A constant. <code>$</code> is the current address, so <code>len equ $ - s</code> is the length of s.</td></tr><tr><td>offset x, type x</td><td>Address of x, size of one item. Also <code>length</code>, <code>size</code>, <code>seg</code>.</td></tr><tr><td>byte ptr [bx]</td><td>Says the size when it is not clear, for example <code>mov byte ptr [bx], 0</code>.</td></tr><tr><td>name proc / endp</td><td>A procedure. <code>end main</code> sets where the program starts.</td></tr></table>
+<h4>Addressing</h4><p><code>[bx]</code> <code>[si]</code> <code>[di]</code> <code>[bp]</code> <code>[bx+si+4]</code> <code>arr[si]</code> <code>[1234h]</code> <code>es:[di]</code>. Only BX, BP, SI and DI can appear inside brackets. BP uses the stack segment.</p>
+<h4>Instructions</h4><p>MOV XCHG LEA LDS LES PUSH POP PUSHF POPF · ADD ADC SUB SBB INC DEC NEG CMP MUL IMUL DIV IDIV CBW CWD · AND OR XOR NOT TEST · SHL SAL SHR SAR ROL ROR RCL RCR · JMP CALL RET IRET, all conditional jumps, LOOP LOOPE LOOPNE JCXZ · MOVSB/W CMPSB/W SCASB/W LODSB/W STOSB/W with REP, REPE, REPNE · IN OUT INT · CLC STC CMC CLD STD CLI STI LAHF SAHF XLAT NOP HLT · AAA AAS DAA DAS AAM AAD</p>
+<h4>Interrupts</h4><table><tr><td>INT 21h AH=01h</td><td>Read a key with echo into AL. 07h/08h without echo.</td></tr><tr><td>AH=02h</td><td>Print the character in DL.</td></tr><tr><td>AH=09h</td><td>Print the string at DS:DX up to <code>$</code>.</td></tr><tr><td>AH=0Ah</td><td>Read a line into the buffer at DS:DX: [max][count][text…].</td></tr><tr><td>AH=4Ch</td><td>End the program, exit code in AL.</td></tr><tr><td>AH=2Ah / 2Ch</td><td>Date / time. Also 06h, 0Bh, 0Ch, 25h, 30h, 35h.</td></tr><tr><td>INT 10h AH=0Eh</td><td>Print AL. AH=00h clears the screen.</td></tr><tr><td>INT 16h AH=00h</td><td>Wait for a key: AL = character. AH=01h checks without waiting (ZF=1 if none).</td></tr><tr><td>INT 20h</td><td>End the program. In a COM program, RET at the top level does the same.</td></tr><tr><td>INT 3</td><td>Pause here, like a breakpoint.</td></tr></table>
+<h4>Ports and devices</h4><table><tr><td>OUT 10h, AL</td><td>8 LEDs, bit 0 on the right.</td></tr><tr><td>OUT 11h, AL</td><td>7-segment digit, one bit per segment: bit 0 = a … bit 6 = g, bit 7 = dot.</td></tr><tr><td>OUT 12h, AL</td><td>Two-digit hex display.</td></tr><tr><td>IN AL, 30h</td><td>8 switches.</td></tr><tr><td>IN AL, 31h</td><td>Push button in bit 0.</td></tr></table>
+<h4>Keys</h4><p>F9 assemble · F5 run or pause · F8 step · F10 step over a CALL · F7 step back · Ctrl+R reset · click a line number to set a breakpoint · Ctrl+/ comments lines</p></div></div>`;document.body.appendChild(o);o.onclick=e=>{if(e.target===o||e.target.id==='refX')o.remove()}}
+
+/* autosave and start */
+let svT=null;function saveLocal(){clearTimeout(svT);svT=setTimeout(()=>{try{localStorage.setItem('cesim.asm.doc',JSON.stringify({name:ST.name,src:src.value,bps:[...ST.bps]}))}catch(e){}},300)}
+function start(){let d=null;if(!/blank/.test(location.search)){try{d=JSON.parse(localStorage.getItem('cesim.asm.doc')||'null')}catch(e){}}
+ if(d&&typeof d.src==='string'){src.value=d.src;setName(d.name);(d.bps||[]).forEach(b=>ST.bps.add(b))}else{const k=Object.keys(window.ASM_EXAMPLES)[0];src.value=window.ASM_EXAMPLES[k];setName('hello')}
+ renderEditor();renderProblems();renderAll();updPos()}
+window.CEA={ST,assemble,run,pause,stepOnce,stepOver,stepBack,reset,loadText,showTab,renderAll,get cpu(){return ST.cpu},src};
+start();
+</script>
+</body></html>
