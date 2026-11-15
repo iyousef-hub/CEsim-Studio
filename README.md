@@ -61,6 +61,17 @@ VEE  0    vee  DC 15
 .end
 ```
 
+Meters and potentiometers are written as `AM1 plus minus DC`, `VM1 plus minus DC` and `POT1 end1 end2 wiper 1k 50% key=A`. Any other part can be written as `PART type name nodes… property=value`.
+
+**Exact drawings.** Add `@ x y` (and `rot=90`, `flip`, `label=Name`) after a part to place it, `GND @ x y` for ground symbols, `NET name @ x y` for net labels, and `W x1,y1 x2,y2 …` for each wire through its corners. With positions, the circuit is drawn exactly as written, and the editor checks that the wires join the same nodes as the names. **From current design** with **With layout** writes any circuit this way, so it comes back identical. The **BJT common base, exact layout** example shows the format.
+
+```
+AM1 e w1 DC @ 470 190 rot=180 label=Ie
+Q1  c 0 e BC547B @ 600 200 rot=270 flip
+GND @ 600 500
+W 500,190 570,190
+```
+
 ## Logic and Boolean tools
 
 - In **Logic**, click a part on the left and click on the sheet to place it, drag from a pin to draw a wire, and click an input pin to switch it. Run clock drives every clock, and the timing diagram records the signals.
