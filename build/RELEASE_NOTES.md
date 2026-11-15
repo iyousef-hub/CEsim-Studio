@@ -44,4 +44,4 @@ CEsim Studio 1.3.0 adds two tools for programming: an 8086 assembler and emulato
 - **Windows:** if SmartScreen appears, choose More info, then Run anyway. The installer does not need administrator rights.
 - **Linux:** make the AppImage executable with `chmod +x CEsim-Studio-1.3.0-Linux-x86_64.AppImage` and run it, or install the package with `sudo apt install ./CEsim-Studio-1.3.0-Linux-amd64.deb`.
 
-BY. YOUSEF
+BY. YOUSEF A.ALGHAMDI

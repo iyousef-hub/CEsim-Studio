@@ -1,6 +1,6 @@
 [Desktop Entry]
 Name=CEsim Studio
-Comment=Circuit simulator, diagrams and 3D. BY. YOUSEF
+Comment=Circuit simulator, diagrams and 3D. BY. YOUSEF A.ALGHAMDI
 Exec=/opt/cesim-studio/cesim-studio %F
 Icon=cesim-studio
 Terminal=false

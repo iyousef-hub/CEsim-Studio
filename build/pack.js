@@ -17,9 +17,9 @@ const docTypes = [
   { CFBundleTypeName: '3D model', CFBundleTypeExtensions: ['stl', 'obj', '3mf'], CFBundleTypeRole: 'Editor', LSHandlerRank: 'Alternate' }];
 (async () => {
   const opts = { dir: path.join(root, 'app'), name: 'CEsim Studio', platform, arch, electronVersion: '33.2.1', out: path.join(root, 'out'), overwrite: true,
-    appVersion: VERSION, buildVersion: VERSION, appCopyright: 'BY. YOUSEF' };
+    appVersion: VERSION, buildVersion: VERSION, appCopyright: 'BY. YOUSEF A.ALGHAMDI' };
   if (platform === 'darwin') Object.assign(opts, { executableName: 'CEsim Studio', icon: path.join(root, 'assets/icon.icns'), appBundleId: 'com.yousef.cesim', appCategoryType: 'public.app-category.education', extendInfo: { CFBundleDocumentTypes: docTypes } });
-  if (platform === 'win32') Object.assign(opts, { executableName: 'CEsim Studio', icon: path.join(root, 'assets/icon.ico'), win32metadata: { CompanyName: 'Yousef', FileDescription: 'CEsim Studio', ProductName: 'CEsim Studio' } });
+  if (platform === 'win32') Object.assign(opts, { executableName: 'CEsim Studio', icon: path.join(root, 'assets/icon.ico'), win32metadata: { CompanyName: 'YOUSEF A.ALGHAMDI', FileDescription: 'CEsim Studio', ProductName: 'CEsim Studio' } });
   if (platform === 'linux') Object.assign(opts, { executableName: 'cesim-studio', icon: path.join(root, 'assets/icon.png') });
   console.log(await packager(opts));
 })().catch(e => { console.error(e); process.exit(1); });

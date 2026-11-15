@@ -1,7 +1,7 @@
 # CEsim Studio
 
 **Circuits, digital logic, 8086 assembly, Arduino, diagrams and 3D in one desktop app.**
-BY. YOUSEF
+BY. YOUSEF A.ALGHAMDI
 
 CEsim Studio is a launcher that opens several tools, each in its own window:
 
@@ -128,4 +128,4 @@ Electron, three.js, three-bvh-csg and three-mesh-bvh (MIT), canvas2svg (MIT, see
 **CEsim Studio** برنامج سطح مكتب فيه محاكي دوائر، ومحاكي دوائر رقمية وأدوات الجبر البولياني، ومحاكي 8086 بلغة التجميع، ومحاكي Arduino بقطع افتراضية، وأداة رسم مخططات، وتصميم ثلاثي الأبعاد بقياسات حقيقية، وأداة تحول صورة الدائرة إلى دائرة قابلة للمحاكاة عن طريق ذكاء اصطناعي يشتغل على جهازك (Ollama).
 النسخ متوفرة للماك (Apple Silicon) والويندوز واللينكس من صفحة **Releases**.
 
-BY. YOUSEF
+BY. YOUSEF A.ALGHAMDI
