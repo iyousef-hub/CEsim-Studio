@@ -76,7 +76,7 @@ h2{font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--dim)
 <body>
 <div id="app">
  <nav id="rail" aria-label="Categories">
-  <div class="brand"><div class="lg">CE</div><div><b>CEsim Studio</b><span>Version 1.0.0</span></div></div>
+  <div class="brand"><div class="lg">CE</div><div><b>CEsim Studio</b><span>Version 1.1.0</span></div></div>
   <div id="navs"></div>
   <div class="railfoot">Opens .cesim · .cir · .cediag · .drawio · .mmd · .ce3d · .stl · .obj · .3mf<br><b>BY. YOUSEF</b><button class="btn" id="themeBtn" aria-haspopup="dialog"><i></i>Theme and colors</button></div>
  </nav>
@@ -90,17 +90,18 @@ h2{font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--dim)
 <div id="drop">Drop a file to open it in the right tool</div>
 <div id="splash" role="dialog" aria-label="CEsim Studio"><div class="sp-box"><canvas id="sp-cv"></canvas><div class="sp-in">
  <div class="sp-row"><div class="sp-logo">CE</div><div><div class="sp-name">CE<span>sim</span><small>Studio</small></div><div class="sp-sub">Circuit Design &amp; Simulation Suite</div></div></div>
- <div class="sp-ver">Version 1.0.0</div><div class="sp-bar"><i id="sp-bar"></i></div><div class="sp-foot"><span id="sp-msg">Loading tools…</span><span class="sp-by">BY. YOUSEF</span></div>
+ <div class="sp-ver">Version 1.1.0</div><div class="sp-bar"><i id="sp-bar"></i></div><div class="sp-foot"><span id="sp-msg">Loading tools…</span><span class="sp-by">BY. YOUSEF</span></div>
 </div></div></div>
 <script>
 const $=s=>document.querySelector(s);
-const IC={imgcircuit:'<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="10" r="1.6"/><path d="M3 16l5-4 4 3 3-2 6 4"/>',
+const IC={codecircuit:'<path d="M8 7l-5 5 5 5M16 7l5 5-5 5M13.5 5l-3 14"/>',imgcircuit:'<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="10" r="1.6"/><path d="M3 16l5-4 4 3 3-2 6 4"/>',
  circuit:'<path d="M2 12h3l2-5 3 10 3-10 3 10 2-5h4"/>',breadboard:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 9h.01M10 9h.01M13 9h.01M16 9h.01M7 15h.01M10 15h.01M13 15h.01M16 15h.01M3 12h18"/>',pcb:'<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 7h4v4M17 17h-4v-4M7 17l3-3M17 7l-3 3"/><circle cx="7" cy="7" r="1"/><circle cx="17" cy="17" r="1"/>',
  logic:'<path d="M4 6h6a6 6 0 0 1 0 12H4z"/><path d="M1 9h3M1 15h3M16 12h4"/>',arch:'<rect x="6" y="6" width="12" height="12" rx="1"/><rect x="9" y="9" width="6" height="6"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/>',bool:'<rect x="3" y="4" width="18" height="16" rx="1"/><path d="M3 10h18M3 15h18M9 4v16M15 4v16"/>',
  asm:'<path d="M4 6l4 6-4 6M11 18h9"/>',arduino:'<circle cx="8" cy="12" r="4"/><circle cx="16" cy="12" r="4"/><path d="M6.5 12h3M14.5 12h3M16 10.5v3"/>',hdl:'<path d="M8 7l-5 5 5 5M16 7l5 5-5 5M13 5l-2 14"/>',
  diagram:'<rect x="3" y="3" width="7" height="6" rx="1"/><rect x="14" y="15" width="7" height="6" rx="1"/><path d="M6.5 9v5h11v1"/><circle cx="17.5" cy="6" r="3"/>',d3:'<path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5"/>',vlsi:'<rect x="3" y="3" width="18" height="18"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/>'};
 const TOOLS=[
  {id:'circuit',cat:'Circuits',name:'Circuit',desc:'Schematic capture and live simulation with instruments.',fmt:'.cesim · .cir',ready:1},
+ {id:'codecircuit',cat:'Circuits',name:'Circuit code',desc:'Write a circuit as text, or let any AI chat write it for you from a photo, then build it in one click.',fmt:'.cir · text',ready:1,isNew:1},
  {id:'imgcircuit',cat:'Circuits',name:'Circuit from image',desc:'Turn a photo or screenshot of a schematic into an editable circuit, with AI that runs on your Mac.',fmt:'.png · .jpg · paste',ready:1,isNew:1},
  {id:'breadboard',cat:'Circuits',name:'Breadboard',desc:'Real-looking boards, sensors and wires.',fmt:'.fzz · .fzpz · .fzb'},
  {id:'pcb',cat:'Hardware and PCB',name:'PCB',desc:'Board layout, footprints and Gerber output.',fmt:'.kicad_pcb · Gerber'},
@@ -124,7 +125,7 @@ function render(){const q=$('#q').value.trim().toLowerCase();const groups=cat===
  for(const g of groups){const ts=TOOLS.filter(t=>t.cat===g&&(!q||(t.name+' '+t.desc+' '+t.fmt).toLowerCase().includes(q)));if(!ts.length)continue;h+=`<h2>${g}</h2><div class="grid">${ts.map(t=>`<button class="tile ${t.ready?'':'soon'}" data-t="${t.id}" ${t.ready?'':'aria-disabled="true"'}>${t.ready?(t.isNew?'<span class="badge new">New</span>':''):'<span class="badge">Coming soon</span>'}<span class="ic">${svg(t.id)}</span><b>${t.name}</b><p>${t.desc}</p>${t.fmt?`<span class="fmt">${t.fmt}</span>`:''}</button>`).join('')}</div>`}
  $('#sections').innerHTML=h||'<p class="empty">No tools match your search.</p>';renderRecent(q)}
 $('#sections').onclick=e=>{const b=e.target.closest('[data-t]');if(!b)return;const t=TOOLS.find(x=>x.id===b.dataset.t);if(!t.ready){toast(t.name+' is coming in a later update.');return}openTool(t.id)};
-function openTool(id){const map={circuit:'circuit',diagram:'diagram',d3:'3d',imgcircuit:'imgcircuit'};if(N&&N.openTool)N.openTool(map[id]);else window.open(id==='imgcircuit'?'circuit.html?nosplash=1&fromimage=1':map[id]+'.html'+(map[id]==='circuit'?'?nosplash=1':''),'_blank')}
+function openTool(id){const map={circuit:'circuit',diagram:'diagram',d3:'3d',imgcircuit:'imgcircuit',codecircuit:'codecircuit'};if(N&&N.openTool)N.openTool(map[id]);else window.open(id==='codecircuit'?'circuit.html?nosplash=1&fromcode=1':id==='imgcircuit'?'circuit.html?nosplash=1&fromimage=1':map[id]+'.html'+(map[id]==='circuit'?'?nosplash=1':''),'_blank')}
 const TOOLNAME={circuit:'Circuit',diagram:'Diagram','3d':'3D'};
 async function renderRecent(q=''){const box=$('#recent');let list=[];try{list=N&&N.recent?await N.recent():[]}catch(e){}
  list=list.filter(r=>!q||r.path.toLowerCase().includes(q));

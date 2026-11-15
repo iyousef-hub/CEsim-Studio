@@ -8,6 +8,7 @@ CEsim Studio is a launcher that opens several tools, each in its own window:
 | Tool | What it does | Files |
 |---|---|---|
 | **Circuit** | Schematic capture with live simulation, a large parts library and instruments (multimeter, oscilloscope, function generator, probes, meters). Text notes, net labels, title block, export to PNG / JPG / WebP / SVG / PDF, BOM and node-voltage CSV. | `.cesim` · `.cir` |
+| **Circuit code** | Write a circuit as text (SPICE style) with a live preview and error checks. Copy the built-in prompt into any AI chat with a photo of your circuit, paste the answer back, and build it in one click. | `.cir` · text |
 | **Circuit from image** | Turns a photo or screenshot of a schematic into an editable circuit, using a vision model that runs on your own computer with [Ollama](https://ollama.com). Nothing is uploaded. | `.png` · `.jpg` · paste |
 | **Diagram** | Flowcharts, state machines, datapaths and networks with smart connectors, auto layout, text-to-diagram, minimap and find. | `.cediag` · `.drawio` · `.mmd` |
 | **3D** | Millimetre-accurate modelling with holes, groups, arrays, shells, a board library and enclosure maker. Adjustable zoom / rotate / pan speed. | `.ce3d` · `.stl` · `.obj` · `.3mf` · `.glb` |
@@ -29,6 +30,27 @@ Get the latest build from the **Releases** page:
 - **macOS:** the app is not notarized. Right-click the app, choose **Open**, then **Open**. If macOS says it is damaged, run `xattr -cr "/Applications/CEsim Studio.app"` once.
 - **Windows:** SmartScreen may show "Windows protected your PC". Choose **More info**, then **Run anyway**. The installer needs no administrator rights.
 - **Linux (AppImage):** `chmod +x CEsim-Studio-*.AppImage` then run it. **(.deb):** `sudo apt install ./CEsim-Studio-*.deb`.
+
+## Circuit code
+
+Open it from the Studio, or in the Circuit tool with **Tools → Circuit code** (Ctrl+K).
+
+1. Press **Copy prompt for AI** and paste it into any AI chat together with a photo of your circuit.
+2. Paste the chat's answer into the editor. The preview and the error list update as you type.
+3. Press **Build circuit**, then **Run**.
+
+The editor opens with a worked example, and **From current design** writes any open circuit back as code.
+
+```
+* Non-inverting amplifier, gain = 2
+V1   vin  0    SIN(0 1 1k)
+R1   inv  0    1k
+R2   inv  out  1k
+XU1  vin  inv  out vcc vee uA741
+VCC  vcc  0    DC 15
+VEE  0    vee  DC 15
+.end
+```
 
 ## Circuit from image
 

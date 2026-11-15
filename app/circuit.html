@@ -97,6 +97,15 @@ body{background:var(--ui-bg);color:var(--ui-text);font:13px/1.35 var(--font-ui);
 .btn.pri{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 .btn:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 .row{display:flex;gap:8px;align-items:center}
+.cedit{width:min(1180px,94vw)}.ce-help{display:flex;align-items:center;gap:16px;background:#eef4fc;border:1px solid #d3e2f5;border-radius:8px;padding:10px 12px}
+.ce-steps{display:flex;gap:18px;flex:1;font-size:12.5px;color:#1b2a40;flex-wrap:wrap}.ce-steps div{display:flex;align-items:center;gap:7px}.ce-steps b{width:20px;height:20px;border-radius:50%;background:#1f5fae;color:#fff;display:grid;place-items:center;font-size:11px;flex:none}.ce-hb{display:flex;gap:6px}
+.ce-prompt{margin:8px 0 0;max-height:190px;overflow:auto;background:#f7f9fc;border:1px solid var(--ui-line,#c9d2de);border-radius:6px;padding:8px 10px;font:11.5px/1.45 var(--mono,monospace);white-space:pre-wrap}
+.ce-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:10px}.ce-tb{display:flex;align-items:center;gap:6px;margin-bottom:6px}.ce-tb select{height:28px}.ce-dim{font-size:12px;color:var(--ui-dim)}
+.ce-ed{display:flex;border:1px solid var(--ui-line,#c9d2de);border-radius:6px;overflow:hidden;height:380px;background:#fff}.ce-ed pre{margin:0;padding:8px 6px;background:#f3f5f8;color:#98a3b3;font:12.5px/1.55 var(--mono,monospace);text-align:right;min-width:34px;overflow:hidden;user-select:none}
+.ce-ed textarea{flex:1;border:none;outline:none;resize:none;padding:8px 10px;font:12.5px/1.55 var(--mono,monospace);color:#13233a;white-space:pre;overflow:auto;tab-size:2}
+.ce-msg{margin-top:6px;max-height:96px;overflow:auto;font-size:12px}.ce-msg div{padding:3px 8px;border-radius:4px;margin-bottom:3px;cursor:pointer}.ce-msg .e{background:#fdecec;color:#9b1c1c}.ce-msg .w{background:#fff6e5;color:#7a4b00}.ce-msg .ok{background:#e9f7ef;color:#1d6b3c;cursor:default}
+.ce-prev{height:380px;border:1px solid var(--ui-line,#c9d2de);border-radius:6px;background:#fff;display:grid;place-items:center;overflow:hidden}.ce-prev img{max-width:96%;max-height:96%}.ce-empty{font-size:12.5px;color:var(--ui-dim)}
+.ce-row{display:flex;gap:8px;margin-top:10px;align-items:center}
 .imgai{width:min(1040px,92vw)}.ia-grid{display:grid;grid-template-columns:380px 1fr;gap:16px}
 #ia-drop{height:260px;border:2px dashed var(--ui-line,#c9d2de);border-radius:8px;display:grid;place-items:center;text-align:center;cursor:pointer;overflow:hidden;background:#f7f9fc;font-size:12.5px;color:var(--ui-dim)}#ia-drop.over{border-color:#1a8cff;background:#eaf3ff}#ia-drop b{color:var(--ui-text,#18202d);font-size:13.5px}#ia-drop span{font-size:11.5px}
 #ia-img{display:none;max-width:100%;max-height:100%;object-fit:contain}
@@ -189,7 +198,7 @@ kbd{font:11px var(--font-mono);border:1px solid var(--ui-border);border-bottom-w
 </div>
 <div id="splash" role="dialog" aria-label="CEsim"><div class="sp-box"><canvas id="sp-cv"></canvas><div class="sp-in">
  <div class="sp-row"><div class="sp-logo">CE</div><div><div class="sp-name">CE<span>sim</span></div><div class="sp-sub">Circuit Design &amp; Simulation Suite</div></div></div>
- <div class="sp-ver">Version 1.0.0</div><div class="sp-bar"><i id="sp-bar"></i></div><div class="sp-foot"><span id="sp-msg">Loading component database…</span><span class="sp-by">BY. YOUSEF</span></div>
+ <div class="sp-ver">Version 1.1.0</div><div class="sp-bar"><i id="sp-bar"></i></div><div class="sp-foot"><span id="sp-msg">Loading component database…</span><span class="sp-by">BY. YOUSEF</span></div>
 </div></div></div>
 <script src="lib/canvas2svg.js"></script>
 <script>(function(){if(!window.C2S)return;const P=C2S.prototype;const os=P.save,or=P.restore,ost=P.stroke;P.setLineDash=function(a){this.__dash=a||[]};P.getLineDash=function(){return this.__dash||[]};P.save=function(){(this.__ds=this.__ds||[]).push(this.__dash);os.call(this)};P.restore=function(){this.__dash=(this.__ds||[]).pop();or.call(this)};P.stroke=function(){ost.apply(this,arguments);if(this.__dash&&this.__dash.length&&this.__currentElement)this.__currentElement.setAttribute("stroke-dasharray",this.__dash.join(","))}})()</script>
@@ -740,7 +749,7 @@ window.addEventListener("keydown",e=>{const tag=(e.target&&e.target.tagName)||""
  if(ctrl&&k.toLowerCase()==="z"){e.preventDefault();e.shiftKey?redo():undo();return}if(ctrl&&k.toLowerCase()==="y"){e.preventDefault();redo();return}
  if(ctrl&&k.toLowerCase()==="c"){copySel();return}if(ctrl&&k.toLowerCase()==="x"){if(copySel())deleteSel();return}if(ctrl&&k.toLowerCase()==="v"){paste();return}if(ctrl&&k.toLowerCase()==="a"){e.preventDefault();selectAll();return}
  if(ctrl&&k.toLowerCase()==="r"){e.preventDefault();rotateSel(e.shiftKey?-1:1);return}if(ctrl&&k.toLowerCase()==="w"){e.preventDefault();openBrowser();return}if(ctrl&&k.toLowerCase()==="t"){e.preventDefault();startPlace("text");return}if(ctrl&&k.toLowerCase()==="l"){e.preventDefault();startPlace("netlabel");return}if(ctrl&&k.toLowerCase()==="q"){e.preventDefault();toast("Drag from any pin to draw a wire. Ctrl+click a wire to branch from it.");return}
- if(ctrl&&k.toLowerCase()==="s"){e.preventDefault();saveLocal(true);return}if(ctrl&&k.toLowerCase()==="o"){e.preventDefault();$("#fileIn").click();return}if(ctrl&&k.toLowerCase()==="n"){e.preventDefault();addDoc();return}if(ctrl&&k.toLowerCase()==="e"){e.preventDefault();openExportDlg();return}if(ctrl&&k.toLowerCase()==="m"){e.preventDefault();const c=[...sel].find(x=>x.t);if(c)openProps(c);return}
+ if(ctrl&&k.toLowerCase()==="s"){e.preventDefault();saveLocal(true);return}if(ctrl&&k.toLowerCase()==="o"){e.preventDefault();$("#fileIn").click();return}if(ctrl&&k.toLowerCase()==="n"){e.preventDefault();addDoc();return}if(ctrl&&k.toLowerCase()==="k"){e.preventDefault();openCodeEditor();return}if(ctrl&&k.toLowerCase()==="e"){e.preventDefault();openExportDlg();return}if(ctrl&&k.toLowerCase()==="m"){e.preventDefault();const c=[...sel].find(x=>x.t);if(c)openProps(c);return}
  if(e.altKey&&k.toLowerCase()==="y"){e.preventDefault();flipSel(false);return}if(e.altKey&&k.toLowerCase()==="x"){e.preventDefault();flipSel(true);return}
  if(k==="F5"){e.preventDefault();running?stopSim():runSim();return}if(k==="F6"){e.preventDefault();pauseSim();return}if(k==="F7"){e.preventDefault();zoomFit();return}if(k==="F1"){e.preventDefault();showHelp();return}
  if(k==="Escape"){if(mode==="wire"&&wireDraft&&wireDraft.pts.length>1)finishWire(null);else cancelModes();closeMenus();return}
@@ -787,7 +796,7 @@ const IC={
  mot:'<circle cx="12" cy="12" r="8"/><path d="M8 15V9l4 4 4-4v6"/>',sw:'<circle cx="5" cy="15" r="1.5"/><circle cx="19" cy="15" r="1.5"/><path d="M2 15h1.5M20.5 15H22M6 14l11-7"/>',
  xmm:'<rect x="5" y="2" width="14" height="20" rx="2"/><rect x="8" y="5" width="8" height="5"/><circle cx="12" cy="15" r="2.5"/>',xfg:'<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M5 12c2-5 4-5 5 0s3 5 5 0M17 9h3M17 12h3"/>',
  xsc:'<rect x="2" y="4" width="20" height="16" rx="2"/><path d="M5 14c2-7 3-7 5 0s3 7 5 0 2-5 4-3"/>',xwm:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 15l3-6 2 4 2-4 3 6"/>',probe:'<path d="M4 20l6-6M10 14l3 3 8-8-3-3z"/>',amm:'<circle cx="12" cy="12" r="8"/><path d="M9 16l3-8 3 8M10 13.5h4"/>',vm:'<circle cx="12" cy="12" r="8"/><path d="M8.5 8l3.5 8 3.5-8"/>',
- design:'<path d="M5 3h9l5 5v13H5z"/><path d="M8 13h3l1.5-3 2 6 1-3H17"/>',txt:'<path d="M5 6h14M12 6v13M9 19h6"/>',net:'<path d="M3 12h4l3-4h11v8H10l-3-4"/>',cam:'<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',exp:'<path d="M12 3v12M7 10l5 5 5-5M5 21h14"/>'
+ design:'<path d="M5 3h9l5 5v13H5z"/><path d="M8 13h3l1.5-3 2 6 1-3H17"/>',txt:'<path d="M5 6h14M12 6v13M9 19h6"/>',net:'<path d="M3 12h4l3-4h11v8H10l-3-4"/>',code:'<path d="M8 7l-5 5 5 5M16 7l5 5-5 5M13.5 5l-3 14"/>',cam:'<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',exp:'<path d="M12 3v12M7 10l5 5 5-5M5 21h14"/>'
 };
 function svg(n){return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">'+(IC[n]||"")+"</svg>"}
 
@@ -799,7 +808,7 @@ const MENUS=[
  ["Place",[["Component…","Ctrl+W",()=>openBrowser()],["Wire","Ctrl+Q",()=>toast("Drag from any pin to draw a wire. Ctrl+click a wire to branch from it.")],"-",["Ground","",()=>startPlace("gnd")],["VCC rail","",()=>startPlace("vcc")],["Voltage probe","",()=>startPlace("probe")],"-",["Text / note","Ctrl+T",()=>startPlace("text")],["Net label","Ctrl+L",()=>startPlace("netlabel")],["Title block…","",editTitleBlock]]],
  ["Simulate",[["Run","F5",runSim],["Pause","F6",pauseSim],["Stop","",stopSim],"-",["Instruments",null,null,()=>[["Multimeter","",()=>startPlace("xmm")],["Function generator","",()=>startPlace("xfg")],["Wattmeter","",()=>startPlace("xwm")],["Oscilloscope","",()=>startPlace("xsc")]]],"-",["Simulation settings…","",openSimSettings]]],
  ["Transfer",[["Export SPICE netlist (.cir)…","",()=>exportCir()],["Import SPICE netlist (.cir)…","",()=>$("#fileIn").click()]]],
- ["Tools",[["Circuit from image…","",()=>openImageTool()],["Electrical rules check","",erc],["Database info","",()=>toast(countDB().toLocaleString()+" components in the CEsim master database across "+DB.reduce((a,g)=>a+g.fams.length,0)+" families.")]]],
+ ["Tools",[["Circuit code…","Ctrl+K",()=>openCodeEditor()],["Circuit from image…","",()=>openImageTool()],["Electrical rules check","",erc],["Database info","",()=>toast(countDB().toLocaleString()+" components in the CEsim master database across "+DB.reduce((a,g)=>a+g.fams.length,0)+" families.")]]],
  ["Reports",[["Bill of Materials","",bom],["Bill of Materials (CSV)…","",bomCsv],["Netlist report","",()=>exportCir()]]],
  ["Options",[["Theme",null,null,()=>[["Classic White","",()=>setTheme("white"),()=>theme==="white"],["Dark","",()=>setTheme("dark"),()=>theme==="dark"],["Blueprint","",()=>setTheme("blueprint"),()=>theme==="blueprint"],["Graphite","",()=>setTheme("graphite"),()=>theme==="graphite"]]],["Simulation settings…","",openSimSettings]]],
  ["Window",[["Designs",null,null,()=>docs.map((d,i)=>[d.name,"",()=>switchDoc(i),()=>d===D])]]],
@@ -819,7 +828,7 @@ document.addEventListener("mousedown",e=>{if(!e.target.closest(".menu"))closeMen
 function tb(icon,title,fn,cls){const b=document.createElement("button");b.className="tb"+(cls?" "+cls:"");b.innerHTML=svg(icon);b.title=title;b.setAttribute("aria-label",title);b.onclick=fn;return b}
 function sep(){const s=document.createElement("div");s.className="tsep";return s}
 function buildToolbars(){const t1=$("#tb1");t1.innerHTML="";
- [tb("new","New (Ctrl+N)",()=>addDoc()),tb("open","Open (Ctrl+O)",()=>$("#fileIn").click()),tb("save","Save (Ctrl+S)",()=>saveLocal(true)),tb("exp","Export… (Ctrl+E)",()=>openExportDlg()),tb("cam","Screenshot",e=>openShotMenu(e)),sep(),
+ [tb("new","New (Ctrl+N)",()=>addDoc()),tb("open","Open (Ctrl+O)",()=>$("#fileIn").click()),tb("save","Save (Ctrl+S)",()=>saveLocal(true)),tb("exp","Export… (Ctrl+E)",()=>openExportDlg()),tb("cam","Screenshot",e=>openShotMenu(e)),tb("code","Circuit code (Ctrl+K)",()=>openCodeEditor()),sep(),
   tb("cut","Cut",()=>{if(copySel())deleteSel()}),tb("copy","Copy",copySel),tb("paste","Paste",paste),sep(),tb("undo","Undo (Ctrl+Z)",undo),tb("redo","Redo (Ctrl+Y)",redo),sep(),
   tb("zin","Zoom in",()=>zoomBy(1.25)),tb("zout","Zoom out",()=>zoomBy(0.8)),tb("zfit","Zoom to fit (F7)",zoomFit),sep(),
   tb("rot","Rotate 90° clockwise (Ctrl+R)",()=>rotateSel(1)),tb("rotl","Rotate 90° counter-clockwise",()=>rotateSel(-1)),tb("flip","Flip horizontally (Alt+X)",()=>flipSel(true)),tb("del","Delete",deleteSel),sep()].forEach(x=>t1.appendChild(x));
@@ -989,8 +998,8 @@ window.cesimOpenText=(name,text,path)=>{const base=name.replace(/\.[^.]+$/,"");t
 
 /* SPICE netlist import (R, C, L, V, I, D, Q, M, E, G) with automatic layout */
 function importCir(text,name){const d=newDoc(name);const lines=text.split(/\r?\n/);const joined=[];for(const l of lines){if(/^\s*\+/.test(l)&&joined.length)joined[joined.length-1]+=" "+l.replace(/^\s*\+/,"");else joined.push(l)}
- const models={};for(const l of joined){const m=l.match(/^\s*\.model\s+(\S+)\s+(\w+)/i);if(m)models[m[1].toLowerCase()]=m[2].toUpperCase()}
- const parts=[];for(const raw of joined){const l=raw.trim();if(!l||/^[*.;]/.test(l))continue;const tok=l.split(/\s+/);const id=tok[0],ty=id[0].toUpperCase();let t=null,nodes=[],p={};
+ const models={};for(const l0 of joined){const l=l0.replace(/\s[;$].*$/,"");const m=l.match(/^\s*\.model\s+(\S+)\s+(\w+)/i);if(m)models[m[1].toLowerCase()]=m[2].toUpperCase()}
+ const parts=[];for(const raw of joined){const l=raw.replace(/\s[;$].*$/,"").replace(/^[;$].*$/,"").trim();if(!l||/^[*.;]/.test(l))continue;const tok=l.split(/\s+/);const id=tok[0],ty=id[0].toUpperCase();let t=null,nodes=[],p={};
   if(ty==="R"){t="res";nodes=[tok[1],tok[2]];p.resistance=tok[3]}else if(ty==="C"){t="cap";nodes=[tok[1],tok[2]];p.capacitance=tok[3]}else if(ty==="L"){t="ind";nodes=[tok[1],tok[2]];p.inductance=tok[3]}
   else if(ty==="V"){nodes=[tok[1],tok[2]];const rest=tok.slice(3).join(" ");const s=rest.match(/sin\s*\(\s*([^\s)]+)\s+([^\s)]+)\s+([^\s)]+)/i);const pu=rest.match(/pulse\s*\(([^)]*)\)/i);if(s){t="acv";p={offset:s[1],amp:s[2],freq:s[3]}}else if(pu){const a=pu[1].trim().split(/[\s,]+/);t="clock";const per=num(a[6]),pw=num(a[5]);p={amp:a[1],freq:per>0?si(1/per,""):"1k",duty:per>0?String(Math.round(pw/per*100)):"50"}}else{t="dcv";const dc=rest.match(/(?:dc\s+)?([-+\d.eE]+[a-zA-Zµ]*)/i);p.voltage=dc?dc[1]:"0"}}
   else if(ty==="I"){t="idc";nodes=[tok[2],tok[1]];p.current=(tok.slice(3).join(" ").match(/([-+\d.eE]+[a-zA-Zµ]*)\s*$/)||[0,"1m"])[1]}
@@ -1001,22 +1010,26 @@ function importCir(text,name){const d=newDoc(name);const lines=text.split(/\r?\n
   else if(ty==="E"){t="vcvs";nodes=[tok[3],tok[4],tok[1],tok[2]];p.gain=tok[5]}else if(ty==="G"){t="vccs";nodes=[tok[3],tok[4],tok[2],tok[1]];p.gm=tok[5]}
   if(t)parts.push({t,nodes:nodes.map(x=>/^(0|gnd)$/i.test(x)?"0":x),p,label:id})}
  parts.forEach(q=>q.nodes=q.nodes.map((x,i)=>x===""?"__NC_"+q.label+"_"+i:x));if(!parts.length)throw new Error("No supported elements (R, C, L, V, I, D, Q, M, E, G, X op-amp) were found.");
- /* layout: one row of parts (two-terminal parts vertical); every net gets its own horizontal lane above the row */
- const rowY=320,dx=120;const netPins={};const order=[];
+ /* layout: parts ordered along the signal path, one row (two-terminal parts vertical); nets run on horizontal lanes above, sharing a lane when they do not overlap */
+ {const isSrc=q=>/^(dcv|acv|clock|idc|vcc)$/.test(q.t);const byNet={};parts.forEach((q,k)=>q.nodes.forEach(n=>{if(n!=="0")(byNet[n]=byNet[n]||[]).push(k)}));
+  const seen=new Set(),ord=[];const visit=st=>{const qu=[st];seen.add(st);while(qu.length){const k=qu.shift();ord.push(k);for(const n of parts[k].nodes){if(n==="0")continue;for(const m of (byNet[n]||[]).slice().sort((a,b)=>(isSrc(parts[a])-isSrc(parts[b]))||a-b))if(!seen.has(m)){seen.add(m);qu.push(m)}}}};
+  parts.forEach((q,k)=>{if(isSrc(q)&&!seen.has(k)&&!/^(VCC|VEE|VDD|VSS|VSUP)/i.test(q.label))visit(k)});parts.forEach((q,k)=>{if(!seen.has(k)&&!isSrc(q))visit(k)});parts.forEach((q,k)=>{if(!seen.has(k))visit(k)});
+  const sorted=ord.map(k=>parts[k]);parts.length=0;parts.push(...sorted)}
+ const rowY=320,dx=110;const netPins={};const order=[];
  parts.forEach((pt,i)=>{const L_=LIB[pt.t];const c=mkComp(d,pt.t,140+i*dx,rowY,pt.p);c.label=pt.label;if(L_.pins.length===2&&L_.pins[0][1]===0)c.r=1;d.comps.push(c);
   pt.nodes.forEach((nn,j)=>{if(j>=L_.pins.length)return;const pp=pinPos(c,j);const side=pp.y<c.y-1?"top":pp.y>c.y+1?"bottom":"side";(netPins[nn]=netPins[nn]||[]).push({p:pp,side,c});if(!order.includes(nn))order.push(nn)})});
  const W=(...q)=>{const pts=[];for(let i=0;i<q.length;i+=2)pts.push({x:q[i],y:q[i+1]});const w={id:uid(),pts};if(cleanWire(w))d.wires.push(w)};
- let lane=0;const gut={};
+ const gut={};const plan=[];
  for(const nn of order){const ps=netPins[nn];
   if(nn==="0"){const rest=[];for(const q of ps){if(q.side==="bottom"){const g=mkComp(d,"gnd",q.p.x,q.p.y+20);d.comps.push(g);W(q.p.x,q.p.y,q.p.x,q.p.y+20)}else rest.push(q)}if(!rest.length)continue;ps.length=0;ps.push(...rest)}
   if(ps.length<2&&nn!=="0")continue;
-  const ly=rowY-90-(lane++)*20;const xs=[];
-  for(const q of ps){const {p,side,c}=q;
-   if(side==="top"){W(p.x,p.y,p.x,ly);xs.push(p.x)}
-   else if(side==="side"){const ox=p.x+(p.x<c.x?-10:10);W(p.x,p.y,ox,p.y,ox,ly);xs.push(ox)}
-   else{const k=(gut[c.id]=(gut[c.id]||0)+1);const gx=c.x+40+k*8;const by=p.y+20+k*8;W(p.x,p.y,p.x,by,gx,by,gx,ly);xs.push(gx)}}
-  if(nn==="0"){const x0=Math.min(...xs)-30;xs.push(x0);const g=mkComp(d,"gnd",x0,ly+0);d.comps.push(g)}
-  W(Math.min(...xs),ly,Math.max(...xs),ly)}
+  const att=ps.map(q=>{const {p,side,c}=q;if(side==="top")return{x:p.x,q};if(side==="side")return{x:p.x+(p.x<c.x?-10:10),q};const k=(gut[c.id]=(gut[c.id]||0)+1);return{x:c.x+40+k*8,by:p.y+20+k*8,q}});
+  const xs=att.map(a=>a.x);let gx0=null;if(nn==="0"){gx0=Math.min(...xs)-30;xs.push(gx0)}plan.push({nn,att,lo:Math.min(...xs),hi:Math.max(...xs),gx0})}
+ const laneEnd=[];plan.slice().sort((a,b)=>a.lo-b.lo||b.hi-a.hi).forEach(pl=>{let li=laneEnd.findIndex(e=>e<pl.lo-20);if(li<0){li=laneEnd.length;laneEnd.push(0)}laneEnd[li]=pl.hi;pl.lane=li});
+ for(const pl of plan){const ly=rowY-90-pl.lane*20;
+  for(const a of pl.att){const {p,side}=a.q;if(side==="top")W(p.x,p.y,p.x,ly);else if(side==="side")W(p.x,p.y,a.x,p.y,a.x,ly);else W(p.x,p.y,p.x,a.by,a.x,a.by,a.x,ly)}
+  if(pl.gx0!=null){const g=mkComp(d,"gnd",pl.gx0,ly);d.comps.push(g)}
+  W(pl.lo,ly,pl.hi,ly)}
  d.wires.forEach(cleanWire);d.wires=d.wires.filter(w=>w.pts.length>=2);return d}
 
 /* ================= example circuits ================= */
@@ -1069,11 +1082,121 @@ resize();renderTabs();updateInUse();updMode();requestAnimationFrame(t=>{lastTs=t
 if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{dirty=1});
 
 if(/fromimage/.test(location.search))setTimeout(()=>openImageTool(),300);
+if(/fromcode/.test(location.search))setTimeout(()=>openCodeEditor(),300);
 (function splash(){const sp=$("#splash");if(!sp)return;if(/nosplash/.test(location.search)){sp.remove();return}const cvs=$("#sp-cv"),r=cvs.getBoundingClientRect(),g=cvs.getContext("2d");cvs.width=r.width;cvs.height=r.height;g.strokeStyle="#bfe2ff";g.lineWidth=1.4;
  // faint circuit traces in the background
  const rnd=(a)=>Math.floor(Math.random()*a);for(let k=0;k<14;k++){let x=rnd(r.width),y=rnd(r.height);g.beginPath();g.moveTo(x,y);for(let j=0;j<4;j++){if(j%2)y+=(rnd(2)?1:-1)*(20+rnd(60));else x+=(rnd(2)?1:-1)*(30+rnd(90));g.lineTo(x,y)}g.stroke();g.beginPath();g.arc(x,y,2.5,0,7);g.fillStyle="#bfe2ff";g.fill()}
  requestAnimationFrame(()=>$("#sp-bar").style.width="100%");const msgs=["Loading component database…",countDB().toLocaleString()+" components ready","Starting workspace…"];let i=0;const it=setInterval(()=>{i++;if(i<msgs.length)$("#sp-msg").textContent=msgs[i]},550);
  const done=()=>{clearInterval(it);sp.classList.add("out");setTimeout(()=>sp.remove(),400)};sp.onclick=done;setTimeout(done,1900)})();
+
+
+/* ===================== Circuit code editor ===================== */
+const CODE_EXAMPLE=`* Example: non-inverting amplifier, gain = 1 + R2/R1 = 2
+* One part per line:  NAME  node node ...  VALUE
+* Ground is node 0. Parts that share a node name are connected.
+
+V1   vin  0    SIN(0 1 1k)      ; sine source: offset 0 V, 1 V peak, 1 kHz
+R1   inv  0    1k
+R2   inv  out  1k
+XU1  vin  inv  out vcc vee uA741 ; op-amp: + - out V+ V- model
+VCC  vcc  0    DC 15            ; +15 V supply
+VEE  0    vee  DC 15            ; -15 V supply
+RL   out  0    10k
+.end
+`;
+const CODE_PROMPT=`You are helping me enter a circuit into my simulator, CEsim Studio. I will send you a picture (or a description) of a circuit. Reply with ONLY its netlist in the format below, inside one code block, with no explanation.
+
+FORMAT (SPICE style, one part per line):
+NAME  node1 node2 ...  VALUE
+- Ground is node 0. Give every other connection point a short name (vin, out, n1, n2 ...).
+- Wires joined by a dot or a T junction are the same node. Wires that only cross are NOT connected.
+- Values use prefixes: 1k = 1000, 4.7k, 100n, 10u, 2.2m, 1meg.
+- Use the part names shown in the picture (R1, C2, Q1 ...) when you can read them.
+
+PARTS AND NODE ORDER:
+R1 a b 1k                      resistor
+C1 a b 100n                    capacitor
+L1 a b 10m                     inductor
+V1 plus minus DC 12            DC voltage source or battery
+V2 plus minus SIN(0 1 1k)      sine source: offset, peak volts, frequency
+V3 plus minus PULSE(0 5 0 1u 1u 0.5m 1m)   square/clock: low, high, delay, rise, fall, width, period
+I1 from to DC 1m               DC current source
+D1 anode cathode 1N4148        diode (1N4001-1N4007, 1N4148, 1N5819)
+D2 anode cathode LED           LED
+D3 anode cathode 1N4733A       zener diode (1N47xx part number)
+Q1 collector base emitter 2N2222   NPN transistor (2N2222, 2N3904, BC547, TIP31C)
+Q2 collector base emitter 2N3906   PNP transistor (2N3906, BC557, TIP32C)
+M1 drain gate source source NMOS   MOSFET (write PMOS for P-channel)
+XU1 plus minus out vplus vminus uA741   op-amp (uA741, LM358, TL071, LM324). If the picture has no supply pins, add supplies: VCC vplus 0 DC 15 and VEE 0 vminus DC 15
+E1 out 0 in_plus in_minus 10   voltage-controlled voltage source (gain)
+
+Finish with the line .end
+
+EXAMPLE (a non-inverting amplifier with gain 2):
+${CODE_EXAMPLE}`;
+const CODE_KEY="cesim.code";
+function codeTypeLetter(c){return{res:"R",cap:"C",ecap:"C",ind:"L",dcv:"V",acv:"V",clock:"V",vcc:"V",idc:"I",diode:"D",zener:"D",led:"D",schottky:"D",npn:"Q",pnp:"Q",nmos:"M",pmos:"M",opamp:"X",vcvs:"E",vccs:"G"}[c.t]}
+function circuitToCode(doc){const keep=D;D=doc;netCache=null;let out=[];try{const net=nets();const names={};
+  doc.comps.forEach(c=>{if(c.t==="netlabel"&&c.p&&c.p.name){const k=(net.pinNodes.get(c.id)||[])[0];if(k)names[k]=String(c.p.name).replace(/\W+/g,"_")}});
+  const nm=k=>k===0?"0":(names[k]||("n"+k));const used=new Set();const skipped=[];
+  out.push("* "+doc.name+" - CEsim circuit code");
+  for(const c of doc.comps){const L=codeTypeLetter(c);if(!L){if(!/^(gnd|netlabel|text|wire)$/.test(c.t))skipped.push((c.label||c.t)+" ("+(LIB[c.t]&&LIB[c.t].name||c.t)+")");continue}
+   const n=(net.pinNodes.get(c.id)||[]).map(nm);const P_=c.p||{};let name=String(c.label||L+"1").replace(/\W+/g,"");if(name[0].toUpperCase()!==L)name=L+name;while(used.has(name.toUpperCase()))name+="_";used.add(name.toUpperCase());
+   let line=null;
+   if(c.t==="res")line=`${name} ${n[0]} ${n[1]} ${P_.resistance}`;else if(c.t==="cap"||c.t==="ecap")line=`${name} ${n[0]} ${n[1]} ${P_.capacitance}`;else if(c.t==="ind")line=`${name} ${n[0]} ${n[1]} ${P_.inductance}`;
+   else if(c.t==="dcv")line=`${name} ${n[0]} ${n[1]} DC ${P_.voltage}`;else if(c.t==="vcc")line=`${name} ${n[0]} 0 DC ${P_.voltage}`;
+   else if(c.t==="acv")line=`${name} ${n[0]} ${n[1]} SIN(${P_.offset||0} ${P_.amp} ${P_.freq})`;
+   else if(c.t==="clock"){const f=num(P_.freq)||1000,T=1/f,du=(+P_.duty||50)/100;line=`${name} ${n[0]} ${n[1]} PULSE(0 ${P_.amp} 0 ${si(T/1000,"")} ${si(T/1000,"")} ${si(T*du,"")} ${si(T,"")})`}
+   else if(c.t==="idc")line=`${name} ${n[1]} ${n[0]} DC ${P_.current}`;
+   else if(c.t==="diode"||c.t==="schottky")line=`${name} ${n[0]} ${n[1]} ${P_.model||"1N4148"}`;else if(c.t==="zener")line=`${name} ${n[0]} ${n[1]} ${P_.model||"1N4733A"}`;else if(c.t==="led")line=`${name} ${n[0]} ${n[1]} LED`;
+   else if(c.t==="npn"||c.t==="pnp")line=`${name} ${n[1]} ${n[0]} ${n[2]} ${P_.model||(c.t==="npn"?"2N2222":"2N3906")}`;
+   else if(c.t==="nmos"||c.t==="pmos")line=`${name} ${n[1]} ${n[0]} ${n[2]} ${n[2]} ${c.t==="nmos"?"NMOS":"PMOS"}`;
+   else if(c.t==="opamp")line=`${name} ${n.slice(0,5).join(" ")} ${P_.model||"uA741"}`;
+   else if(c.t==="vcvs")line=`${name} ${n[2]} ${n[3]} ${n[0]} ${n[1]} ${P_.gain}`;else if(c.t==="vccs")line=`${name} ${n[3]} ${n[2]} ${n[0]} ${n[1]} ${P_.gm}`;
+   if(line)out.push(line)}
+  if(skipped.length)out.push("* Not written as code (add them on the sheet): "+skipped.join(", "));
+  out.push(".end")}finally{D=keep;netCache=null}return out.join("\n")}
+function lintCode(text){const msgs=[];const lines=text.split(/\r?\n/);const cnt={},where={},names={};let parts=0,ground=false;
+ const nodesOf=(L,tk)=>L==="Q"?tk.slice(1,4):L==="M"?tk.slice(1,4):L==="X"?tk.slice(1,6):L==="E"||L==="G"?tk.slice(1,5):tk.slice(1,3);
+ lines.forEach((raw,i)=>{const l=raw.replace(/;.*$/,"").trim();if(!l||/^[*.+]/.test(l))return;const tk=l.split(/\s+/);const L=tk[0][0].toUpperCase();
+  if(!"RCLVIDQMXEG".includes(L)){msgs.push({line:i+1,err:true,m:`"${tk[0]}" is not a part this editor knows. Start the name with R, C, L, V, I, D, Q, M, X, E or G.`});return}
+  const need={R:4,C:4,L:4,V:3,I:3,D:3,Q:4,M:4,X:6,E:6,G:6}[L];if(tk.length<need){msgs.push({line:i+1,err:true,m:`${tk[0]}: missing ${tk.length<3?"nodes":"a value or model"}.`});return}
+  if(names[tk[0].toUpperCase()])msgs.push({line:i+1,err:true,m:`${tk[0]} is used twice (also on line ${names[tk[0].toUpperCase()]}).`});names[tk[0].toUpperCase()]=i+1;
+  if(L==="X"&&!Object.keys(MODELS.opamp).some(k=>k.toUpperCase()===tk[tk.length-1].toUpperCase())&&!/741|358|324|07\d|08\d|opamp|ideal/i.test(tk[tk.length-1]))msgs.push({line:i+1,err:false,m:`${tk[0]}: "${tk[tk.length-1]}" is not a known op-amp, uA741 will be used.`});
+  parts++;nodesOf(L,tk).forEach(n=>{const k=/^(0|gnd)$/i.test(n)?"0":n;if(k==="0")ground=true;cnt[k]=(cnt[k]||0)+1;(where[k]=where[k]||[]).push(i+1)})});
+ Object.keys(cnt).filter(k=>k!=="0"&&cnt[k]<2).forEach(k=>msgs.push({line:where[k][0],err:false,m:`Node "${k}" connects to only one pin. Check the spelling.`}));
+ if(parts&&!ground)msgs.push({line:0,err:true,m:"There is no ground. Name one node 0."});
+ return{msgs,parts}}
+function openCodeEditor(){const b=document.createElement("div");b.className="cedit";
+ let saved="";try{saved=localStorage.getItem(CODE_KEY)||""}catch(e){}
+ b.innerHTML=`<div class="ce-help"><div class="ce-steps"><div><b>1</b>Copy the prompt</div><div><b>2</b>Paste it into any AI chat, with a photo of your circuit</div><div><b>3</b>Paste the answer here, then press Build circuit</div></div><div class="ce-hb"><button class="btn pri" id="ce-copyp">Copy prompt for AI</button><button class="btn" id="ce-showp" aria-expanded="false">Show prompt</button></div></div>
+ <pre id="ce-prompt" class="ce-prompt" hidden></pre>
+ <div class="ce-grid"><div class="ce-left"><div class="ce-tb"><span class="ce-dim">Circuit code</span><span style="flex:1"></span><select id="ce-ex" aria-label="Insert an example"><option value="">Examples…</option><option value="amp">Non-inverting amplifier</option><option value="div">Voltage divider</option><option value="rc">RC low-pass filter</option><option value="bjt">Transistor LED switch</option><option value="bridge">Bridge rectifier</option></select><button class="btn" id="ce-from" title="Write the open design as code">From current design</button><button class="btn" id="ce-copyc">Copy code</button></div>
+ <div class="ce-ed"><pre id="ce-ln" aria-hidden="true"></pre><textarea id="ce-code" spellcheck="false" wrap="off" aria-label="Circuit code"></textarea></div><div id="ce-msg" class="ce-msg" role="status"></div></div>
+ <div class="ce-right"><div class="ce-tb"><span class="ce-dim">Preview</span><span style="flex:1"></span><span id="ce-count" class="ce-dim"></span></div><div id="ce-prev" class="ce-prev"></div>
+ <div class="ce-row"><button class="btn" id="ce-reset">Reset to example</button><span style="flex:1"></span><button class="btn pri" id="ce-build">Build circuit</button></div></div></div>`;
+ const w=makeWin("Circuit code",b,{modal:true});const q=x=>b.querySelector(x);const ta=q("#ce-code");
+ q("#ce-prompt").textContent=CODE_PROMPT;ta.value=saved.trim()?saved:CODE_EXAMPLE;
+ const EX={amp:CODE_EXAMPLE,div:`* Voltage divider: 12 V into 1k and 2k, Vout = 8 V\nV1 vin 0 DC 12\nR1 vin out 1k\nR2 out 0 2k\n.end\n`,rc:`* RC low-pass filter, cutoff about 1 kHz\nV1 vin 0 SIN(0 1 1k)\nR1 vin out 1k\nC1 out 0 159n\n.end\n`,bjt:`* NPN transistor switching an LED\nV1 vcc 0 DC 9\nV2 ctl 0 DC 5\nRB ctl b 10k\nQ1 c b 0 2N2222\nRC vcc a 470\nD1 a c LED\n.end\n`,bridge:`* Full-wave bridge rectifier with filter capacitor\nV1 ac1 ac2 SIN(0 17 50)\nD1 ac1 pos 1N4007\nD2 ac2 pos 1N4007\nD3 0 ac1 1N4007\nD4 0 ac2 1N4007\nC1 pos 0 470u\nRL pos 0 1k\n.end\n`};
+ let tmr=null;const lines=()=>{q("#ce-ln").textContent=ta.value.split("\n").map((_,i)=>i+1).join("\n")};
+ function update(){lines();try{localStorage.setItem(CODE_KEY,ta.value)}catch(e){}const r=lintCode(ta.value);const box=q("#ce-msg");let prevOk=false;let d=null;
+  try{d=importCir(ta.value,"preview");prevOk=true}catch(e){r.msgs.unshift({line:0,err:true,m:e.message})}
+  box.innerHTML=r.msgs.length?r.msgs.map(m=>`<div class="${m.err?"e":"w"}" data-line="${m.line}">${m.line?"Line "+m.line+": ":""}${esc(m.m)}</div>`).join(""):(r.parts?'<div class="ok">No problems found.</div>':"");
+  q("#ce-count").textContent=prevOk?d.comps.filter(c=>c.t!=="gnd").length+" parts":"";q("#ce-build").disabled=!prevOk||r.msgs.some(m=>m.err);
+  const pv=q("#ce-prev");if(!prevOk){pv.innerHTML='<div class="ce-empty">The preview appears when the code is valid.</div>';return}
+  const keep=D;try{D=d;netCache=null;const o=renderExport({fmt:"svg",area:"all",bg:"white",grid:false,sheet:false});pv.innerHTML="";const img=new Image();img.alt="Circuit preview";img.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(o.data);pv.appendChild(img)}catch(e){pv.innerHTML='<div class="ce-empty">Preview failed: '+esc(e.message)+'</div>'}finally{D=keep;netCache=null;dirty=1}}
+ ta.addEventListener("input",()=>{clearTimeout(tmr);tmr=setTimeout(update,350)});ta.addEventListener("scroll",()=>{q("#ce-ln").scrollTop=ta.scrollTop});
+ ta.addEventListener("keydown",e=>{e.stopPropagation();if(e.key==="Tab"){e.preventDefault();const s0=ta.selectionStart;ta.setRangeText("  ",s0,ta.selectionEnd,"end");ta.dispatchEvent(new Event("input"))}if((e.ctrlKey||e.metaKey)&&e.key==="Enter"){e.preventDefault();q("#ce-build").click()}});
+ q("#ce-msg").addEventListener("click",e=>{const x=e.target.closest("[data-line]");const n=+(x&&x.dataset.line);if(!n)return;const ls=ta.value.split("\n");let pos=0;for(let i=0;i<n-1;i++)pos+=ls[i].length+1;ta.focus();ta.setSelectionRange(pos,pos+ls[n-1].length)});
+ const copy=async(t,ok)=>{try{await navigator.clipboard.writeText(t);toast(ok)}catch(e){const x=document.createElement("textarea");x.value=t;document.body.appendChild(x);x.select();document.execCommand("copy");x.remove();toast(ok)}};
+ q("#ce-copyp").onclick=()=>copy(CODE_PROMPT,"Prompt copied. Paste it into any AI chat with a photo of your circuit.");
+ q("#ce-showp").onclick=()=>{const p=q("#ce-prompt");p.hidden=!p.hidden;q("#ce-showp").textContent=p.hidden?"Show prompt":"Hide prompt";q("#ce-showp").setAttribute("aria-expanded",String(!p.hidden))};
+ q("#ce-copyc").onclick=()=>copy(ta.value,"Code copied.");
+ q("#ce-ex").onchange=e=>{const v=e.target.value;e.target.value="";if(v){ta.value=EX[v];update()}};
+ q("#ce-reset").onclick=()=>{ta.value=CODE_EXAMPLE;update()};
+ q("#ce-from").onclick=()=>{ta.value=circuitToCode(D);update();toast("The open design was written as code.")};
+ q("#ce-build").onclick=()=>{try{let name="code_circuit";const m=ta.value.match(/^\s*\*\s*(?:Example:\s*)?([^\n,:-]{3,40})/);if(m)name=m[1].trim().replace(/[^\w ]+/g,"").replace(/\s+/g,"_").toLowerCase()||name;const d=importCir(ta.value,name);addDoc(d);w.close();toast("Circuit built. Press Run to simulate.")}catch(e){toast(e.message,true)}};
+ update();setTimeout(()=>ta.focus(),50);return b}
 
 /* ===================== Circuit from image (local AI via Ollama) ===================== */
 const IMGAI={host:"http://127.0.0.1:11434",model:"",img:null,job:null};try{Object.assign(IMGAI,JSON.parse(localStorage.getItem("cesim.imgai")||"{}"));IMGAI.img=null}catch(e){}
@@ -1170,7 +1293,7 @@ function openImageTool(){const b=document.createElement("div");b.className="imga
  q("#ia-import").onclick=()=>{try{const d=importCir(q("#ia-net").value,"from_image");addDoc(d);w.close();toast("Imported. Check every connection before you simulate.")}catch(e){toast(e.message,true)}};
  check();setTimeout(()=>q("#ia-drop").focus(),50);return b}
 
-window.CE={openImageTool,aiToSpice,parseAiJson,importCir,serialize,deserialize,addDoc,hitLabel,openProps,openExportDlg,doExportC,renderExport,voltsCsv,render:()=>{resize();render()},docs:()=>docs,D:()=>D,sim:()=>sim,openExample,runSim,stopSim,Sim,switchDoc,LIB,zoomFit,countDB,EXAMPLES,setTheme};
+window.CE={nets:()=>nets(),openCodeEditor,circuitToCode,lintCode,CODE_PROMPT,CODE_EXAMPLE,openImageTool,aiToSpice,parseAiJson,importCir,serialize,deserialize,addDoc,hitLabel,openProps,openExportDlg,doExportC,renderExport,voltsCsv,render:()=>{resize();render()},docs:()=>docs,D:()=>D,sim:()=>sim,openExample,runSim,stopSim,Sim,switchDoc,LIB,zoomFit,countDB,EXAMPLES,setTheme};
 </script>
 </body>
 </html>

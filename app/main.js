@@ -2,8 +2,8 @@ const { app, BrowserWindow, Menu, dialog, ipcMain, shell, nativeTheme } = requir
 const path = require('path'); const fs = require('fs');
 nativeTheme.themeSource = 'light';
 let studio = null; const pendingPaths = [];
-const TOOL_FILE = { imgcircuit: 'circuit.html', circuit: 'circuit.html', diagram: 'diagram.html', '3d': '3d.html' };
-const TOOL_TITLE = { imgcircuit: 'CEsim Circuit', circuit: 'CEsim Circuit', diagram: 'CEsim Diagram', '3d': 'CEsim 3D' };
+const TOOL_FILE = { imgcircuit: 'circuit.html', codecircuit: 'circuit.html', circuit: 'circuit.html', diagram: 'diagram.html', '3d': '3d.html' };
+const TOOL_TITLE = { imgcircuit: 'CEsim Circuit', codecircuit: 'CEsim Circuit', circuit: 'CEsim Circuit', diagram: 'CEsim Diagram', '3d': 'CEsim 3D' };
 const EXT_TOOL = { cesim: 'circuit', cir: 'circuit', net: 'circuit', sp: 'circuit', cediag: 'diagram', drawio: 'diagram', dio: 'diagram', xml: 'diagram', mmd: 'diagram', mermaid: 'diagram', svg: 'diagram', png: 'diagram', jpg: 'diagram', jpeg: 'diagram', ce3d: '3d', stl: '3d', obj: '3d', '3mf': '3d' };
 const BINARY = new Set(['stl', '3mf', 'png', 'jpg', 'jpeg']);
 const recentFile = () => path.join(app.getPath('userData'), 'recent.json');
@@ -22,7 +22,7 @@ function openTool(tool, filePath) {
   const f = TOOL_FILE[tool]; if (!f) return;
   const win = new BrowserWindow(Object.assign(winOpts(1440, 900), { title: TOOL_TITLE[tool] }));
   wire(win);
-  win.loadFile(path.join(__dirname, f), { query: { nosplash: '1', ...(filePath ? { blank: '1' } : {}), ...(tool === 'imgcircuit' ? { fromimage: '1' } : {}) } });
+  win.loadFile(path.join(__dirname, f), { query: { nosplash: '1', ...(filePath ? { blank: '1' } : {}), ...(tool === 'imgcircuit' ? { fromimage: '1' } : {}), ...(tool === 'codecircuit' ? { fromcode: '1' } : {}) } });
   if (filePath) win.webContents.once('did-finish-load', () => sendFile(win, filePath));
   return win;
 }
@@ -109,8 +109,8 @@ const template = [
   { label: 'View', submenu: [{ role: 'reload' }, { role: 'togglefullscreen' }, { type: 'separator' }, { role: 'resetZoom' }, { role: 'zoomIn' }, { role: 'zoomOut' }, { type: 'separator' }, { role: 'toggleDevTools' }] },
   { role: 'windowMenu' }
 ];
-if (!isMac) template.push({ label: 'Help', submenu: [{ label: 'About CEsim Studio', click: () => dialog.showMessageBox({ type: 'info', title: 'CEsim Studio', message: 'CEsim Studio', detail: 'Version 1.0.0\nBY. YOUSEF' }) }] });
-app.setAboutPanelOptions({ applicationName: 'CEsim Studio', applicationVersion: '1.0.0', credits: 'BY. YOUSEF' });
+if (!isMac) template.push({ label: 'Help', submenu: [{ label: 'About CEsim Studio', click: () => dialog.showMessageBox({ type: 'info', title: 'CEsim Studio', message: 'CEsim Studio', detail: 'Version 1.1.0\nBY. YOUSEF' }) }] });
+app.setAboutPanelOptions({ applicationName: 'CEsim Studio', applicationVersion: '1.1.0', credits: 'BY. YOUSEF' });
 app.whenReady().then(() => { Menu.setApplicationMenu(Menu.buildFromTemplate(template)); createStudio(); pendingPaths.splice(0).forEach(openPath); app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createStudio(); }); });
 app.on('window-all-closed', () => { if (!isMac) app.quit(); });
 /* self-test hook (only runs when CESIM_SELFTEST is set) */
