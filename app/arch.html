@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link href="fonts/fonts.css" rel="stylesheet"><title>CEsim Architecture</title>
+<style>
+:root{--bg:#e9edf2;--panel:#f7f8fa;--line:#cdd3dc;--text:#1b2230;--dim:#5e6979;--hover:#e1e7ef;--accent:#185fa5;--act:#1d63b8;--ctl:#d97706;--font:"IBM Plex Sans",-apple-system,"Segoe UI",Roboto,Arial,sans-serif;--mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;--lh:20px}
+*{box-sizing:border-box}html,body{height:100%;margin:0}body{background:var(--bg);color:var(--text);font:13px/1.35 var(--font);overflow:hidden}
+#app{display:grid;grid-template-rows:auto 1fr 28px;height:100%}
+#top{display:flex;flex-wrap:wrap;row-gap:2px;align-items:center;gap:2px;padding:4px 10px;min-height:44px;background:var(--panel);border-bottom:1px solid var(--line);user-select:none}
+.logo{flex:none;width:24px;height:24px;border-radius:6px;background:var(--accent);color:#fff;display:grid;place-items:center;font:600 10px var(--mono);margin-right:6px}
+#docname{flex:none;font-weight:600;margin-right:10px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:text;padding:3px 5px;border-radius:3px}#docname:hover{background:var(--hover)}
+.tb{flex:none;height:30px;min-width:30px;padding:0 9px;border:1px solid transparent;border-radius:4px;background:none;color:var(--text);cursor:pointer;font:12.5px var(--font);white-space:nowrap}
+.tb:hover{background:var(--hover);border-color:var(--line)}.tb.pri{background:var(--accent);color:#fff}.tb.pri:hover{filter:brightness(.92)}.tb:disabled{opacity:.4;cursor:default;background:none;border-color:transparent}
+.tb kbd{font:10.5px var(--mono);color:var(--dim);margin-left:4px}.tb.pri kbd{color:#cfe0f5}
+.sep{flex:none;width:1px;height:22px;background:var(--line);margin:0 6px}
+select.s{height:28px;border:1px solid var(--line);border-radius:4px;background:#fff;font:12px var(--font);color:var(--text)}
+.seg{display:flex;border:1px solid var(--line);border-radius:5px;overflow:hidden;margin-right:4px}.seg button{border:0;background:#fff;padding:0 11px;height:28px;font:600 12px var(--font);color:var(--dim);cursor:pointer}.seg button.on{background:var(--accent);color:#fff}
+#main{display:grid;grid-template-columns:400px minmax(0,1fr) 240px;min-height:0}
+#ed{position:relative;display:grid;grid-template-columns:52px minmax(0,1fr);background:#fff;min-height:0;overflow:hidden;border-right:1px solid var(--line)}
+#gut{position:relative;overflow:hidden;background:#f3f5f8;border-right:1px solid #e1e5eb;user-select:none;cursor:pointer}
+#gutIn{position:absolute;left:0;right:0;top:0;padding-top:8px;will-change:transform}
+.gl{height:var(--lh);font:12px/var(--lh) var(--mono);color:#98a2b0;text-align:right;padding-right:9px;position:relative}.gl.err{color:#c62828;font-weight:600}.gl.cur{color:#7a5a00;font-weight:600}.gl.cur::after{content:"";position:absolute;left:18px;top:5px;border:5px solid transparent;border-left:8px solid #e0a100}.gl.bp::before{content:"";position:absolute;left:5px;top:5px;width:10px;height:10px;border-radius:50%;background:#d93025}.gl.last{color:#1d63b8}
+#code{position:relative;overflow:hidden;min-width:0}
+#marks,#hl{position:absolute;left:0;top:0;will-change:transform;pointer-events:none}#marks{right:0}.mk{position:absolute;left:0;right:0;height:var(--lh)}.mk.err{background:#fdecec}.mk.cur{background:#fff3c4;box-shadow:inset 3px 0 #e0a100}.mk.last{background:#e8f1fc}
+#hl,#src{margin:0;padding:8px 12px 40px;font:12.5px/var(--lh) var(--mono);white-space:pre;tab-size:8}
+#src{position:absolute;inset:0;width:100%;height:100%;border:0;outline:0;resize:none;background:transparent;color:transparent;caret-color:#111;overflow:auto;z-index:2}#src::selection{background:rgba(26,140,255,.25)}
+.t-k{color:#0b57a8;font-weight:500}.t-r{color:#8b2fc9}.t-n{color:#b45309}.t-s{color:#15803d}.t-c{color:#7d8794;font-style:italic}.t-d{color:#0e7490;font-weight:500}.t-l{color:#b42318}.t-e{color:#c62828;font:italic 11.5px var(--font)}
+#center{display:grid;grid-template-rows:minmax(0,1fr) 6px var(--bh,270px);min-height:0;min-width:0}
+#dpWrap{background:#fff;overflow:auto;position:relative;display:flex;flex-direction:column}
+#dpHead{display:flex;align-items:center;gap:10px;padding:7px 12px;border-bottom:1px solid #eef1f4;font-size:12.5px;flex-wrap:wrap}
+#dpHead b{font:600 13px var(--mono)}#dpHead .k{font-size:11px;color:#fff;background:#5e6979;border-radius:3px;padding:1px 6px;text-transform:uppercase;letter-spacing:.04em}
+#fields{display:flex;gap:2px;margin-left:auto}.fd{border:1px solid #c9d2de;border-radius:3px;text-align:center;padding:1px 5px;background:#f7f9fc;min-width:34px}.fd i{display:block;font:10px var(--font);font-style:normal;color:var(--dim)}.fd b{font:600 11.5px var(--mono)}
+#dp{flex:1;min-height:0;width:100%;display:block}
+#ctl{display:flex;flex-wrap:wrap;gap:4px 10px;padding:6px 12px 8px;border-top:1px solid #eef1f4;font:11.5px var(--mono)}#ctl span{color:var(--dim)}#ctl b{color:var(--text)}#ctl .on b{color:var(--ctl)}
+#split{background:var(--panel);border-top:1px solid var(--line);border-bottom:1px solid var(--line);cursor:row-resize}#split:hover{background:#d8e2ee}
+#bot{display:grid;grid-template-rows:32px minmax(0,1fr);background:#fff;min-height:0}
+#tabs{display:flex;align-items:stretch;background:var(--panel);border-bottom:1px solid var(--line);padding-left:6px;user-select:none}
+.tab{border:0;background:none;padding:0 12px;font:12.5px var(--font);color:var(--dim);cursor:pointer;border-bottom:2px solid transparent}.tab:hover{color:var(--text)}.tab.on{color:var(--text);border-bottom-color:var(--accent);font-weight:600}.tab i{font-style:normal;background:#c62828;color:#fff;border-radius:9px;padding:0 6px;font-size:10.5px;margin-left:5px}
+.pane{min-height:0;overflow:auto;position:relative}
+#con{font:12.5px/1.45 var(--mono);padding:8px 12px;white-space:pre-wrap;word-break:break-all;min-height:100%}#con .in{color:#b45309}#con .hint{color:var(--dim);font:italic 12px var(--font)}
+.conin{position:sticky;bottom:0;display:flex;gap:6px;padding:5px 8px;background:var(--panel);border-top:1px solid var(--line)}.conin input{flex:1;height:26px;border:1px solid var(--line);border-radius:4px;padding:0 8px;font:12.5px var(--mono)}
+.btn{height:26px;padding:0 10px;border:1px solid var(--line);border-radius:4px;background:#fff;color:var(--text);cursor:pointer;font:12px var(--font)}.btn:hover{background:var(--hover)}.btn.pri{background:var(--accent);border-color:var(--accent);color:#fff}
+.mh{display:flex;align-items:center;gap:8px;padding:6px 10px;border-bottom:1px solid #eef1f4;position:sticky;top:0;background:#fff;z-index:2;flex-wrap:wrap;font-size:12px;color:var(--dim)}
+table.g{border-collapse:collapse;font:12px/1.5 var(--mono);width:100%}table.g th{position:sticky;top:0;background:#f3f6fa;font:600 11.5px var(--font);color:var(--dim);text-align:left;padding:4px 10px;border-bottom:1px solid var(--line)}table.g td{padding:2px 10px;border-bottom:1px solid #f0f2f5;white-space:nowrap}table.g tr.cur td{background:#fff3c4}table.g td.w{background:#ffe08a}
+.pw{overflow-x:auto}.pipe{border-collapse:collapse;font:11.5px var(--mono)}.pipe th,.pipe td{border:1px solid #e6eaf0;padding:2px 4px;text-align:center;min-width:34px;white-space:nowrap}.pipe th{background:#f3f6fa;color:var(--dim);font:600 11px var(--font)}.pipe th.ins{position:sticky;left:0;z-index:2}.pipe td.ins{text-align:left;min-width:170px;position:sticky;left:0;background:#fff;z-index:1}
+.pipe .IF{background:#dbeafe}.pipe .ID{background:#dcfce7}.pipe .EX{background:#fef3c7}.pipe .MEM{background:#fce7f3}.pipe .WB{background:#ede9fe}.pipe .st{background:#fde2e2;color:#b42318}.pipe .fl td.ins{color:#98a2b0;text-decoration:line-through}.pipe .fl .IF,.pipe .fl .ID{background:#f1f3f6;color:#98a2b0}.pipe td.nt{text-align:left;color:#5e6979;font-family:var(--font);font-size:11px;min-width:200px}
+.prob{display:flex;gap:10px;padding:6px 12px;border-bottom:1px solid #f0f2f5;cursor:pointer;font-size:12.5px}.prob:hover{background:#f5f8fc}.prob b{font:600 12px var(--mono);min-width:64px;color:#c62828}
+.empty{padding:16px;color:var(--dim);font-size:12.5px;line-height:1.55}
+#right{background:var(--panel);border-left:1px solid var(--line);overflow:auto;padding:4px 10px 16px;user-select:none}
+#right h3{font:600 11px var(--font);color:var(--dim);text-transform:uppercase;letter-spacing:.06em;margin:10px 0 6px;display:flex;justify-content:space-between;align-items:center}
+#regs{font:12px var(--mono);background:#fff;border:1px solid #dde2e9;border-radius:6px;overflow:hidden}
+.rg{display:grid;grid-template-columns:24px 50px 1fr;gap:4px;padding:2px 8px;border-bottom:1px solid #f0f2f5;align-items:center}.rg i{font-style:normal;color:#98a2b0;font-size:10.5px}.rg b{font-weight:500;color:#33404f}.rg span{text-align:right}.rg.chg{background:#ffe08a}.rg.rd{background:#e8f1fc}.rg.sp b{color:#8b2fc9}
+#statusbar{display:flex;align-items:center;gap:16px;padding:0 12px;background:var(--panel);border-top:1px solid var(--line);font-size:11.5px;color:var(--dim);white-space:nowrap;overflow:hidden}
+#status b{color:var(--text)}#status.err b{color:#b3261e}#status.ok b{color:#1f7a37}#pos{margin-left:auto;font-family:var(--mono)}
+.toast{position:fixed;left:50%;bottom:44px;transform:translateX(-50%);background:#1b2230;color:#fff;padding:9px 14px;border-radius:6px;font-size:12.5px;z-index:90;max-width:70vw}.toast.warn{background:#8a3a00}
+.menu{position:fixed;z-index:80;background:#fff;border:1px solid var(--line);border-radius:6px;box-shadow:0 10px 30px rgba(20,30,50,.18);padding:4px;min-width:250px;display:flex;flex-direction:column;max-height:80vh;overflow:auto}
+.menu button{display:flex;justify-content:space-between;gap:20px;border:none;background:none;text-align:left;padding:7px 10px;font:12.5px var(--font);border-radius:4px;cursor:pointer;color:var(--text)}.menu button:hover{background:#eaf3ff}.menu button span{color:var(--dim)}.menu hr{border:none;border-top:1px solid var(--line);margin:4px 0}.menu .mt{font:600 11px var(--font);color:var(--dim);padding:6px 10px 2px;text-transform:uppercase;letter-spacing:.05em}
+.ov{position:fixed;inset:0;background:rgba(15,20,30,.35);display:grid;place-items:center;z-index:70}
+.mdl{background:#fff;border-radius:10px;box-shadow:0 20px 50px rgba(0,0,0,.3);width:min(860px,92vw);max-height:86vh;display:flex;flex-direction:column}
+.mdl .mh2{display:flex;justify-content:space-between;align-items:center;padding:10px 16px;border-bottom:1px solid var(--line)}.mdl .mb{padding:6px 18px 18px;overflow:auto;font-size:13px;line-height:1.55}.mdl h4{margin:14px 0 4px;font-size:13px}.mdl code{font:12px var(--mono);background:#f1f4f8;padding:1px 4px;border-radius:3px}
+.edit{height:24px;font:13px var(--font);border:1px solid var(--accent);border-radius:4px;padding:0 4px}
+/* datapath svg */
+#dp .w{fill:none;stroke:#cfd6df;stroke-width:1.6}#dp .w.on{stroke:var(--act);stroke-width:2.6}#dp .w.hot{stroke:#16a34a;stroke-width:3}
+#dp .c{fill:none;stroke:#e5c9a3;stroke-width:1.2;stroke-dasharray:4 3}#dp .c.on{stroke:var(--ctl);stroke-width:1.8;stroke-dasharray:none}
+#dp .box{fill:#f7f9fc;stroke:#7d8a99;stroke-width:1.4}#dp .box.on{fill:#eaf2fd;stroke:var(--act);stroke-width:2}#dp .ctlb{fill:#fff7ed;stroke:#d97706;stroke-width:1.4}
+#dp text{font:11px var(--font);fill:#33404f}#dp .t{font:600 12px var(--font)}#dp .sm{font:9.5px var(--font);fill:#5e6979}#dp .v{font:600 10.5px var(--mono);fill:#1d63b8}#dp .vb{fill:#fff;stroke:#b9cbe6;stroke-width:1;rx:3}#dp .cv{font:600 10px var(--mono);fill:#b45309}
+#dp .dot{fill:var(--act)}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+[hidden]{display:none!important}
+</style></head>
+<body><div id="app">
+<div id="top">
+ <div class="logo">CE</div><span id="docname" title="Click to rename">program</span>
+ <div class="seg" role="group" aria-label="Instruction set"><button data-isa="mips" class="on">MIPS</button><button data-isa="rv">RISC-V</button></div>
+ <button class="tb" id="bFile">File ▾</button><button class="tb" id="bEx">Examples ▾</button><div class="sep"></div>
+ <button class="tb" id="bAsm" title="Assemble (F9)">Assemble<kbd>F9</kbd></button>
+ <button class="tb pri" id="bRun" title="Run or pause (F5)">Run<kbd>F5</kbd></button>
+ <button class="tb" id="bStep" title="Run one instruction (F8)">Step<kbd>F8</kbd></button>
+ <button class="tb" id="bBack" title="Undo the last instruction (F7)">Step back<kbd>F7</kbd></button>
+ <button class="tb" id="bReset" title="Start again (Ctrl+R)">Reset</button>
+ <select class="s" id="speed" aria-label="Run speed"><option value="2">2 per second</option><option value="10" selected>10 per second</option><option value="100">100 per second</option><option value="0">Full speed</option></select>
+ <div class="sep"></div><button class="tb" id="bRef">Reference</button>
+</div>
+<div id="main">
+ <div id="ed"><div id="gut"><div id="gutIn"></div></div><div id="code"><div id="marks"></div><pre id="hl" aria-hidden="true"></pre><textarea id="src" spellcheck="false" autocapitalize="off" autocomplete="off" wrap="off" aria-label="Assembly program"></textarea></div></div>
+ <div id="center">
+  <div id="dpWrap"><div id="dpHead"></div><svg id="dp" viewBox="0 0 900 470" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Single-cycle datapath"></svg><div id="ctl"></div></div>
+  <div id="split" title="Drag to resize"></div>
+  <div id="bot">
+   <div id="tabs"><button class="tab on" data-p="pipe">Pipeline</button><button class="tab" data-p="con">Console</button><button class="tab" data-p="mem">Data memory</button><button class="tab" data-p="lst">Machine code</button><button class="tab" data-p="prob">Problems</button></div>
+   <div class="pane" id="p-pipe"><div class="mh"><label><input type="checkbox" id="fwd" checked> Forwarding</label><span id="pinfo"></span><span style="margin-left:auto">5 stages · branches decided in EX, predicted not taken</span></div><div id="pipev"></div></div>
+   <div class="pane" id="p-con" hidden><div id="con"></div><div class="conin"><input id="conTxt" placeholder="Input for read syscalls (Enter)" aria-label="Input"><button class="btn pri" id="conSend">Send</button></div></div>
+   <div class="pane" id="p-mem" hidden><div class="mh"><span>Show</span><select class="s" id="memFmt"><option value="hex">Hex</option><option value="dec">Decimal</option><option value="chr">Characters</option></select><span>from</span><select class="s" id="memSeg"><option value="data">.data</option><option value="stack">Stack ($sp)</option><option value="text">.text</option></select></div><div id="memv"></div></div>
+   <div class="pane" id="p-lst" hidden><div id="lstv"></div></div>
+   <div class="pane" id="p-prob" hidden><div id="probv"></div></div>
+  </div>
+ </div>
+ <div id="right"><h3>Registers <select class="s" id="regFmt" style="height:22px;font-size:11px"><option value="hex">hex</option><option value="dec">decimal</option></select></h3><div id="regs"></div></div>
+</div>
+<div id="statusbar"><span id="status"><b>Ready.</b> Press F8 to step through the program</span><span id="cyc"></span><span id="pos">Ln 1, Col 1</span></div>
+</div>
+<input type="file" id="fileIn" accept=".s,.asm,.S,.txt" hidden>
+<script src="arch-core.js"></script>
+<script src="arch-examples.js"></script>
+<script>
+'use strict';
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];const N=window.cesimNative;const A=window.ARCH;
+const src=$('#src'),hl=$('#hl'),marks=$('#marks'),gutIn=$('#gutIn');
+const ST={isa:'mips',prog:null,cpu:null,dirty:true,running:false,name:'program',filePath:null,errLines:new Map(),bps:new Set(),tab:'pipe',prev:null,fromEx:true};
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const H=v=>'0x'+(v>>>0).toString(16).padStart(8,'0');
+/* ---------- editor ---------- */
+function hlLine(l){let o='',i=0,first=true;const n=l.length;while(i<n){const c=l[i];
+ if(c==='#'){o+=`<span class="t-c">${esc(l.slice(i))}</span>`;break}
+ if(c==='"'||c==="'"){let j=i+1;while(j<n&&l[j]!==c){if(l[j]==='\\')j++;j++}o+=`<span class="t-s">${esc(l.slice(i,j+1))}</span>`;i=j+1;continue}
+ if(c==='$'||/[A-Za-z_.]/.test(c)){let j=i+1;while(j<n&&/[\w.$]/.test(l[j]))j++;const w=l.slice(i,j),lw=w.toLowerCase();let cls='';if(w[0]==='$')cls='t-r';else if(w[0]==='.')cls='t-d';else if(l[j]===':'&&first)cls='t-l';else if(first)cls='t-k';else if(ST.isa==='rv'&&(A.RV_REGS.includes(lw)||/^x\d+$/.test(lw)||lw==='fp'))cls='t-r';o+=cls?`<span class="${cls}">${esc(w)}</span>`:esc(w);if(cls!=='t-l')first=false;i=j;continue}
+ if(/[0-9-]/.test(c)&&/[\s,(]/.test(l[i-1]||' ')){const m=l.slice(i).match(/^-?(0x[0-9a-fA-F]+|0b[01]+|\d+)/);if(m){o+=`<span class="t-n">${m[0]}</span>`;i+=m[0].length;continue}}
+ o+=esc(c);i++}return o}
+function lines(){return src.value.split('\n')}
+function renderEditor(){let h='';lines().forEach((l,i)=>{h+=hlLine(l);const e=ST.errLines.get(i+1);if(e)h+=`<span class="t-e">    ◂ ${esc(e)}</span>`;h+='\n'});hl.innerHTML=h;renderGutter()}
+function curLine(){const c=ST.cpu;if(!c||ST.dirty||['done','error'].includes(c.state))return 0;const w=c.text.get(c.pc);return w?w.line:0}
+function lastLine(){const c=ST.cpu;return c&&!ST.dirty&&c.trace?c.trace.line:0}
+function renderGutter(){const n=lines().length,cur=curLine(),last=lastLine();let h='';for(let i=1;i<=n;i++){const c=['gl'];if(ST.bps.has(i))c.push('bp');if(i===cur)c.push('cur');else if(i===last)c.push('last');if(ST.errLines.has(i))c.push('err');h+=`<div class="${c.join(' ')}" data-l="${i}"${ST.errLines.get(i)?` title="${esc(ST.errLines.get(i))}"`:''}>${i}</div>`}gutIn.innerHTML=h;
+ let m='';const add=(l,c)=>{m+=`<div class="mk ${c}" style="top:${8+(l-1)*20}px"></div>`};ST.errLines.forEach((v,l)=>add(l,'err'));if(last&&last!==cur)add(last,'last');if(cur)add(cur,'cur');marks.innerHTML=m;marks.style.height=(n*20+60)+'px'}
+function syncScroll(){hl.style.transform=`translate(${-src.scrollLeft}px,${-src.scrollTop}px)`;marks.style.transform=`translate(0,${-src.scrollTop}px)`;gutIn.style.transform=`translateY(${-src.scrollTop}px)`}
+src.addEventListener('scroll',syncScroll);
+src.addEventListener('input',()=>{ST.dirty=true;ST.fromEx=false;if(ST.running)pause();if(ST.errLines.size)ST.errLines=new Map();renderEditor();syncScroll();saveLocal();updPos()});
+src.addEventListener('keydown',e=>{if(e.key==='Tab'&&!e.ctrlKey&&!e.metaKey){e.preventDefault();const s=src.selectionStart,ln=src.value.lastIndexOf('\n',s-1)+1;const n=8-((s-ln)%8);document.execCommand('insertText',false,' '.repeat(n));return}
+ if(e.key==='Enter'&&!e.shiftKey){const s=src.selectionStart,ln=src.value.lastIndexOf('\n',s-1)+1;let ind=(src.value.slice(ln,s).match(/^\s*/)||[''])[0];if(!ind&&/^\s*[\w.]+:/.test(src.value.slice(ln,s)))ind='        ';e.preventDefault();document.execCommand('insertText',false,'\n'+ind);return}
+ if((e.ctrlKey||e.metaKey)&&e.key==='/'){e.preventDefault();const v=src.value;let a=v.lastIndexOf('\n',src.selectionStart-1)+1;let en=v.indexOf('\n',src.selectionEnd);if(en<0)en=v.length;const blk=v.slice(a,en).split('\n');const all=blk.every(l=>/^\s*#/.test(l)||!l.trim());const nb=blk.map(l=>all?l.replace(/^(\s*)#\s?/,'$1'):(l.trim()?'# '+l:l)).join('\n');src.setSelectionRange(a,en);document.execCommand('insertText',false,nb)}});
+['keyup','click','select'].forEach(ev=>src.addEventListener(ev,updPos));
+function updPos(){const s=src.selectionStart,b=src.value.slice(0,s);$('#pos').textContent=`Ln ${b.split('\n').length}, Col ${s-b.lastIndexOf('\n')}`}
+$('#gut').addEventListener('click',e=>{const g=e.target.closest('.gl');if(!g)return;const l=+g.dataset.l;if(ST.bps.has(l))ST.bps.delete(l);else ST.bps.add(l);renderGutter()});
+function gotoLine(l){const ls=lines();l=Math.max(1,Math.min(l,ls.length));let p=0;for(let i=0;i<l-1;i++)p+=ls[i].length+1;src.focus();src.setSelectionRange(p,p+ls[l-1].length);const top=(l-1)*20;if(top<src.scrollTop+20||top>src.scrollTop+src.clientHeight-60)src.scrollTop=Math.max(0,top-src.clientHeight/3);syncScroll();updPos()}
+function reveal(l){if(!l)return;const top=(l-1)*20;if(top<src.scrollTop+8||top>src.scrollTop+src.clientHeight-48){src.scrollTop=Math.max(0,top-src.clientHeight/3);syncScroll()}}
+
+/* ---------- run control ---------- */
+function assemble(quiet){const r=A.assemble(src.value,ST.isa);ST.errLines=new Map();for(const e of r.errors)if(e.line)ST.errLines.set(e.line,e.msg);ST.lastAsm=r;renderProblems();
+ if(!r.ok){ST.cpu=null;ST.prog=null;ST.dirty=true;renderEditor();setStatus(`<b>${r.errors.length} error${r.errors.length>1?'s':''}.</b> ${esc(r.errors[0].msg)}${r.errors[0].line?' (line '+r.errors[0].line+')':''}`,'err');showTab('prob');if(r.errors[0].line)gotoLine(r.errors[0].line);renderAll();return false}
+ ST.prog=r;ST.cpu=new A.CPU(r);ST.dirty=false;ST.prev=null;renderEditor();if(!quiet)setStatus(`<b>Assembled.</b> ${r.words.length} instruction words, ${r.data.length} bytes of data`,'ok');if(ST.tab==='prob')showTab('pipe');renderAll();reveal(curLine());return true}
+function ensure(){if(ST.dirty||!ST.cpu)return assemble(true)?'new':false;return'old'}
+function step(){if(ST.running)pause();const e=ensure();if(!e)return;const c=ST.cpu;if(['done','error'].includes(c.state)){toast('The program has ended. Press Reset to start again, or Step back');return}snap();const r=c.step();after(r);renderAll();reveal(curLine()||lastLine())}
+function snap(){const c=ST.cpu;ST.prev={r:c.r.slice(),pc:c.pc,hi:c.hi,lo:c.lo}}
+function after(r){const c=ST.cpu;if(r==='done'){ST.running=false;setStatus(`<b>${esc(c.msg)}.</b> ${c.steps} instructions`,'ok')}else if(r==='error'){ST.running=false;const l=c.curLine;if(l){ST.errLines=new Map([[l,c.msg]]);renderEditor()}setStatus(`<b>Stopped${l?' at line '+l:''}:</b> ${esc(c.msg)}`,'err');renderProblems(c.msg,l)}else if(r==='wait'){setStatus(`<b>Waiting for input.</b> Type ${c.waitKind==='int'?'a number':c.waitKind==='char'?'a character':'a line'} in the Console and press Enter`);showTab('con');$('#conTxt').focus()}else{const tr=c.trace;if(tr&&!ST.running)setStatus(`<b>Line ${tr.line}:</b> ${esc(A.disasm(ST.isa,tr.word))}`)}refreshButtons()}
+function run(){if(ST.running){pause();return}const e=ensure();if(!e)return;const c=ST.cpu;if(['done','error'].includes(c.state)){c.reset();ST.prev=null}ST.running=true;ST.skip=true;ST.acc=0;ST.lt=performance.now();setStatus('<b>Running…</b> F5 pauses');refreshButtons();requestAnimationFrame(loop)}
+function pause(){ST.running=false;refreshButtons();if(ST.cpu&&!['error','done'].includes(ST.cpu.state))setStatus(`<b>Paused</b> at line ${curLine()}`);renderAll()}
+function loop(){if(!ST.running)return;const c=ST.cpu;const sp=+$('#speed').value;const now=performance.now();let n;if(sp===0)n=Infinity;else{ST.acc+=Math.min(250,now-ST.lt)*sp/1000;n=Math.floor(ST.acc);ST.acc-=n}ST.lt=now;const t0=performance.now();let i=0,r='ok';
+ while(i<n){if(c.state==='waiting'){r='wait';break}const w=c.text.get(c.pc);if(w&&!w.k&&ST.bps.has(w.line)&&!ST.skip){ST.running=false;setStatus(`<b>Breakpoint</b> at line ${w.line}`);break}ST.skip=false;if(sp!==0||i%200===0)snap();r=c.step();i++;if(r!=='ok')break;if(sp===0&&(i&1023)===0&&performance.now()-t0>15)break}
+ if(r!=='ok')after(r);if(r==='wait'){renderAll();requestAnimationFrame(loop);return}if(!ST.running){refreshButtons();renderAll();reveal(curLine()||lastLine());return}
+ if(sp!==0||!ST.lr||now-ST.lr>100){ST.lr=now;renderAll(sp===0);if(sp&&sp<=10)reveal(lastLine())}requestAnimationFrame(loop)}
+function back(){if(ST.running)pause();const c=ST.cpu;if(!c||ST.dirty){toast('Nothing to undo yet');return}snap();if(!c.back()){toast('Already at the start');return}if(ST.errLines.size){ST.errLines=new Map();renderEditor()}setStatus(`<b>Stepped back</b> to line ${curLine()}`);renderAll();reveal(curLine())}
+function reset(){ST.running=false;if(ST.dirty||!ST.cpu){if(!assemble(true))return}else ST.cpu.reset();ST.prev=null;ST.errLines=new Map();renderEditor();setStatus('<b>Reset.</b> F8 steps, F5 runs');renderAll();refreshButtons();reveal(curLine())}
+function refreshButtons(){$('#bRun').innerHTML=(ST.running?'Pause':'Run')+'<kbd>F5</kbd>';$('#bBack').disabled=!ST.cpu||ST.dirty||!ST.cpu.hist.length;const c=ST.cpu;$('#cyc').textContent=c&&!ST.dirty?`${c.steps} instruction${c.steps===1?'':'s'}`:''}
+function setStatus(h,k){const s=$('#status');s.innerHTML=h;s.className=k||''}
+
+/* ---------- registers ---------- */
+function renderRegs(){const c=ST.cpu,p=ST.prev,names=ST.isa==='mips'?A.MIPS_REGS.map(x=>'$'+x):A.RV_REGS;const f=$('#regFmt').value;const tr=c&&!ST.dirty?c.trace:null;const reads=new Set(tr&&tr.d&&tr.kind!=='SYS'?A.srcRegs(tr,ST.isa):[]);
+ const fmt=v=>f==='hex'?H(v):String(v|0);let h='';
+ const row=(i,n,v,chg,cls)=>`<div class="rg ${chg?'chg':''} ${cls||''}"><i>${i}</i><b>${n}</b><span title="${v|0} · ${H(v)}">${fmt(v)}</span></div>`;
+ h+=row('',ST.isa==='mips'?'pc':'pc',c?c.pc:(ST.isa==='mips'?0x400000:0x400000),p&&c&&p.pc!==c.pc,'sp');
+ for(let i=0;i<32;i++){const v=c?c.r[i]:0;h+=row(i,names[i],v,p&&c&&p.r[i]!==c.r[i],(tr&&tr.wbReg===i)?'':reads.has(i)&&i?'rd':'')}
+ if(ST.isa==='mips'){h+=row('','hi',c?c.hi:0,p&&c&&p.hi!==c.hi,'sp');h+=row('','lo',c?c.lo:0,p&&c&&p.lo!==c.lo,'sp')}
+ $('#regs').innerHTML=h}
+$('#regFmt').onchange=renderRegs;
+
+/* ---------- datapath ---------- */
+function dpSVG(){const rv=ST.isa==='rv';return`
+<defs><marker id="ar" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L8 4L0 8z" fill="#9aa6b5"/></marker><marker id="ara" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L8 4L0 8z" fill="#1d63b8"/></marker></defs>
+<g id="wires">
+<path id="w-pc-im" class="w" d="M82 268H128"/><path id="w-pc-add" class="w" d="M100 268V72H128"/><text x="108" y="102" class="sm">4</text><path id="w-4" class="w" d="M114 98H128"/>
+<path id="w-add-out" class="w" d="M172 85H200V22H${rv?'766':'766'}V62"/><path id="w-pc4-wb" class="w" d="M200 22V22H845V355"/>
+<path id="w-im-ctl" class="w" d="M238 215H262V100H290"/><path id="w-im-rs" class="w" d="M238 238H360"/><path id="w-im-rt" class="w" d="M238 238M250 238V268H${rv?'360':'318'}"/>${rv?'':'<path id="w-rt-dst" class="w" d="M298 268H318"/><path id="w-im-rd" class="w" d="M250 268V300H318"/><path id="w-dst-wr" class="w" d="M332 288H360"/>'}${rv?'<path id="w-im-rd" class="w" d="M250 268V300H360"/>':''}
+<path id="w-im-imm" class="w" d="M250 300V405H392"/><path id="w-im-actl" class="w" d="M250 405V440H548"/>
+<path id="w-rd1" class="w" d="M480 248H560"/><path id="w-rd2" class="w" d="M480 300H516"/><path id="w-rd2-mem" class="w" d="M500 300V365H680"/>
+<path id="w-imm-mux" class="w" d="M462 405H505V325H516"/><path id="w-imm-sh" class="w" d="M505 325V170H${rv?'560':'510'}"/>${rv?'':'<path id="w-sh-add" class="w" d="M538 170H560"/>'}
+<path id="w-pc-badd" class="w" d="M200 85V126H560"/>
+<path id="w-mux-alu" class="w" d="M530 310H560"/><path id="w-alu-addr" class="w" d="M624 280H680"/><path id="w-alu-wb" class="w" d="M650 280V400H${rv?'800':'800'}V310H820"/>
+<path id="w-zero" class="w" d="M624 258H660V176H690"/><path id="w-badd-mux" class="w" d="M604 140H740V80H766"/>
+<path id="w-jmp" class="w" d="M480 248H500V58H766" ${rv?'':'style="display:none"'}/>${rv?'':'<path id="w-jaddr" class="w" d="M238 215H250V40H720V55H766"/>'}
+<path id="w-mem-wb" class="w" d="M792 290H820"/><path id="w-wb" class="w" d="M836 312H870V460H345V330H360"/>
+<path id="w-mux-pc" class="w" d="M782 80H790V8H22V268H38"/>
+</g>
+<g id="ctls">
+<path id="c-regdst" class="c" d="M335 60H325V258"/><path id="c-alusrc" class="c" d="M335 70H523V295"/><path id="c-memtoreg" class="c" d="M335 80H828V282"/><path id="c-regwrite" class="c" d="M335 90H420V200"/><path id="c-memread" class="c" d="M335 110H735V230"/><path id="c-memwrite" class="c" d="M335 120H755V230"/><path id="c-branch" class="c" d="M335 130H680V166H690"/><path id="c-aluop" class="c" d="M335 140H545V440H547"/>
+</g>
+<g id="parts">
+<rect id="b-pc" class="box" x="40" y="236" width="42" height="64" rx="3"/><text class="t" x="61" y="272" text-anchor="middle">PC</text>
+<path id="b-add" class="box" d="M128 60L172 72V98L128 110V92L136 85L128 78Z"/><text class="sm" x="150" y="89" text-anchor="middle">Add</text>
+<rect id="b-im" class="box" x="128" y="200" width="110" height="130" rx="3"/><text class="t" x="183" y="262" text-anchor="middle">Instruction</text><text class="t" x="183" y="277" text-anchor="middle">memory</text>
+<ellipse id="b-ctl" class="ctlb" cx="312" cy="98" rx="24" ry="50"/><text class="t" x="312" y="102" text-anchor="middle" style="fill:#b45309">Control</text>
+${rv?'':'<path id="b-dst" class="box" d="M318 260l14 6v32l-14 6z"/>'}
+<rect id="b-rf" class="box" x="360" y="200" width="120" height="140" rx="3"/><text class="t" x="420" y="190" text-anchor="middle">Registers</text><text class="sm" x="366" y="242">Read reg 1</text><text class="sm" x="366" y="272">Read reg 2</text><text class="sm" x="366" y="${rv?303:292}">Write reg</text><text class="sm" x="366" y="333">Write data</text><text class="sm" x="474" y="252" text-anchor="end">Data 1</text><text class="sm" x="474" y="304" text-anchor="end">Data 2</text>
+<ellipse id="b-imm" class="box" cx="427" cy="405" rx="35" ry="20"/><text class="sm" x="427" y="408" text-anchor="middle">${rv?'Imm Gen':'Sign-extend'}</text>
+${rv?'':'<ellipse id="b-sh" class="box" cx="524" cy="170" rx="16" ry="13"/><text class="sm" x="524" y="173" text-anchor="middle">«2</text>'}
+<path id="b-badd" class="box" d="M560 116L604 128V152L560 164V146L568 140L560 134Z"/><text class="sm" x="584" y="144" text-anchor="middle">Add</text>
+<path id="b-mux" class="box" d="M516 290l14 6v32l-14 6z"/>
+<path id="b-alu" class="box" d="M560 228L624 248V312L560 332V294L572 280L560 266Z"/><text class="t" x="598" y="284" text-anchor="middle">ALU</text>
+<ellipse id="b-actl" class="box" cx="585" cy="440" rx="38" ry="16"/><text class="sm" x="585" y="443" text-anchor="middle">ALU control</text>
+<path id="b-and" class="box" d="M690 160h12a14 14 0 0 1 0 28h-12z"/>
+<path id="b-pcmux" class="box" d="M766 50l16 6v42l-16 6z"/>
+<rect id="b-dm" class="box" x="680" y="230" width="112" height="140" rx="3"/><text class="t" x="736" y="318" text-anchor="middle">Data</text><text class="t" x="736" y="333" text-anchor="middle">memory</text><text class="sm" x="686" y="284">Address</text><text class="sm" x="686" y="369">Write data</text><text class="sm" x="786" y="294" text-anchor="end">Read data</text>
+<path id="b-wbmux" class="box" d="M820 272l16 6v44l-16 6z"/>
+</g>
+<g id="vals"></g>`}
+const WIRES={pc:['w-pc-im','w-pc-add','w-4','w-add-out','w-mux-pc'],
+ R:['w-im-ctl','w-im-rs','w-im-rt','w-rt-dst','w-im-rd','w-dst-wr','w-rd1','w-rd2','w-mux-alu','w-alu-wb','w-wb','w-im-actl'],
+ I:['w-im-ctl','w-im-rs','w-im-rt','w-rt-dst','w-dst-wr','w-rd1','w-im-imm','w-imm-mux','w-mux-alu','w-alu-wb','w-wb','w-im-actl','w-im-rd'],
+ U:['w-im-ctl','w-im-rd','w-im-imm','w-imm-mux','w-mux-alu','w-alu-wb','w-wb'],
+ L:['w-im-ctl','w-im-rs','w-im-rt','w-rt-dst','w-dst-wr','w-rd1','w-im-imm','w-imm-mux','w-mux-alu','w-alu-addr','w-mem-wb','w-wb','w-im-rd'],
+ S:['w-im-ctl','w-im-rs','w-im-rt','w-rd1','w-rd2','w-rd2-mem','w-im-imm','w-imm-mux','w-mux-alu','w-alu-addr'],
+ B:['w-im-ctl','w-im-rs','w-im-rt','w-rd1','w-rd2','w-mux-alu','w-zero','w-im-imm','w-imm-sh','w-sh-add','w-pc-badd','w-badd-mux'],
+ J:['w-im-ctl','w-jaddr','w-im-imm','w-imm-sh','w-pc-badd','w-badd-mux','w-im-rd','w-pc4-wb','w-wb'],
+ JR:['w-im-ctl','w-im-rs','w-rd1','w-jmp','w-im-rd','w-pc4-wb','w-wb','w-im-imm','w-imm-mux','w-mux-alu'],
+ MD:['w-im-ctl','w-im-rs','w-im-rt','w-rd1','w-rd2','w-mux-alu'],SYS:['w-im-ctl']};
+function renderDatapath(){const svg=$('#dp');if(svg.dataset.isa!==ST.isa){svg.innerHTML=dpSVG();svg.dataset.isa=ST.isa}
+ const c=ST.cpu,tr=c&&!ST.dirty?c.trace:null;svg.querySelectorAll('.w,.c,.box').forEach(e=>e.classList.remove('on','hot'));const vals=svg.querySelector('#vals');vals.innerHTML='';
+ const head=$('#dpHead'),ctl=$('#ctl');
+ if(!tr){head.innerHTML=`<span style="color:var(--dim)">${c&&!ST.dirty?'Press F8 to run the first instruction and see it flow through the datapath.':'Single-cycle datapath. Press F8 to step: the parts and wires each instruction uses light up, with their values.'}</span>`;ctl.innerHTML='';return}
+ const on=id=>{const e=svg.querySelector('#'+id);if(e)e.classList.add('on')};const rv=ST.isa==='rv';
+ let kind=tr.kind;let ws=[...WIRES.pc,...(WIRES[kind]||[])];if(kind==='R'&&tr.wbReg==null)ws=ws.filter(w=>!['w-alu-wb','w-wb','w-dst-wr'].includes(w));if(rv&&kind==='I'&&tr.d)ws=ws.filter(w=>w!=='w-im-rt');if(!rv)ws=ws.filter(w=>w!=='w-im-rd'||kind==='R'||kind==='J'||kind==='JR');
+ if(kind==='J'&&!rv)ws=ws.filter(w=>!['w-im-imm','w-imm-sh','w-pc-badd','w-badd-mux'].includes(w));if(kind==='J'&&rv)ws=ws.filter(w=>w!=='w-jaddr');if((kind==='J'||kind==='JR')&&tr.wbReg==null)ws=ws.filter(w=>!['w-pc4-wb','w-wb','w-im-rd'].includes(w));
+ if(kind==='JR'&&!rv)ws=ws.filter(w=>!['w-im-imm','w-imm-mux','w-mux-alu'].includes(w));if(kind==='JR'&&rv)ws=ws.filter(w=>w!=='w-jmp');
+ ws.forEach(on);
+ if(kind==='JR'&&rv){on('w-alu-addr');svg.querySelector('#w-alu-addr').classList.remove('on')}
+ const hot=id=>{const e=svg.querySelector('#'+id);if(e)e.classList.add('hot')};
+ if(kind==='B'&&tr.taken){hot('w-badd-mux')}else if(kind==='B'){svg.querySelector('#w-badd-mux').classList.remove('on')}
+ if(kind==='J'||kind==='JR'){if(rv&&kind==='J')hot('w-badd-mux');else if(rv&&kind==='JR')hot('w-alu-wb');else if(kind==='J')hot('w-jaddr');else hot('w-jmp')}
+ const parts={R:['b-pc','b-add','b-im','b-rf','b-mux','b-alu','b-actl','b-wbmux','b-pcmux','b-dst'],I:['b-pc','b-add','b-im','b-rf','b-imm','b-mux','b-alu','b-actl','b-wbmux','b-pcmux','b-dst'],U:['b-pc','b-add','b-im','b-rf','b-imm','b-mux','b-alu','b-wbmux','b-pcmux'],L:['b-pc','b-add','b-im','b-rf','b-imm','b-mux','b-alu','b-dm','b-wbmux','b-pcmux','b-dst'],S:['b-pc','b-add','b-im','b-rf','b-imm','b-mux','b-alu','b-dm','b-pcmux'],B:['b-pc','b-add','b-im','b-rf','b-imm','b-sh','b-badd','b-mux','b-alu','b-and','b-pcmux','b-actl'],J:['b-pc','b-add','b-im','b-pcmux','b-imm','b-badd','b-rf','b-wbmux'],JR:['b-pc','b-add','b-im','b-rf','b-pcmux','b-alu','b-wbmux'],MD:['b-pc','b-add','b-im','b-rf','b-alu','b-pcmux'],SYS:['b-pc','b-add','b-im','b-pcmux']};
+ (parts[kind]||[]).forEach(on);
+ const C=tr.ctrl||{};const cmap=rv?{'c-alusrc':C.ALUSrc===1,'c-memtoreg':C.MemtoReg!=='00'&&C.MemtoReg!=='XX'&&C.MemtoReg!==0,'c-regwrite':C.RegWrite===1,'c-memread':C.MemRead===1,'c-memwrite':C.MemWrite===1,'c-branch':C.Branch===1,'c-aluop':C.ALUOp!=='00'}:{'c-regdst':C.RegDst===1||C.RegDst==='31','c-alusrc':C.ALUSrc===1,'c-memtoreg':C.MemtoReg===1,'c-regwrite':C.RegWrite===1,'c-memread':C.MemRead===1,'c-memwrite':C.MemWrite===1,'c-branch':C.Branch===1,'c-aluop':C.ALUOp!=='00'&&C.ALUOp!=='XX'};
+ for(const k in cmap)if(cmap[k])on(k);if(rv){const e=svg.querySelector('#c-regdst');if(e)e.style.display='none'}
+ // values
+ const lab=(x,y,t,anchor)=>{const w=t.length*6.6+8;const x0=anchor==='end'?x-w:anchor==='mid'?x-w/2:x;vals.insertAdjacentHTML('beforeend',`<rect class="vb" x="${x0}" y="${y-11}" width="${w}" height="15"/><text class="v" x="${x0+4}" y="${y}">${esc(t)}</text>`)};
+ const hx=v=>'0x'+(v>>>0).toString(16),dv=v=>String(v|0);const sv=v=>Math.abs(v|0)<10000?dv(v):hx(v);
+ lab(44,230,hx(tr.pc),'');lab(174,52,hx((tr.pc+4)>>>0),'');lab(128,196,hx(tr.word).padStart(10,' '),'');
+ const R=n=>A.regName(ST.isa,n);
+ if(tr.d&&!['J','SYS'].includes(kind)){if(tr.rsv!=null&&['R','I','L','S','B','JR','MD'].includes(kind))lab(484,243,sv(tr.rsv),'');if(['R','S','B','MD'].includes(kind))lab(484,296,sv(tr.rtv),'')}
+ if(tr.imm!=null&&['I','L','S','B','U','J'].includes(kind)||(kind==='JR'&&rv))lab(430,385,sv(tr.imm||0),'mid');
+ if(tr.aluOp&&tr.alu!=null&&!['J','SYS'].includes(kind)){lab(628,240,sv(tr.alu),'');vals.insertAdjacentHTML('beforeend',`<text class="cv" x="585" y="462" text-anchor="middle">${esc(tr.aluOp)}</text>`)}
+ if(tr.aluB!=null&&['R','I','L','S','B','U','MD','JR'].includes(kind))lab(538,345,sv(tr.aluB),'');
+ if(tr.memAddr!=null)lab(682,226,hx(tr.memAddr),'');if(tr.memRead!=null)lab(798,286,sv(tr.memRead),'');if(tr.memWrite!=null)lab(600,378,sv(tr.memWrite),'');
+ if(tr.wbReg!=null)lab(356,474,`${R(tr.wbReg)} ← ${sv(tr.wbVal)}`,'');
+ if(kind==='B')vals.insertAdjacentHTML('beforeend',`<text class="cv" x="712" y="200">${tr.taken?'taken':'not taken'}</text>`);
+ lab(796,40,'next '+hx(tr.next),'');
+ // header
+ const d=tr.d;const kn={R:'R-type',I:'I-type',L:'Load',S:'Store',B:'Branch',J:'Jump',JR:'Jump register',U:'Upper immediate',MD:'Multiply / divide',SYS:'System call'}[kind]||kind;
+ let F='';if(!rv){if(d.fmt==='R')F=fd('op',d.op,6)+fd('rs',d.rs,5)+fd('rt',d.rt,5)+fd('rd',d.rd,5)+fd('shamt',d.sh,5)+fd('funct',d.fn,6);else if(d.fmt==='J')F=fd('op',d.op,6)+fd('address',d.target,26,true);else F=fd('op',d.op,6)+fd('rs',d.rs,5)+fd('rt',d.rt,5)+fd('immediate',d.imm,16,true)}
+ else{const w=tr.word>>>0;const bits=(h,l)=>(w>>>l)&((1<<(h-l+1))-1);if(d.fmt==='R')F=fd('funct7',d.f7,7)+fd('rs2',d.rs2,5)+fd('rs1',d.rs1,5)+fd('funct3',d.f3,3)+fd('rd',d.rd,5)+fd('opcode',d.op,7);else if(d.fmt==='I')F=fd('imm[11:0]',bits(31,20),12,true)+fd('rs1',d.rs1,5)+fd('funct3',d.f3,3)+fd('rd',d.rd,5)+fd('opcode',d.op,7);else if(d.fmt==='S'||d.fmt==='B')F=fd('imm',bits(31,25),7,true)+fd('rs2',d.rs2,5)+fd('rs1',d.rs1,5)+fd('funct3',d.f3,3)+fd('imm',bits(11,7),5,true)+fd('opcode',d.op,7);else F=fd('imm',bits(31,12),20,true)+fd('rd',d.rd,5)+fd('opcode',d.op,7)}
+ head.innerHTML=`<span class="k">${kn}</span><b>${esc(A.disasm(ST.isa,tr.word))}</b><span style="color:var(--dim)">line ${tr.line}</span><div id="fields">${F}</div>`;
+ const cs=Object.entries(C).map(([k,v])=>`<span class="${v===1||(typeof v==='string'&&/1/.test(v))?'on':''}">${k} <b>${v}</b></span>`).join('');ctl.innerHTML=`<span style="color:#b45309;font-family:var(--font);font-weight:600">Control</span>${cs}`}
+function fd(n,v,b,hexv){return`<div class="fd" title="${b} bits"><i>${n}</i><b>${hexv?'0x'+(v>>>0).toString(16):v}</b></div>`}
+
+/* ---------- pipeline ---------- */
+function renderPipe(){const el=$('#pipev');const c=ST.cpu;if(!c||ST.dirty||!c.exec.length){el.innerHTML='<div class="empty">Step through the program: each instruction appears here in the 5-stage pipeline IF, ID, EX, MEM, WB. Stalls (red) and flushes (grey) show the hazards. Untick Forwarding to see the difference.</div>';$('#pinfo').textContent='';return}
+ const fwd=$('#fwd').checked;const all=A.pipeline(c.exec,ST.isa,{forwarding:fwd});const maxRows=60;const rows=all.rows.slice(-maxRows);const c0=Math.max(0,Math.min(...rows.map(r=>r.if)));const c1=Math.max(...rows.map(r=>r.flush?(r.id!=null?r.id:r.if):r.wb));
+ $('#pinfo').textContent=`${all.instrs} instructions in ${all.cycles} cycles · CPI ${all.cpi.toFixed(2)} · ${fwd?'with':'without'} forwarding`;
+ let h=`<table class="pipe"><tr><th class="ins">Instruction</th>${Array.from({length:c1-c0+1},(_,k)=>`<th>${c0+k+1}</th>`).join('')}<th>Notes</th></tr>`;
+ for(const r of rows){let cells='';for(let k=c0;k<=c1;k++){let s='',cl='';if(r.flush){if(k===r.if){s='IF';cl='IF'}else if(r.id!=null&&k===r.id){s='ID';cl='ID'}}else{if(k===r.if){s='IF';cl='IF'}else if(k>r.if&&k<r.id){s='stall';cl='st'}else if(k===r.id){s='ID';cl='ID'}else if(k===r.ex){s='EX';cl='EX'}else if(k===r.mem){s='MEM';cl='MEM'}else if(k===r.wb){s='WB';cl='WB'}}cells+=`<td class="${cl}">${s}</td>`}
+  const w=c.text.get(r.addr);const txt=w?A.disasm(ST.isa,w.word):'?';h+=`<tr class="${r.flush?'fl':''}"><td class="ins" title="line ${w?w.line:''}">${esc(txt)}</td>${cells}<td class="nt">${esc(r.notes.join('; '))}</td></tr>`}
+ el.innerHTML='<div class="pw">'+h+'</table></div>';const p=$('#p-pipe');p.scrollTop=p.scrollHeight;const pw=el.querySelector('.pw');pw.scrollLeft=pw.scrollWidth}
+$('#fwd').onchange=renderPipe;
+/* ---------- console, memory, listing, problems ---------- */
+function renderConsole(){const c=ST.cpu,el=$('#con');if(!c){el.innerHTML='<span class="hint">Output of print syscalls appears here. When the program reads input, type below and press Enter.</span>';return}let h=esc(c.out);if(c.inQ)h+=`<span class="in">${esc(c.inQ)}</span>`;if(c.state==='done')h+=`\n<span class="hint">${esc(c.msg)}.</span>`;if(c.state==='error')h+=`\n<span style="color:#c62828">${esc(c.msg)}</span>`;el.innerHTML=h||'<span class="hint">No output yet.</span>'}
+function sendInput(){const c=ST.cpu;if(!c||ST.dirty){toast('Run the program first');return}const v=$('#conTxt').value;c.inQ+=v+'\n';$('#conTxt').value='';if(c.state==='waiting'){snap();const r=c.step();after(r);if(r==='ok'&&ST.running){}}renderAll()}
+$('#conSend').onclick=sendInput;$('#conTxt').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();sendInput()}};
+function renderMem(){const el=$('#memv'),c=ST.cpu;if(!c){el.innerHTML='<div class="empty">Assemble the program to see memory.</div>';return}const seg=$('#memSeg').value,f=$('#memFmt').value;const L=c.prog.layout;let start=seg==='data'?L.data:seg==='text'?L.text:((c.r[ST.isa==='mips'?29:2]>>>0)&~15)-32;
+ const w=new Set();const last=c.hist[c.hist.length-1];if(last)for(let i=0;i<last.w.length;i+=2)w.add(last.w[i]&~3);
+ const labels=new Map();for(const[k,v]of c.prog.syms)if(!labels.has(v>>>0))labels.set(v>>>0,k);
+ let h='<table class="g"><tr><th>Address</th><th>Label</th>'+[0,4,8,12].map(o=>`<th>+${o}</th>`).join('')+'</tr>';
+ for(let r=0;r<24;r++){const a=(start+r*16)>>>0;const lbl=[0,4,8,12].map(o=>labels.get(a+o)).filter(Boolean).join(', ');h+=`<tr><td>${H(a)}</td><td style="color:#b42318">${esc(lbl)}</td>`;for(const o of[0,4,8,12]){const v=c.rd(a+o,4);let s=f==='hex'?H(v):f==='dec'?String(v|0):[0,1,2,3].map(k=>{const b=(v>>>(8*k))&255;return b>=32&&b<127?String.fromCharCode(b):b?'·':'∅'}).join(' ');h+=`<td class="${w.has(a+o)?'w':''}">${esc(s)}</td>`}h+='</tr>'}el.innerHTML=h+'</table>'}
+$('#memSeg').onchange=renderMem;$('#memFmt').onchange=renderMem;
+function renderListing(){const el=$('#lstv');const r=ST.prog||ST.lastAsm;if(!r||!r.words||!r.words.length){el.innerHTML='<div class="empty">Assemble the program to see the machine code of every instruction.</div>';return}const c=ST.cpu;const ls=lines();let h='<table class="g"><tr><th>Address</th><th>Machine code</th><th>Binary</th><th>Instruction</th><th>Line</th><th>Source</th></tr>';
+ for(const w of r.words){const cur=c&&c.pc===w.addr&&!ST.dirty;h+=`<tr class="${cur?'cur':''}" data-l="${w.line}"><td>${H(w.addr)}</td><td>${H(w.word)}</td><td style="color:#5e6979">${(w.word>>>0).toString(2).padStart(32,'0').replace(/(.{4})/g,'$1 ').trim()}</td><td>${esc(A.disasm(r.isa,w.word))}</td><td>${w.line}</td><td style="color:#5e6979">${w.k?'':esc((ls[w.line-1]||'').trim())}</td></tr>`}el.innerHTML=h+'</table>'}
+$('#lstv').addEventListener('click',e=>{const t=e.target.closest('tr[data-l]');if(t)gotoLine(+t.dataset.l)});
+function renderProblems(rtMsg,rtLine){const r=ST.lastAsm;const errs=(r?r.errors:[]).slice();if(rtMsg)errs.push({line:rtLine,msg:rtMsg});$('[data-p=prob]').innerHTML='Problems'+(errs.length?`<i>${errs.length}</i>`:'');$('#probv').innerHTML=errs.length?errs.map(e=>`<div class="prob" data-l="${e.line}"><b>${e.line?'Line '+e.line:'Program'}</b><span>${esc(e.msg)}</span></div>`).join(''):'<div class="empty">No problems.</div>'}
+$('#probv').addEventListener('click',e=>{const d=e.target.closest('.prob');if(d&&+d.dataset.l)gotoLine(+d.dataset.l)});
+function renderAll(light){renderRegs();renderDatapath();renderConsole();if(!light){if(ST.tab==='pipe')renderPipe();if(ST.tab==='mem')renderMem();if(ST.tab==='lst')renderListing()}else if(ST.tab==='pipe'&&(!ST.lp||performance.now()-ST.lp>300)){ST.lp=performance.now();renderPipe()}renderGutter();refreshButtons()}
+function showTab(p){ST.tab=p;$$('.tab').forEach(t=>t.classList.toggle('on',t.dataset.p===p));$$('.pane').forEach(x=>x.hidden=x.id!=='p-'+p);renderAll()}
+$('#tabs').addEventListener('click',e=>{const t=e.target.closest('.tab');if(t)showTab(t.dataset.p)});
+(()=>{const sp=$('#split');let y0,h0;sp.onpointerdown=e=>{y0=e.clientY;h0=$('#bot').getBoundingClientRect().height;sp.setPointerCapture(e.pointerId);sp.onpointermove=ev=>{const h=Math.max(120,Math.min(window.innerHeight-260,h0-(ev.clientY-y0)));$('#center').style.setProperty('--bh',h+'px')}};sp.onpointerup=()=>{sp.onpointermove=null}})();
+
+/* ---------- ISA, files, menus ---------- */
+function setIsa(isa,keep){if(isa===ST.isa&&keep)return;ST.isa=isa;$$('.seg button').forEach(b=>b.classList.toggle('on',b.dataset.isa===isa));$('#memSeg').options[1].textContent=isa==='mips'?'Stack ($sp)':'Stack (sp)';ST.cpu=null;ST.prog=null;ST.dirty=true;ST.lastAsm=null;if(!keep&&ST.fromEx){const k=Object.keys(ARCH_EXAMPLES[isa])[0];src.value=ARCH_EXAMPLES[isa][k];setName(isa==='mips'?'hello_mips':'hello_riscv')}ST.errLines=new Map();renderEditor();renderProblems();renderAll();setStatus(`<b>${isa==='mips'?'MIPS':'RISC-V'}.</b> Press F8 to step`);saveLocal()}
+$$('.seg button').forEach(b=>b.onclick=()=>{if(b.dataset.isa===ST.isa)return;const was=ST.fromEx;setIsa(b.dataset.isa,!was);if(!was)toast(`Switched to ${b.dataset.isa==='mips'?'MIPS':'RISC-V'}. Your code was kept: check that it uses ${b.dataset.isa==='mips'?'MIPS registers like $t0':'RISC-V registers like t0'}`)});
+function toast(m,warn){$$('.toast').forEach(x=>x.remove());const t=document.createElement('div');t.className='toast'+(warn?' warn':'');t.textContent=m;document.body.appendChild(t);setTimeout(()=>t.remove(),warn?5500:3200)}
+function menu(btn,items){closeMenu();const m=document.createElement('div');m.className='menu';m.id='menu';for(const it of items){if(it==='-'){m.appendChild(document.createElement('hr'));continue}if(it.title){const d=document.createElement('div');d.className='mt';d.textContent=it.title;m.appendChild(d);continue}const b=document.createElement('button');b.innerHTML=`${esc(it[0])}${it[2]?`<span>${it[2]}</span>`:''}`;b.onclick=()=>{closeMenu();it[1]()};m.appendChild(b)}document.body.appendChild(m);const r=btn.getBoundingClientRect();m.style.left=r.left+'px';m.style.top=(r.bottom+4)+'px';setTimeout(()=>document.addEventListener('pointerdown',outside,true),0)}
+function outside(e){if(!e.target.closest('#menu'))closeMenu()}
+function closeMenu(){const m=$('#menu');if(m)m.remove();document.removeEventListener('pointerdown',outside,true)}
+function setName(n){ST.name=n||'program';$('#docname').textContent=ST.name;document.title=ST.name+' · CEsim Architecture'}
+function detectIsa(t){const mips=(t.match(/\$(t\d|s\d|a\d|v\d|zero|ra|sp|at)\b/g)||[]).length,rv=(t.match(/\b(ecall|x\d+|a[0-7]|t[0-6]|s(1[01]|\d))\b/g)||[]).length;return mips>=rv?'mips':'rv'}
+function loadText(text,name,path,isa){if(ST.running)pause();src.value=text.replace(/\r\n/g,'\n');setName(name);ST.filePath=path||null;ST.fromEx=false;ST.bps.clear();setIsa(isa||detectIsa(src.value),true);ST.isa=isa||detectIsa(src.value);$$('.seg button').forEach(b=>b.classList.toggle('on',b.dataset.isa===ST.isa));ST.cpu=null;ST.dirty=true;ST.errLines=new Map();renderEditor();src.scrollTop=0;syncScroll();renderAll();setStatus('<b>Ready.</b> Press F8 to step through the program');saveLocal()}
+window.cesimOpenText=(name,text,path)=>{loadText(text,name.replace(/\.[^.]+$/,''),path);toast(`Opened ${name} as ${ST.isa==='mips'?'MIPS':'RISC-V'}`)};
+$('#fileIn').addEventListener('change',async e=>{const f=e.target.files[0];if(f)window.cesimOpenText(f.name,await f.text(),N&&N.pathFor?N.pathFor(f):null);e.target.value=''});
+async function saveFile(asNew){const nm=ST.name.replace(/[^\w.-]+/g,'_')+(ST.isa==='mips'?'.asm':'.s');const text=src.value;if(N&&N.write&&ST.filePath&&!asNew){await N.write(ST.filePath,text);toast('Saved '+ST.filePath.split(/[\\/]/).pop());return}if(N&&N.save){const r=await N.save(nm,text);if(r){ST.filePath=r;setName(r.split(/[\\/]/).pop().replace(/\.[^.]+$/,''));toast('Saved '+r.split(/[\\/]/).pop())}return}const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:'text/plain'}));a.download=nm;document.body.appendChild(a);a.click();a.remove()}
+function exportBin(){if(ST.dirty||!ST.prog){if(!assemble(true))return}const lines2=ST.prog.words.map(w=>(w.word>>>0).toString(16).padStart(8,'0'));const t=lines2.join('\n')+'\n';const nm=ST.name.replace(/[^\w.-]+/g,'_')+'.hex';const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([t],{type:'text/plain'}));a.download=nm;document.body.appendChild(a);a.click();a.remove();toast('Saved the machine code, one word per line. It loads into a Verilog memory with $readmemh')}
+$('#bFile').onclick=e=>menu(e.currentTarget,[['New',()=>{loadText(ST.isa==='mips'?'        .data\n\n        .text\nmain:   \n        li   $v0, 10\n        syscall\n':'        .data\n\n        .text\nmain:   \n        li   a7, 10\n        ecall\n','program',null,ST.isa)},''],['Open…',()=>$('#fileIn').click(),'Ctrl+O'],'-',['Save',()=>saveFile(false),'Ctrl+S'],['Save as…',()=>saveFile(true),'Ctrl+Shift+S'],'-',['Save machine code (.hex)',exportBin,'']]);
+$('#bEx').onclick=e=>{const items=[];for(const isa of['mips','rv']){items.push({title:isa==='mips'?'MIPS':'RISC-V'});for(const k of Object.keys(ARCH_EXAMPLES[isa]))items.push([k,()=>{loadText(ARCH_EXAMPLES[isa][k],k.toLowerCase().replace(/[^a-z0-9]+/g,'_')+(isa==='mips'?'_mips':'_riscv'),null,isa);ST.fromEx=true;toast('Loaded: '+k+'. Press F8 to step')}])}menu(e.currentTarget,items)};
+$('#docname').onclick=()=>{const el=$('#docname');const inp=document.createElement('input');inp.className='edit';inp.value=ST.name;el.textContent='';el.appendChild(inp);inp.focus();inp.select();let done=false;const fin=ok=>{if(done)return;done=true;setName(ok&&inp.value.trim()?inp.value.trim():ST.name);saveLocal()};inp.onkeydown=e=>{if(e.key==='Enter')fin(true);if(e.key==='Escape')fin(false);e.stopPropagation()};inp.onblur=()=>fin(true)};
+$('#bAsm').onclick=()=>{if(ST.running)pause();assemble()};$('#bRun').onclick=run;$('#bStep').onclick=step;$('#bBack').onclick=back;$('#bReset').onclick=reset;$('#bRef').onclick=showRef;
+document.addEventListener('keydown',e=>{const k=e.key;if(e.target.id==='conTxt')return;if(k==='F5'){e.preventDefault();run()}else if(k==='F8'&&e.shiftKey||k==='F7'){e.preventDefault();back()}else if(k==='F8'){e.preventDefault();step()}else if(k==='F9'){e.preventDefault();$('#bAsm').click()}else if((e.ctrlKey||e.metaKey)&&k.toLowerCase()==='r'){e.preventDefault();reset()}else if((e.ctrlKey||e.metaKey)&&k.toLowerCase()==='s'){e.preventDefault();saveFile(e.shiftKey)}else if((e.ctrlKey||e.metaKey)&&k.toLowerCase()==='o'){e.preventDefault();$('#fileIn').click()}else if(k==='Escape'){closeMenu();const o=$('.ov');if(o)o.remove();else if(ST.running)pause()}});
+document.addEventListener('dragover',e=>e.preventDefault());document.addEventListener('drop',async e=>{e.preventDefault();const f=e.dataTransfer.files[0];if(f)window.cesimOpenText(f.name,await f.text(),N&&N.pathFor?N.pathFor(f):null)});
+function showRef(){const o=document.createElement('div');o.className='ov';const mips=ST.isa==='mips';o.innerHTML=`<div class="mdl" role="dialog" aria-label="Reference"><div class="mh2"><b>${mips?'MIPS':'RISC-V'} reference</b><button class="btn" id="refX">Close</button></div><div class="mb">
+<h4>Program layout</h4><p><code>.data</code> holds variables (<code>.word</code>, <code>.half</code>, <code>.byte</code>, <code>${mips?'.asciiz':'.asciz'}</code>, <code>.space</code>, <code>.align</code>) from address 0x10010000. <code>.text</code> holds instructions from 0x00400000. The program starts at the label <code>main</code>, or at the first instruction.</p>
+${mips?`<h4>Instructions</h4><p>add addu sub subu and or xor nor slt sltu · addi addiu andi ori xori slti sltiu lui · sll srl sra sllv srlv srav · mult multu div divu mfhi mflo mul · lw lh lhu lb lbu sw sh sb · beq bne blez bgtz bltz bgez · j jal jr jalr · syscall</p><h4>Pseudo-instructions</h4><p>li la move not neg nop b beqz bnez blt bgt ble bge (and unsigned forms), lw from a label. They become one or two real instructions, shown in the Machine code tab. They may use $at.</p><h4>System calls</h4><p>Set <code>$v0</code>, then <code>syscall</code>: 1 print integer ($a0) · 4 print string ($a0) · 5 read integer (into $v0) · 8 read string ($a0 buffer, $a1 size) · 10 exit · 11 print character · 12 read character · 17 exit with code.</p>`
+:`<h4>Instructions (RV32IM)</h4><p>add sub and or xor sll srl sra slt sltu · addi andi ori xori slli srli srai slti sltiu · lui auipc · mul mulh mulhu mulhsu div divu rem remu · lw lh lhu lb lbu sw sh sb · beq bne blt bge bltu bgeu · jal jalr · ecall</p><h4>Pseudo-instructions</h4><p>li la mv not neg nop j jr ret call beqz bnez blez bgez bltz bgtz bgt ble bgtu bleu seqz snez, lw from a label.</p><h4>System calls</h4><p>Set <code>a7</code>, then <code>ecall</code>: 1 print integer (a0) · 4 print string (a0) · 5 read integer (into a0) · 8 read string · 10 exit · 11 print character · 12 read character · 93 exit with code.</p>`}
+<h4>Datapath</h4><p>After each step the single-cycle datapath shows the instruction that just ran: blue parts and wires carry data, orange lines are control signals that are 1, and the boxes show the values. A green wire is the path taken to the next PC.</p>
+<h4>Pipeline</h4><p>The Pipeline tab places the instructions that ran in a classic 5-stage pipeline. With forwarding, only a load followed by an instruction that uses its result stalls for 1 cycle. Without forwarding, an instruction waits until the value it needs is written back. A taken branch or a jump flushes the 2 instructions fetched after it. CPI is cycles per instruction.</p>
+<h4>Keys</h4><p>F9 assemble · F8 step · F7 step back · F5 run or pause · Ctrl+R reset · click a line number to set a breakpoint</p></div></div>`;document.body.appendChild(o);o.onclick=e=>{if(e.target===o||e.target.id==='refX')o.remove()}}
+window.addEventListener('beforeunload',()=>{try{localStorage.setItem('cesim.arch.doc',JSON.stringify({name:ST.name,src:src.value,isa:ST.isa,fromEx:ST.fromEx}))}catch(e){}});
+let svT=null;function saveLocal(){clearTimeout(svT);svT=setTimeout(()=>{try{localStorage.setItem('cesim.arch.doc',JSON.stringify({name:ST.name,src:src.value,isa:ST.isa,fromEx:ST.fromEx}))}catch(e){}},300)}
+function start(){let d=null;if(!/blank/.test(location.search)){try{d=JSON.parse(localStorage.getItem('cesim.arch.doc')||'null')}catch(e){}}
+ if(d&&typeof d.src==='string'){ST.isa=d.isa==='rv'?'rv':'mips';src.value=d.src;setName(d.name);ST.fromEx=!!d.fromEx}else{src.value=ARCH_EXAMPLES.mips['Sum of an array'];setName('sum_mips');ST.fromEx=true}
+ $$('.seg button').forEach(b=>b.classList.toggle('on',b.dataset.isa===ST.isa));renderEditor();renderProblems();renderAll();updPos()}
+window.CEX={ST,assemble,step,run,pause,back,reset,loadText,setIsa,showTab,get cpu(){return ST.cpu},src};
+start();
+</script>
+</body></html>

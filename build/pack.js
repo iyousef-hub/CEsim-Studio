@@ -13,6 +13,9 @@ const docTypes = [
   { CFBundleTypeName: 'Logic circuit', CFBundleTypeExtensions: ['circ'], CFBundleTypeRole: 'Editor', LSHandlerRank: 'Alternate' },
   { CFBundleTypeName: 'Assembly source', CFBundleTypeExtensions: ['asm'], CFBundleTypeRole: 'Editor', LSHandlerRank: 'Alternate' },
   { CFBundleTypeName: 'Arduino sketch', CFBundleTypeExtensions: ['ino'], CFBundleTypeRole: 'Editor', LSHandlerRank: 'Alternate' },
+  { CFBundleTypeName: 'Verilog source', CFBundleTypeExtensions: ['v'], CFBundleTypeRole: 'Editor', LSHandlerRank: 'Alternate' },
+  { CFBundleTypeName: 'Waveform', CFBundleTypeExtensions: ['vcd'], CFBundleTypeRole: 'Viewer', LSHandlerRank: 'Alternate' },
+  { CFBundleTypeName: 'MIPS or RISC-V assembly', CFBundleTypeExtensions: ['s'], CFBundleTypeRole: 'Editor', LSHandlerRank: 'Alternate' },
   { CFBundleTypeName: 'CEsim 3D', CFBundleTypeExtensions: ['ce3d'], CFBundleTypeRole: 'Editor', LSHandlerRank: 'Owner' },
   { CFBundleTypeName: '3D model', CFBundleTypeExtensions: ['stl', 'obj', '3mf'], CFBundleTypeRole: 'Editor', LSHandlerRank: 'Alternate' }];
 (async () => {

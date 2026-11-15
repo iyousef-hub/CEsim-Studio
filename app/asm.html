@@ -351,6 +351,7 @@ function showRef(){const o=document.createElement('div');o.className='ov';o.inne
 <h4>Keys</h4><p>F9 assemble · F5 run or pause · F8 step · F10 step over a CALL · F7 step back · Ctrl+R reset · click a line number to set a breakpoint · Ctrl+/ comments lines</p></div></div>`;document.body.appendChild(o);o.onclick=e=>{if(e.target===o||e.target.id==='refX')o.remove()}}
 
 /* autosave and start */
+window.addEventListener('beforeunload',()=>{try{localStorage.setItem('cesim.asm.doc',JSON.stringify({name:ST.name,src:src.value,bps:[...ST.bps]}))}catch(e){}});
 let svT=null;function saveLocal(){clearTimeout(svT);svT=setTimeout(()=>{try{localStorage.setItem('cesim.asm.doc',JSON.stringify({name:ST.name,src:src.value,bps:[...ST.bps]}))}catch(e){}},300)}
 function start(){let d=null;if(!/blank/.test(location.search)){try{d=JSON.parse(localStorage.getItem('cesim.asm.doc')||'null')}catch(e){}}
  if(d&&typeof d.src==='string'){src.value=d.src;setName(d.name);(d.bps||[]).forEach(b=>ST.bps.add(b))}else{const k=Object.keys(window.ASM_EXAMPLES)[0];src.value=window.ASM_EXAMPLES[k];setName('hello')}

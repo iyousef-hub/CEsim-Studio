@@ -6,4 +6,6 @@
   <mime-type type="application/x-ce3d"><comment>CEsim 3D model</comment><glob pattern="*.ce3d"/></mime-type>
   <mime-type type="text/x-asm"><comment>Assembly source</comment><glob pattern="*.asm"/></mime-type>
   <mime-type type="text/x-arduino"><comment>Arduino sketch</comment><glob pattern="*.ino"/></mime-type>
+  <mime-type type="text/x-verilog"><comment>Verilog source</comment><glob pattern="*.v"/></mime-type>
+  <mime-type type="text/x-vcd"><comment>Waveform (VCD)</comment><glob pattern="*.vcd"/></mime-type>
 </mime-info>
