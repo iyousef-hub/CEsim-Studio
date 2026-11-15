@@ -3,6 +3,9 @@
   <mime-type type="application/x-cesim"><comment>CEsim Circuit</comment><glob pattern="*.cesim"/></mime-type>
   <mime-type type="application/x-cediag"><comment>CEsim Diagram</comment><glob pattern="*.cediag"/></mime-type>
   <mime-type type="application/x-cedig"><comment>CEsim Logic circuit</comment><glob pattern="*.cedig"/></mime-type>
+  <mime-type type="application/x-cebb"><comment>CEsim Breadboard</comment><glob pattern="*.cebb"/></mime-type>
+  <mime-type type="application/x-cepcb"><comment>CEsim PCB</comment><glob pattern="*.cepcb"/></mime-type>
+  <mime-type type="application/x-cevlsi"><comment>CEsim VLSI layout</comment><glob pattern="*.cevlsi"/></mime-type>
   <mime-type type="application/x-ce3d"><comment>CEsim 3D model</comment><glob pattern="*.ce3d"/></mime-type>
   <mime-type type="text/x-asm"><comment>Assembly source</comment><glob pattern="*.asm"/></mime-type>
   <mime-type type="text/x-arduino"><comment>Arduino sketch</comment><glob pattern="*.ino"/></mime-type>

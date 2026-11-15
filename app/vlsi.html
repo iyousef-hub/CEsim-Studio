@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link href="fonts/fonts.css" rel="stylesheet"><title>CEsim VLSI</title>
+<style>
+:root{--bg:#e9edf2;--panel:#f7f8fa;--line:#cdd3dc;--text:#1b2230;--dim:#5e6979;--hover:#e1e7ef;--accent:#185fa5;--font:"IBM Plex Sans",-apple-system,"Segoe UI",Roboto,Arial,sans-serif;--mono:"IBM Plex Mono",ui-monospace,Menlo,monospace}
+*{box-sizing:border-box}html,body{height:100%;margin:0}body{background:var(--bg);color:var(--text);font:13px/1.35 var(--font);overflow:hidden}
+#app{display:grid;grid-template-rows:auto 1fr 28px;height:100%}
+#top{display:flex;flex-wrap:wrap;row-gap:2px;align-items:center;gap:2px;padding:4px 10px;min-height:44px;background:var(--panel);border-bottom:1px solid var(--line);user-select:none}
+.logo{flex:none;width:24px;height:24px;border-radius:6px;background:var(--accent);color:#fff;display:grid;place-items:center;font:600 10px var(--mono);margin-right:6px}
+#docname{flex:none;font-weight:600;margin-right:10px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:text;padding:3px 5px;border-radius:3px}#docname:hover{background:var(--hover)}
+.tb{flex:none;height:30px;min-width:30px;padding:0 9px;border:1px solid transparent;border-radius:4px;background:none;color:var(--text);cursor:pointer;font:12.5px var(--font);white-space:nowrap}
+.tb:hover{background:var(--hover);border-color:var(--line)}.tb.pri{background:var(--accent);color:#fff}.tb.on{background:#dce9f8;border-color:#9dbde4}.tb.pri.on{background:#0f3f73;color:#fff;border-color:#0f3f73}.tb kbd{font:10.5px var(--mono);color:var(--dim);margin-left:4px}
+.sep{flex:none;width:1px;height:22px;background:var(--line);margin:0 6px}
+#main{display:grid;grid-template-columns:190px minmax(0,1fr) 300px;min-height:0}
+#pal{background:var(--panel);border-right:1px solid var(--line);overflow:auto;padding:6px 8px 14px;user-select:none}
+h3{font:600 11px var(--font);color:var(--dim);text-transform:uppercase;letter-spacing:.06em;margin:10px 2px 6px}
+.ly{display:flex;align-items:center;gap:8px;width:100%;border:1px solid transparent;background:none;border-radius:5px;padding:4px 6px;cursor:pointer;font:12.5px var(--font);color:var(--text);text-align:left}.ly:hover{background:#fff;border-color:#dde2e9}.ly.on{background:#dce9f8;border-color:#9dbde4}
+.sw{flex:none;width:22px;height:16px;border-radius:3px;border:1px solid rgba(0,0,0,.25)}.ly kbd{margin-left:auto;font:10.5px var(--mono);color:var(--dim)}.eye{flex:none;border:none;background:none;cursor:pointer;color:var(--dim);font-size:12px;padding:0 2px}.eye.off{opacity:.35}
+.lrow{display:flex;align-items:center}
+#stage{position:relative;overflow:hidden;background:#11151c}
+#cv{width:100%;height:100%;display:block;touch-action:none;user-select:none;outline:none}
+#hint{position:absolute;left:12px;top:10px;background:rgba(15,22,36,.85);color:#dbe4f0;border-radius:6px;padding:6px 10px;font-size:12px;pointer-events:none;max-width:65%}
+#zoom{position:absolute;right:10px;bottom:10px;display:flex;gap:4px}#zoom button{width:30px;height:30px;border:1px solid #2b3648;background:#162033;color:#dbe4f0;border-radius:5px;cursor:pointer;font-size:15px}
+#side{background:var(--panel);border-left:1px solid var(--line);overflow:auto;padding:4px 12px 16px}
+.card{background:#fff;border:1px solid #dde2e9;border-radius:8px;padding:9px 10px;margin-bottom:8px}.sub{font-size:11.5px;color:var(--dim)}
+.prob{display:flex;gap:8px;padding:5px 8px;border-radius:5px;cursor:pointer;font-size:12px;line-height:1.4}.prob:hover{background:#fff}.prob i{font-style:normal;flex:none;color:#c62828}
+table.tt{border-collapse:collapse;font:12px var(--mono);margin-top:6px}table.tt th,table.tt td{border:1px solid #dde2e9;padding:3px 9px;text-align:center}table.tt th{background:#f1f4f8;font-family:var(--font);font-weight:600}table.tt td.o{font-weight:600}table.tt tr.cur td{background:#fff4c2}table.tt tr{cursor:pointer}
+.inbtn{display:inline-flex;align-items:center;gap:6px;margin:3px 8px 3px 0;font:12px var(--mono)}.inbtn button{width:30px;height:24px;border:1px solid var(--line);border-radius:4px;background:#fff;cursor:pointer;font:600 12px var(--mono)}.inbtn button.one{background:#ffd84d;border-color:#c9a400}
+.trow{display:flex;justify-content:space-between;gap:8px;padding:3px 6px;border-radius:4px;font:12px var(--mono);cursor:pointer}.trow:hover{background:#fff}.trow span{color:var(--dim);font-family:var(--font)}
+#xs{width:100%;height:150px;display:block;border-radius:6px;background:#fff;border:1px solid #dde2e9}
+.btn{height:26px;padding:0 10px;border:1px solid var(--line);border-radius:4px;background:#fff;color:var(--text);cursor:pointer;font:12px var(--font)}.btn:hover{background:var(--hover)}
+#statusbar{display:flex;align-items:center;gap:16px;padding:0 12px;background:var(--panel);border-top:1px solid var(--line);font-size:11.5px;color:var(--dim);white-space:nowrap;overflow:hidden}#status b{color:var(--text)}#status.err b{color:#b3261e}#status.ok b{color:#1f7a37}#coord{margin-left:auto;font-family:var(--mono)}
+.toast{position:fixed;left:50%;bottom:44px;transform:translateX(-50%);background:#1b2230;color:#fff;padding:9px 14px;border-radius:6px;font-size:12.5px;z-index:90;max-width:70vw}.toast.warn{background:#8a3a00}
+.menu{position:fixed;z-index:80;background:#fff;border:1px solid var(--line);border-radius:6px;box-shadow:0 10px 30px rgba(20,30,50,.18);padding:4px;min-width:250px;display:flex;flex-direction:column}
+.menu button{display:flex;justify-content:space-between;gap:20px;border:none;background:none;text-align:left;padding:7px 10px;font:12.5px var(--font);border-radius:4px;cursor:pointer;color:var(--text)}.menu button:hover{background:#eaf3ff}.menu button span{color:var(--dim)}.menu hr{border:none;border-top:1px solid var(--line);margin:4px 0}
+.ov{position:fixed;inset:0;background:rgba(15,20,30,.35);display:grid;place-items:center;z-index:70}
+.mdl{background:#fff;border-radius:10px;box-shadow:0 20px 50px rgba(0,0,0,.3);width:min(760px,92vw);max-height:86vh;display:flex;flex-direction:column}.mdl .mh2{display:flex;justify-content:space-between;align-items:center;padding:10px 16px;border-bottom:1px solid var(--line)}.mdl .mb{padding:6px 18px 16px;overflow:auto;font-size:13px;line-height:1.55}.mdl h4{margin:12px 0 4px;font-size:13px}
+.lblin{position:absolute;z-index:20;height:26px;font:13px var(--mono);border:2px solid var(--accent);border-radius:4px;padding:0 5px;width:110px}
+.edit{height:24px;font:13px var(--font);border:1px solid var(--accent);border-radius:4px;padding:0 4px}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}[hidden]{display:none!important}
+</style></head>
+<body><div id="app">
+<div id="top">
+ <div class="logo">CE</div><span id="docname" title="Click to rename">cell</span>
+ <button class="tb" id="bFile">File ▾</button><button class="tb" id="bEx">Examples ▾</button><button class="tb" id="bUndo" title="Undo (Ctrl+Z)">↶</button><button class="tb" id="bRedo" title="Redo (Ctrl+Y)">↷</button><div class="sep"></div>
+ <button class="tb" id="tSel" data-tool="select" title="Select an area to move, copy or delete (S)">Select<kbd>S</kbd></button><button class="tb on" id="tPaint" data-tool="paint" title="Paint rectangles of the chosen layer (P)">Paint<kbd>P</kbd></button><button class="tb" id="tErase" data-tool="erase" title="Erase the chosen layer; hold Shift to erase every layer (E)">Erase<kbd>E</kbd></button>
+ <button class="tb" id="tCont" data-tool="contact" title="Place a contact: metal 1 to poly or diffusion (C)">Contact<kbd>C</kbd></button><button class="tb" id="tVia" data-tool="via" title="Place a via: metal 1 to metal 2 (U)">Via<kbd>U</kbd></button><button class="tb" id="tLabel" data-tool="label" title="Name a wire: VDD, GND, inputs and outputs (T)">Label<kbd>T</kbd></button><button class="tb" id="tCut" data-tool="cut" title="Choose where the cross-section is cut (K)">Cross-section<kbd>K</kbd></button><div class="sep"></div>
+ <button class="tb pri" id="bSim" title="Show logic values on the wires">Simulate</button><button class="tb" id="bRef">Reference</button>
+</div>
+<div id="main">
+ <div id="pal"></div>
+ <div id="stage"><canvas id="cv" tabindex="0" aria-label="Layout"></canvas><div id="hint" hidden></div><div id="zoom"><button id="zIn" title="Zoom in">+</button><button id="zOut" title="Zoom out">−</button><button id="zFit" title="Fit">⤢</button></div></div>
+ <div id="side"></div>
+</div>
+<div id="statusbar"><span id="status"><b>Ready.</b></span><span id="stats"></span><span id="coord"></span></div>
+</div>
+<input type="file" id="fileIn" accept=".cevlsi,.json" hidden>
+<script src="vlsi-core.js"></script>
+<script src="vlsi-examples.js"></script>
+<script>
+'use strict';
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];const N=window.cesimNative;const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const COLORS={nwell:'#5c7a3a',ndiff:'#2fbf4a',pdiff:'#c8902f',poly:'#e0443a',m1:'#4f8cf0',m2:'#b65fe0',contact:'#111',via:'#555'};
+const ALPHA={nwell:.30,ndiff:.75,pdiff:.75,poly:.78,m1:.55,m2:.50,contact:1,via:1};
+const KEYS={nwell:'1',ndiff:'2',pdiff:'3',poly:'4',m1:'5',m2:'6'};
+const ST={L:new VL.Layout(),name:'cell',filePath:null,tool:'paint',layer:'poly',hidden:new Set(),view:{s:12,ox:40,oy:40},sel:null,drag:null,undo:[],redo:[],ex:null,drc:[],sim:false,inputs:{},cutY:null,hover:null,note:'',showDrc:true};
+const cv=$('#cv'),cx=cv.getContext('2d');
+/* ---------- view ---------- */
+function size(){const r=cv.getBoundingClientRect();const d=devicePixelRatio||1;cv.width=Math.round(r.width*d);cv.height=Math.round(r.height*d);draw()}
+new ResizeObserver(size).observe(cv);
+const W2S=(x,y)=>[ST.view.ox+x*ST.view.s,ST.view.oy+y*ST.view.s];
+const S2W=(px,py)=>[(px-ST.view.ox)/ST.view.s,(py-ST.view.oy)/ST.view.s];
+const cell=(px,py)=>{const[x,y]=S2W(px,py);return[Math.floor(x),Math.floor(y)]};
+function evPos(e){const r=cv.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top]}
+function fit(){const r=cv.getBoundingClientRect();const b=ST.L.bounds()||[0,0,40,30];const m=4;const w=b[2]-b[0]+2*m,h=b[3]-b[1]+2*m;const s=Math.max(2,Math.min(48,Math.min(r.width/w,r.height/h)));ST.view={s,ox:(r.width-(b[2]-b[0])*s)/2-b[0]*s,oy:(r.height-(b[3]-b[1])*s)/2-b[1]*s};draw()}
+function zoomAt(f,px,py){const r=cv.getBoundingClientRect();if(px==null){px=r.width/2;py=r.height/2}const v=ST.view;const ns=Math.max(1.5,Math.min(80,v.s*f));const k=ns/v.s;ST.view={s:ns,ox:px-(px-v.ox)*k,oy:py-(py-v.oy)*k};draw()}
+/* ---------- analysis ---------- */
+let rectCache=null;
+function analyse(){rectCache=null;ST.ex=VL.extract(ST.L);ST.drc=VL.drc(ST.L,ST.ex);for(const n of ST.ex.inputs)if(!(n in ST.inputs))ST.inputs[n]=0;for(const k of Object.keys(ST.inputs))if(!ST.ex.inputs.includes(k))delete ST.inputs[k];ST.simRes=VL.simulate(ST.ex,ST.inputs);ST.tt=ST.ex.inputs.length<=6?VL.truthTable(ST.ex):null;updStatus()}
+function rectsOf(l){if(!rectCache)rectCache={};if(!rectCache[l])rectCache[l]=VL.rects(ST.L,l);return rectCache[l]}
+/* ---------- drawing ---------- */
+function draw(){const d=devicePixelRatio||1;cx.setTransform(d,0,0,d,0,0);const r=cv.getBoundingClientRect();cx.fillStyle='#11151c';cx.fillRect(0,0,r.width,r.height);const s=ST.view.s;
+ // grid
+ const[gx0,gy0]=cell(0,0),[gx1,gy1]=cell(r.width,r.height);if(s>=5){cx.fillStyle='rgba(255,255,255,.10)';for(let y=gy0;y<=gy1+1;y++)for(let x=gx0;x<=gx1+1;x++){const[a,b]=W2S(x,y);cx.fillRect(a-.5,b-.5,1,1)}}
+ if(s>=3){cx.strokeStyle='rgba(255,255,255,.06)';cx.lineWidth=1;cx.beginPath();for(let x=Math.ceil(gx0/10)*10;x<=gx1+1;x+=10){const[a]=W2S(x,0);cx.moveTo(a+.5,0);cx.lineTo(a+.5,r.height)}for(let y=Math.ceil(gy0/10)*10;y<=gy1+1;y+=10){const[,b]=W2S(0,y);cx.moveTo(0,b+.5);cx.lineTo(r.width,b+.5)}cx.stroke()}
+ const simCol=ST.sim&&ST.simRes;const nv=simCol?ST.simRes.nodeVal:null;
+ for(const l of['nwell','ndiff','pdiff','poly','m1','m2']){if(ST.hidden.has(l))continue;cx.globalAlpha=ALPHA[l];cx.fillStyle=COLORS[l];for(const[x,y,w,h]of rectsOf(l)){const[a,b]=W2S(x,y);cx.fillRect(a,b,w*s,h*s)}
+  cx.globalAlpha=1;if(l==='nwell'){cx.strokeStyle='#8fb35a';cx.setLineDash([5,4]);cx.lineWidth=1.2;outline('nwell');cx.setLineDash([])}
+  if(l==='poly'&&s>=4){// transistor channels hatched
+   cx.save();cx.strokeStyle='rgba(0,0,0,.55)';cx.lineWidth=1;for(const k of ST.L.L.poly){const[x,y]=VL.XY(k);const t=VL.channelType(ST.L,x,y);if(!t)continue;const[a,b]=W2S(x,y);cx.beginPath();cx.moveTo(a,b+s);cx.lineTo(a+s,b);cx.stroke()}cx.restore()}
+  if((l==='m1'||l==='m2')&&s>=3){cx.strokeStyle=l==='m1'?'#8fb6ff':'#d7a2f2';cx.lineWidth=1;outline(l)}}
+ // logic values: tint wires
+ if(simCol){cx.globalAlpha=.5;for(const l of['ndiff','pdiff','poly','m1','m2']){if(ST.hidden.has(l))continue;for(const k of ST.L.L[l]){const[x,y]=VL.XY(k);const n=ST.ex.nodeAt(x,y);if(n==null)continue;const v=nv.get(n);const[a,b]=W2S(x,y);cx.fillStyle=v===1?'#ffe14d':v===0?'#1b2a52':v==='X'?'#ff2d55':'rgba(0,0,0,0)';if(v===undefined||v==='Z')continue;cx.fillRect(a,b,s,s)}}cx.globalAlpha=1}
+ for(const l of['contact','via']){if(ST.hidden.has(l))continue;for(const[x,y,w,h]of rectsOf(l)){const[a,b]=W2S(x,y);cx.fillStyle=l==='contact'?'#0b0b0b':'#3a3a3a';cx.fillRect(a,b,w*s,h*s);cx.strokeStyle=l==='contact'?'#fff':'#e8c8ff';cx.lineWidth=1;cx.beginPath();cx.moveTo(a+2,b+2);cx.lineTo(a+w*s-2,b+h*s-2);cx.moveTo(a+w*s-2,b+2);cx.lineTo(a+2,b+h*s-2);cx.stroke()}}
+ // labels
+ cx.font=`600 ${Math.max(10,Math.min(16,s*1.1))}px IBM Plex Mono`;cx.textBaseline='middle';for(const lb of ST.L.labels){const[a,b]=W2S(lb.x+.5,lb.y+.5);let t=lb.text;if(simCol&&ST.simRes.values[lb.text]!=null)t+=' = '+ST.simRes.values[lb.text];const w=cx.measureText(t).width;cx.fillStyle='rgba(255,255,255,.9)';cx.fillRect(a-3,b-9,w+12,18);cx.fillStyle='#111';cx.beginPath();cx.arc(a,b,2.5,0,7);cx.fill();cx.fillText(t,a+6,b+1)}
+ // DRC
+ if(ST.showDrc)for(const q of ST.drc){const[x0,y0,x1,y1]=q.box;const[a,b]=W2S(x0,y0);cx.strokeStyle='#ff4fd8';cx.lineWidth=2;cx.setLineDash([4,3]);cx.strokeRect(a-2,b-2,(x1-x0)*s+4,(y1-y0)*s+4);cx.setLineDash([])}
+ // cut line
+ if(ST.cutY!=null){const[,b]=W2S(0,ST.cutY+.5);cx.strokeStyle='#fff';cx.lineWidth=1.5;cx.setLineDash([8,4]);cx.beginPath();cx.moveTo(0,b);cx.lineTo(r.width,b);cx.stroke();cx.setLineDash([]);cx.fillStyle='#fff';cx.font='600 12px IBM Plex Sans';cx.fillText('A',6,b-9);cx.fillText("A'",r.width-20,b-9)}
+ // selection and drag preview
+ const sel=ST.sel;if(sel){const[a,b]=W2S(sel[0]+(ST.drag&&ST.drag.kind==='move'?ST.drag.dx:0),sel[1]+(ST.drag&&ST.drag.kind==='move'?ST.drag.dy:0));cx.strokeStyle='#fff';cx.lineWidth=1.5;cx.setLineDash([5,4]);cx.strokeRect(a,b,(sel[2]-sel[0])*s,(sel[3]-sel[1])*s);cx.setLineDash([])}
+ const dg=ST.drag;if(dg&&(dg.kind==='paint'||dg.kind==='erase'||dg.kind==='select')){const[x0,y0,x1,y1]=box(dg.a,dg.b);const[a,b]=W2S(x0,y0);cx.fillStyle=dg.kind==='paint'?COLORS[ST.layer]:dg.kind==='erase'?'#ff3b30':'#fff';cx.globalAlpha=dg.kind==='select'?.08:.45;cx.fillRect(a,b,(x1-x0)*s,(y1-y0)*s);cx.globalAlpha=1;cx.strokeStyle=cx.fillStyle;cx.lineWidth=1.5;cx.strokeRect(a,b,(x1-x0)*s,(y1-y0)*s);cx.fillStyle='#fff';cx.font='12px IBM Plex Mono';cx.fillText(`${x1-x0} × ${y1-y0} λ`,a+(x1-x0)*s+6,b+(y1-y0)*s+10)}
+ // hover cell
+ const h=ST.hover;if(h&&!dg){const[a,b]=W2S(h[0],h[1]);cx.strokeStyle='rgba(255,255,255,.8)';cx.lineWidth=1;if(ST.tool==='contact'||ST.tool==='via')cx.strokeRect(a-s,b-s,4*s,4*s);else cx.strokeRect(a,b,s,s)}
+ drawXs()}
+function outline(l){const S=ST.L.L[l];const s=ST.view.s;cx.beginPath();for(const k of S){const[x,y]=VL.XY(k);const[a,b]=W2S(x,y);if(!S.has(VL.K(x,y-1))){cx.moveTo(a,b+.5);cx.lineTo(a+s,b+.5)}if(!S.has(VL.K(x,y+1))){cx.moveTo(a,b+s-.5);cx.lineTo(a+s,b+s-.5)}if(!S.has(VL.K(x-1,y))){cx.moveTo(a+.5,b);cx.lineTo(a+.5,b+s)}if(!S.has(VL.K(x+1,y))){cx.moveTo(a+s-.5,b);cx.lineTo(a+s-.5,b+s)}}cx.stroke()}
+const box=(a,b)=>[Math.min(a[0],b[0]),Math.min(a[1],b[1]),Math.max(a[0],b[0])+1,Math.max(a[1],b[1])+1];
+/* ---------- cross-section ---------- */
+function drawXs(){const c=$('#xs');if(!c)return;const r=c.getBoundingClientRect();const d=devicePixelRatio||1;if(c.width!==Math.round(r.width*d)){c.width=Math.round(r.width*d);c.height=Math.round(r.height*d)}const g=c.getContext('2d');g.setTransform(d,0,0,d,0,0);g.clearRect(0,0,r.width,r.height);
+ if(ST.cutY==null){g.fillStyle='#5e6979';g.font='12px IBM Plex Sans';g.textAlign='center';g.fillText('Choose Cross-section (K), then click a row',r.width/2,r.height/2);g.textAlign='left';return}
+ const b=ST.L.bounds()||[0,0,30,30];const x0=b[0]-2,x1=b[2]+2;const cols=VL.section(ST.L,ST.cutY,x0,x1);const k=r.width/(x1-x0);const X=x=>(x-x0)*k;
+ const yS=92,H=r.height;// silicon surface at yS
+ g.fillStyle='#d9d4c7';g.fillRect(0,yS,r.width,H-yS);// p substrate
+ for(const c2 of cols){const a=X(c2.x);if(c2.nwell){g.fillStyle='#b8cf98';g.fillRect(a,yS,k+.5,38)}}
+ for(const c2 of cols){const a=X(c2.x);if((c2.ndiff||c2.pdiff)&&!c2.gate){g.fillStyle=c2.ndiff?'#2fbf4a':'#c8902f';g.fillRect(a,yS,k+.5,10)}}
+ // oxide: thick field oxide where no active area, thin under gates
+ for(const c2 of cols){const a=X(c2.x);const act=c2.ndiff||c2.pdiff;if(!act){g.fillStyle='#eef3f7';g.fillRect(a,yS-8,k+.5,8)}else if(c2.gate){g.fillStyle='#eef3f7';g.fillRect(a,yS-2,k+.5,2)}}
+ for(const c2 of cols){const a=X(c2.x);const act=c2.ndiff||c2.pdiff;if(c2.poly){g.fillStyle='#e0443a';g.fillRect(a,act?yS-12:yS-18,k+.5,10)}}
+ g.fillStyle='rgba(220,230,240,.55)';g.fillRect(0,yS-44,r.width,36);// insulating glass between layers (simplified)
+ for(const c2 of cols){const a=X(c2.x);if(c2.contact){const top=yS-44+14;const bot=c2.poly?yS-(c2.ndiff||c2.pdiff?12:18):yS;g.fillStyle='#6b6b6b';g.fillRect(a,top,k+.5,bot-top)}}
+ for(const c2 of cols){const a=X(c2.x);if(c2.m1){g.fillStyle='#4f8cf0';g.fillRect(a,yS-44,k+.5,14)}}
+ for(const c2 of cols){const a=X(c2.x);if(c2.via){g.fillStyle='#6b6b6b';g.fillRect(a,yS-58,k+.5,14)}if(c2.m2){g.fillStyle='#b65fe0';g.fillRect(a,yS-72,k+.5,14)}}
+ g.fillStyle='#5e6979';g.font='10.5px IBM Plex Sans';g.fillText('p substrate',6,H-6);g.fillText(`cut at row ${ST.cutY}`,6,12)}
+/* ---------- editing ---------- */
+function snapshot(){ST.undo.push(JSON.stringify(ST.L.toJSON()));if(ST.undo.length>150)ST.undo.shift();ST.redo=[]}
+function changed(){analyse();draw();renderSide();saveLocal()}
+function undo(){if(!ST.undo.length)return;ST.redo.push(JSON.stringify(ST.L.toJSON()));ST.L=VL.Layout.from(JSON.parse(ST.undo.pop()));ST.sel=null;changed()}
+function redo(){if(!ST.redo.length)return;ST.undo.push(JSON.stringify(ST.L.toJSON()));ST.L=VL.Layout.from(JSON.parse(ST.redo.pop()));ST.sel=null;changed()}
+const TOOLHINT={select:'Drag to select an area. Drag the selection to move it; Delete clears it; Ctrl+D duplicates it',paint:'Drag a rectangle to paint the chosen layer. Keys 1 to 6 choose the layer',erase:'Drag a rectangle to erase the chosen layer. Hold Shift to erase every layer',contact:'Click to place a contact. It joins metal 1 to the poly or diffusion under it',via:'Click to place a via. It joins metal 1 and metal 2',label:'Click a wire to name it. Use VDD and GND for power; other names become inputs and outputs',cut:'Click a row to see the chip in cross-section, on the right'};
+function setTool(t){ST.tool=t;if(t!=='select')ST.sel=null;$$('[data-tool]').forEach(b=>b.classList.toggle('on',b.dataset.tool===t));hint(TOOLHINT[t]);cv.style.cursor=t==='select'?'default':'crosshair';draw()}
+function setLayer(l){ST.layer=l;$$('.ly').forEach(b=>b.classList.toggle('on',b.dataset.l===l));if(!['paint','erase'].includes(ST.tool))setTool('paint')}
+function hint(t){const h=$('#hint');h.textContent=t||'';h.hidden=!t;clearTimeout(hint.t);if(t)hint.t=setTimeout(()=>{h.hidden=true},6000)}
+function placeCut(kind,x,y){snapshot();const cx0=x-1,cy0=y-1;let under=null;if(kind==='contact'){for(const l of['poly','ndiff','pdiff'])if(ST.L.has(l,x,y)||ST.L.has(l,x-1,y-1)){under=l;break}if(under==='poly'&&(ST.L.has('ndiff',x,y)||ST.L.has('pdiff',x,y)))under=ST.L.has('ndiff',x,y)?'ndiff':'pdiff'}
+ VL_EXAMPLES.cut(ST.L,kind,cx0,cy0,under);changed();if(kind==='contact'&&!under)toast('This contact has nothing under it yet. Paint poly or diffusion there',true)}
+function editLabel(x,y){const ex=ST.L.labels.find(b=>b.x===x&&b.y===y)||ST.L.labels.find(b=>Math.abs(b.x-x)<=1&&Math.abs(b.y-y)<=1);const at=ex?[ex.x,ex.y]:[x,y];const[a,b]=W2S(at[0]+.5,at[1]+.5);const inp=document.createElement('input');inp.className='lblin';inp.value=ex?ex.text:'';inp.placeholder='name, e.g. A';const sr=$('#stage').getBoundingClientRect();inp.style.left=Math.min(sr.width-120,a+8)+'px';inp.style.top=(b-13)+'px';$('#stage').appendChild(inp);inp.focus();inp.select();let done=false;
+ const born=performance.now();const fin=ok=>{if(done)return;if(ok&&performance.now()-born<250&&!inp.value){inp.focus();return}done=true;inp.remove();if(!ok)return;const v=inp.value.trim().replace(/\s+/g,'_');if(v&&!/^[A-Za-z_][\w]*$/.test(v)){toast('A name starts with a letter and has letters, digits or _',true);return}snapshot();ST.L.label(v,at[0],at[1]);changed();cv.focus()};inp.onkeydown=e=>{e.stopPropagation();if(e.key==='Enter')fin(true);if(e.key==='Escape')fin(false)};inp.onblur=()=>fin(true)}
+/* ---------- pointer ---------- */
+cv.addEventListener('pointerdown',e=>{if(ST.tool!=='label')cv.focus();const[px,py]=evPos(e);const c=cell(px,py);if(e.button===1||e.button===2){ST.drag={kind:'pan',px,py,v:{...ST.view}};cv.setPointerCapture(e.pointerId);return}cv.setPointerCapture(e.pointerId);const t=ST.tool;
+ if(t==='paint'||t==='erase'){ST.drag={kind:t,a:c,b:c,all:e.shiftKey};draw();return}
+ if(t==='contact'||t==='via'){placeCut(t,c[0],c[1]);return}
+ if(t==='label'){e.preventDefault();setTimeout(()=>editLabel(c[0],c[1]),0);return}
+ if(t==='cut'){ST.cutY=c[1];draw();renderSide();return}
+ if(t==='select'){const s=ST.sel;if(s&&c[0]>=s[0]&&c[0]<s[2]&&c[1]>=s[1]&&c[1]<s[3]){ST.drag={kind:'move',from:c,dx:0,dy:0};return}ST.drag={kind:'select',a:c,b:c};ST.sel=null;draw()}});
+cv.addEventListener('pointermove',e=>{const[px,py]=evPos(e);const c=cell(px,py);const prev=ST.hover;ST.hover=c;const dg=ST.drag;
+ if(dg&&dg.kind==='pan'){ST.view={...dg.v,ox:dg.v.ox+px-dg.px,oy:dg.v.oy+py-dg.py};draw();return}
+ if(dg&&(dg.kind==='paint'||dg.kind==='erase'||dg.kind==='select')){if(dg.b[0]!==c[0]||dg.b[1]!==c[1]){dg.b=c;draw()}return}
+ if(dg&&dg.kind==='move'){const dx=c[0]-dg.from[0],dy=c[1]-dg.from[1];if(dx!==dg.dx||dy!==dg.dy){dg.dx=dx;dg.dy=dy;draw()}return}
+ if(!prev||prev[0]!==c[0]||prev[1]!==c[1]){updCoord();draw()}});
+cv.addEventListener('pointerup',e=>{const dg=ST.drag;ST.drag=null;if(!dg)return;
+ if(dg.kind==='paint'||dg.kind==='erase'){const[x0,y0,x1,y1]=box(dg.a,dg.b);snapshot();if(dg.kind==='paint')ST.L.rect(ST.layer,x0,y0,x1-x0,y1-y0,true);else for(const l of(dg.all?VL.LAYERS:[ST.layer]))ST.L.rect(l,x0,y0,x1-x0,y1-y0,false);if(dg.kind==='erase'&&dg.all)ST.L.labels=ST.L.labels.filter(b=>!(b.x>=x0&&b.x<x1&&b.y>=y0&&b.y<y1));changed();return}
+ if(dg.kind==='select'){const b=box(dg.a,dg.b);ST.sel=(b[2]-b[0]>1||b[3]-b[1]>1)?b:null;draw();if(ST.sel)hint('Drag the selection to move it. Delete clears it, Ctrl+D duplicates it, Esc deselects');return}
+ if(dg.kind==='move'&&(dg.dx||dg.dy)){snapshot();const s=ST.sel;ST.L.move(k=>{const[x,y]=VL.XY(k);return x>=s[0]&&x<s[2]&&y>=s[1]&&y<s[3]},dg.dx,dg.dy);ST.sel=[s[0]+dg.dx,s[1]+dg.dy,s[2]+dg.dx,s[3]+dg.dy];changed()}else draw()});
+cv.addEventListener('pointerleave',()=>{ST.hover=null;$('#coord').textContent='';draw()});
+cv.addEventListener('wheel',e=>{e.preventDefault();const[px,py]=evPos(e);zoomAt(e.deltaY>0?.87:1.15,px,py)},{passive:false});
+cv.addEventListener('contextmenu',e=>e.preventDefault());
+function updCoord(){const h=ST.hover;if(!h){$('#coord').textContent='';return}const ls=VL.LAYERS.filter(l=>ST.L.has(l,h[0],h[1])).map(l=>VL.INFO[l].name.toLowerCase());const t=VL.channelType(ST.L,h[0],h[1]);const n=ST.ex.nodeAt(h[0],h[1]);let s=`${h[0]}, ${h[1]} λ`;if(ls.length)s+=' · '+ls.join(' + ');if(t)s+=` · ${t}MOS gate`;if(n!=null){s+=' · wire '+ST.ex.nameOf(n);if(ST.sim){const v=ST.simRes.nodeVal.get(n);if(v!=null)s+=' = '+v}}$('#coord').textContent=s}
+function selPred(){const s=ST.sel;return k=>{const[x,y]=VL.XY(k);return x>=s[0]&&x<s[2]&&y>=s[1]&&y<s[3]}}
+function clearSel(){if(!ST.sel)return;snapshot();const p=selPred();for(const l of VL.LAYERS)for(const k of[...ST.L.L[l]])if(p(k))ST.L.L[l].delete(k);ST.L.labels=ST.L.labels.filter(b=>!p(VL.K(b.x,b.y)));changed()}
+function dupSel(){if(!ST.sel)return;snapshot();const s=ST.sel,p=selPred(),dx=s[2]-s[0]+2;for(const l of VL.LAYERS)for(const k of[...ST.L.L[l]])if(p(k)){const[x,y]=VL.XY(k);ST.L.L[l].add(VL.K(x+dx,y))}ST.sel=[s[0]+dx,s[1],s[2]+dx,s[3]];changed();toast('Duplicated. Labels are not copied, so each copy gets its own names')}
+document.addEventListener('keydown',e=>{if(/INPUT|SELECT|TEXTAREA/.test(e.target.tagName))return;const k=e.key,c=e.ctrlKey||e.metaKey;
+ if(k==='Escape'){ST.sel=null;ST.drag=null;closeMenu();const o=$('.ov');if(o)o.remove();draw()}
+ else if((k==='Delete'||k==='Backspace')&&ST.sel){e.preventDefault();clearSel()}
+ else if(c&&k.toLowerCase()==='d'){e.preventDefault();dupSel()}else if(c&&k.toLowerCase()==='z'){e.preventDefault();e.shiftKey?redo():undo()}else if(c&&k.toLowerCase()==='y'){e.preventDefault();redo()}else if(c&&k.toLowerCase()==='s'){e.preventDefault();saveFile(e.shiftKey)}else if(c&&k.toLowerCase()==='o'){e.preventDefault();$('#fileIn').click()}
+ else if(!c){const m={s:'select',p:'paint',e:'erase',c:'contact',u:'via',t:'label',k:'cut'}[k.toLowerCase()];if(m)setTool(m);else{const l=Object.keys(KEYS).find(q=>KEYS[q]===k);if(l)setLayer(l)}}});
+/* ---------- side panel ---------- */
+function renderSide(){const ex=ST.ex,el=$('#side');let h='';
+ const errs=ST.drc;h+=`<h3>Check ${errs.length?'· '+errs.length+' problem'+(errs.length>1?'s':''):''}</h3>`+(errs.length?errs.slice(0,40).map((q,i)=>`<div class="prob" data-i="${i}"><i>●</i><span>${esc(q.msg)}</span></div>`).join(''):`<div class="sub" style="padding:2px 6px">${ST.L.bounds()?'No design rule broken.':'The layout is empty.'}</div>`);
+ // truth table
+ h+=`<h3>Logic</h3><div class="card">`;if(!ex.vdd||!ex.gnd)h+=`<div class="sub">Label the power wires VDD and GND (Label tool, T) to simulate.</div>`;else if(!ex.inputs.length||!ex.outputs.length)h+=`<div class="sub">Label the inputs and outputs too (for example A and Y).</div>`;else{
+  const tt=ST.tt;const fn=tt?tt.func.filter(f=>f.name):[];if(fn.length)h+=`<div style="margin-bottom:4px">${fn.map(f=>`${esc(f.out)} makes this <b>${esc(f.name)}</b>`).join('<br>')}</div>`;
+  h+=`<div>${ex.inputs.map(n=>`<span class="inbtn">${esc(n)}<button data-in="${esc(n)}" class="${ST.inputs[n]?'one':''}">${ST.inputs[n]}</button></span>`).join('')}</div>`;
+  if(tt){const cur=tt.rows.findIndex(r=>tt.inputs.every(n=>r.in[n]===ST.inputs[n]));h+=`<table class="tt"><tr>${tt.inputs.map(n=>`<th>${esc(n)}</th>`).join('')}${tt.outputs.map(n=>`<th>${esc(n)}</th>`).join('')}</tr>${tt.rows.map((r,i)=>`<tr data-row="${i}" class="${i===cur?'cur':''}">${tt.inputs.map(n=>`<td>${r.in[n]}</td>`).join('')}${tt.outputs.map(n=>`<td class="o" style="color:${r.out[n]==='X'?'#c62828':''}">${r.out[n]}</td>`).join('')}</tr>`).join('')}</table>`;if(tt.rows.some(r=>r.shorts))h+=`<div class="sub" style="color:#b3261e;margin-top:6px">X: a wire is pulled to VDD and GND at the same time for some inputs.</div>`;else if(tt.rows.some(r=>Object.values(r.out).includes('Z')))h+=`<div class="sub" style="margin-top:6px">Z: the output floats (nothing drives it) for some inputs.</div>`}}
+ h+='</div>';
+ // transistors
+ h+=`<h3>Transistors (${ex.tr.length})</h3>`+(ex.tr.length?ex.tr.map((t,i)=>`<div class="trow" data-t="${i}">${t.name} <span>${t.type}MOS · gate ${esc(t.gateName)} · ${esc(t.aName)}–${esc(t.bName)} · W/L ${t.w}/${t.l}</span></div>`).join(''):'<div class="sub" style="padding:2px 6px">None yet. A transistor forms where poly crosses diffusion.</div>');
+ h+=`<h3>Cross-section</h3><canvas id="xs"></canvas>`;
+ if(ST.note)h+=`<h3>About this example</h3><div class="card" style="font-size:12px;line-height:1.5">${esc(ST.note)}</div>`;
+ el.innerHTML=h;drawXs();
+ $$('#side .prob').forEach(p=>p.onclick=()=>{const q=ST.drc[+p.dataset.i];const[x0,y0,x1,y1]=q.box;const r=cv.getBoundingClientRect();ST.view.s=Math.max(ST.view.s,16);ST.view.ox=r.width/2-(x0+x1)/2*ST.view.s;ST.view.oy=r.height/2-(y0+y1)/2*ST.view.s;ST.showDrc=true;draw()});
+ $$('#side [data-in]').forEach(b=>b.onclick=()=>{ST.inputs[b.dataset.in]^=1;ST.simRes=VL.simulate(ST.ex,ST.inputs);if(!ST.sim)toggleSim(true);draw();renderSide()});
+ $$('#side tr[data-row]').forEach(r=>r.onclick=()=>{const row=ST.tt.rows[+r.dataset.row];Object.assign(ST.inputs,row.in);ST.simRes=VL.simulate(ST.ex,ST.inputs);if(!ST.sim)toggleSim(true);draw();renderSide()});
+ $$('#side .trow').forEach(r=>r.onclick=()=>{const t=ST.ex.tr[+r.dataset.t];const[x0,y0,x1,y1]=t.box;ST.sel=[x0,y0,x1,y1];setTool('select');ST.sel=[x0,y0,x1,y1];draw()})}
+function toggleSim(on){ST.sim=on==null?!ST.sim:on;$('#bSim').textContent=ST.sim?'Stop simulating':'Simulate';$('#bSim').classList.toggle('on',ST.sim);if(ST.sim){ST.simRes=VL.simulate(ST.ex,ST.inputs);if(ST.ex.vdd==null||ST.ex.gnd==null)toast('Label the power wires VDD and GND first',true);else hint('Yellow wires are 1, dark blue are 0, red is a conflict. Click the input buttons on the right')}draw();renderSide()}
+function updStatus(){const ex=ST.ex,n=ST.drc.length;const b=ST.L.bounds();$('#stats').textContent=b?`${b[2]-b[0]} × ${b[3]-b[1]} λ · ${ex.tr.filter(t=>t.type==='n').length} nMOS · ${ex.tr.filter(t=>t.type==='p').length} pMOS`:'';
+ const fn=ST.tt?ST.tt.func.filter(f=>f.name):[];if(n)setStatus(`<b>${n} design rule problem${n>1?'s':''}.</b> They are marked in pink and listed on the right`,'err');else if(fn.length)setStatus(`<b>No rule broken.</b> The cell works as ${fn.map(f=>f.name).join(', ')}`,'ok');else if(b)setStatus('<b>No rule broken.</b>','ok');else setStatus('<b>Empty layout.</b> Open an example, or choose a layer and paint')}
+/* ---------- files and menus ---------- */
+function toast(m,w){$$('.toast').forEach(x=>x.remove());const t=document.createElement('div');t.className='toast'+(w?' warn':'');t.textContent=m;document.body.appendChild(t);setTimeout(()=>t.remove(),w?5000:3000)}
+function setStatus(h,k){const s=$('#status');s.innerHTML=h;s.className=k||''}
+function menu(btn,list){closeMenu();const m=document.createElement('div');m.className='menu';m.id='menu';for(const it of list){if(it==='-'){m.appendChild(document.createElement('hr'));continue}const b=document.createElement('button');b.innerHTML=`${esc(it[0])}${it[2]?`<span>${it[2]}</span>`:''}`;b.onclick=()=>{closeMenu();it[1]()};m.appendChild(b)}document.body.appendChild(m);const r=btn.getBoundingClientRect();m.style.left=r.left+'px';m.style.top=(r.bottom+4)+'px';setTimeout(()=>document.addEventListener('pointerdown',outside,true),0)}
+function outside(e){if(!e.target.closest('#menu'))closeMenu()}function closeMenu(){const m=$('#menu');if(m)m.remove();document.removeEventListener('pointerdown',outside,true)}
+function setName(n){ST.name=n||'cell';$('#docname').textContent=ST.name;document.title=ST.name+' · CEsim VLSI'}
+function loadLayout(L,name,path,note){ST.L=L;ST.note=note||'';ST.sel=null;ST.undo=[];ST.redo=[];ST.inputs={};ST.cutY=null;ST.filePath=path||null;setName(name);changed();requestAnimationFrame(fit)}
+function docText(){const o=ST.L.toJSON();if(ST.note)o.note=ST.note;return JSON.stringify(o)}
+window.cesimOpenText=(name,text,path)=>{try{const o=JSON.parse(text);if(o.format!=='cesim-vlsi')throw 0;loadLayout(VL.Layout.from(o),name.replace(/\.[^.]+$/,''),path,o.note);toast('Opened '+name)}catch(e){toast('This file is not a CEsim layout',true)}};
+$('#fileIn').addEventListener('change',async e=>{const f=e.target.files[0];if(f)window.cesimOpenText(f.name,await f.text(),N&&N.pathFor?N.pathFor(f):null);e.target.value=''});
+const fileBase=()=>ST.name.replace(/[^\w.-]+/g,'_')||'cell';
+async function saveText(nm,text){if(N&&N.save){const r=await N.save(nm,text);if(r)toast('Saved '+r.split(/[\\/]/).pop());return r}const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:'text/plain'}));a.download=nm;document.body.appendChild(a);a.click();a.remove();toast('Saved '+nm);return nm}
+async function saveBin(nm,u8){let b='';for(let i=0;i<u8.length;i+=0x8000)b+=String.fromCharCode.apply(null,u8.subarray(i,i+0x8000));const b64=btoa(b);if(N&&N.saveBinary){const r=await N.saveBinary(nm,b64);if(r)toast('Saved '+nm);return}const a=document.createElement('a');a.href='data:application/octet-stream;base64,'+b64;a.download=nm;document.body.appendChild(a);a.click();a.remove();toast('Saved '+nm)}
+async function saveFile(asNew){const text=docText();if(N&&N.write&&ST.filePath&&!asNew){await N.write(ST.filePath,text);toast('Saved');return}const r=await saveText(fileBase()+'.cevlsi',text);if(r&&N){ST.filePath=r;setName(r.split(/[\\/]/).pop().replace(/\.[^.]+$/,''))}}
+function exportPng(){const url=cv.toDataURL('image/png');const nm=fileBase()+'.png';if(N&&N.saveBinary){N.saveBinary(nm,url.split(',')[1]);return}const a=document.createElement('a');a.href=url;a.download=nm;a.click()}
+$('#bFile').onclick=e=>menu(e.currentTarget,[['New layout',()=>loadLayout(new VL.Layout(),'cell'),''],['Open…',()=>$('#fileIn').click(),'Ctrl+O'],'-',['Save',()=>saveFile(false),'Ctrl+S'],['Save as…',()=>saveFile(true),'Ctrl+Shift+S'],'-',['Export GDSII (.gds)',()=>saveBin(fileBase()+'.gds',VL.toGDS(ST.L,ST.name,0.3)),''],['Export CIF (.cif)',()=>saveText(fileBase()+'.cif',VL.toCIF(ST.L,ST.name,0.3)),''],['Export SPICE netlist (.sp)',()=>saveText(fileBase()+'.sp',VL.toSpice(ST.L,ST.ex,ST.name,0.3)),''],['Export picture (PNG)',exportPng,'']]);
+$('#bEx').onclick=e=>menu(e.currentTarget,Object.keys(VL_EXAMPLES.EX).map(k=>[k,()=>{const r=VL_EXAMPLES.EX[k]();loadLayout(r.L,k.toLowerCase().replace(/\(.*?\)/g,'').replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,''),null,r.note);toast('Loaded: '+k)}]));
+$$('[data-tool]').forEach(b=>b.onclick=()=>setTool(b.dataset.tool));$('#bSim').onclick=()=>toggleSim();$('#bUndo').onclick=undo;$('#bRedo').onclick=redo;$('#bRef').onclick=showRef;
+$('#zIn').onclick=()=>zoomAt(1.25);$('#zOut').onclick=()=>zoomAt(.8);$('#zFit').onclick=fit;
+$('#docname').onclick=()=>{const el=$('#docname');const inp=document.createElement('input');inp.className='edit';inp.value=ST.name;el.textContent='';el.appendChild(inp);inp.focus();inp.select();let done=false;const fin=ok=>{if(done)return;done=true;setName(ok&&inp.value.trim()?inp.value.trim():ST.name);saveLocal()};inp.onkeydown=e=>{if(e.key==='Enter')fin(true);if(e.key==='Escape')fin(false);e.stopPropagation()};inp.onblur=()=>fin(true)};
+document.addEventListener('dragover',e=>e.preventDefault());document.addEventListener('drop',async e=>{e.preventDefault();const f=e.dataTransfer.files[0];if(f)window.cesimOpenText(f.name,await f.text(),N&&N.pathFor?N.pathFor(f):null)});
+function buildPalette(){let h='<h3>Layers</h3>';for(const l of VL.LAYERS){const inf=VL.INFO[l];const paint=!!KEYS[l];h+=`<div class="lrow"><button class="ly${l===ST.layer?' on':''}" data-l="${l}" title="${esc(inf.desc)}" ${paint?'':'data-cut="1"'}><span class="sw" style="background:${COLORS[l]};opacity:${l==='nwell'?.6:1}"></span>${esc(inf.name)}${paint?`<kbd>${KEYS[l]}</kbd>`:`<kbd>${l==='contact'?'C':'U'}</kbd>`}</button><button class="eye" data-eye="${l}" title="Show or hide">◉</button></div>`}
+ h+=`<h3>Rules (λ)</h3><div class="sub" style="line-height:1.6;padding:0 4px">Width: poly 2, diffusion 3, metal 3<br>Spacing: poly 2, diffusion 3, metal 3<br>Gate past diffusion: 2<br>Diffusion past gate: 3<br>N-well around p diffusion: 5<br>Contacts 2×2, 1 around, 2 from gates</div>`;$('#pal').innerHTML=h;
+ $$('.ly').forEach(b=>b.onclick=()=>{if(b.dataset.cut){setTool(b.dataset.l==='contact'?'contact':'via');return}setLayer(b.dataset.l)});$$('.eye').forEach(b=>b.onclick=()=>{const l=b.dataset.eye;if(ST.hidden.has(l))ST.hidden.delete(l);else ST.hidden.add(l);b.classList.toggle('off',ST.hidden.has(l));draw()})}
+function showRef(){const o=document.createElement('div');o.className='ov';o.innerHTML=`<div class="mdl" role="dialog" aria-label="Reference"><div class="mh2"><b>VLSI reference</b><button class="btn" id="refX">Close</button></div><div class="mb">
+<h4>Layers and λ</h4><p>A chip is drawn as overlapping layers on a grid. One grid square is λ (lambda), half the smallest feature of the process; every rule is written in λ so a design can move to a smaller process. Here λ = 0.3 µm when you export.</p>
+<h4>Transistors</h4><p>Wherever red poly crosses green n diffusion there is an nMOS transistor; across brown p diffusion, a pMOS. P diffusion must sit inside an n-well. The poly is the gate; the diffusion on each side is the source and drain. W is the gate's width across the diffusion, L its length along the current.</p>
+<h4>Wires</h4><p>Metal 1 carries most wires and the power rails. A contact joins metal 1 to poly or diffusion; a via joins metal 1 and metal 2. Wires on different layers cross without touching.</p>
+<h4>Labels and simulation</h4><p>Name the power wires VDD and GND, then name the inputs and outputs. Wires that only reach gates are inputs; wires that reach a source or drain are outputs. Simulate colours the wires: yellow 1, dark blue 0, red a conflict. The truth table lists every input combination and names the gate when it recognises it.</p>
+<h4>Design rules</h4><p>The Check list shows every broken rule: shapes too narrow or too close, a gate that does not reach past the diffusion, contacts of the wrong size, p diffusion too close to the edge of its n-well. Click a problem to zoom to it.</p>
+<h4>Cross-section</h4><p>Press K and click a row: the panel shows the chip cut along that row, with the substrate, n-well, diffusion, oxide, poly, contacts and metal.</p>
+<h4>Output</h4><p>File exports GDSII and CIF (the layout formats chip makers use), a SPICE netlist of the extracted transistors, and a picture.</p>
+<h4>Keys</h4><p>S select · P paint · E erase (Shift: all layers) · C contact · U via · T label · K cross-section · 1–6 layers · Ctrl+D duplicate · Delete clear selection · Ctrl+Z undo · wheel zoom · right or middle drag to move the view</p></div></div>`;document.body.appendChild(o);o.onclick=e=>{if(e.target===o||e.target.id==='refX')o.remove()}}
+let svT=null;function saveLocal(){clearTimeout(svT);svT=setTimeout(()=>{try{localStorage.setItem('cesim.vlsi.doc',JSON.stringify({name:ST.name,doc:JSON.parse(docText())}))}catch(e){}},400)}
+window.addEventListener('beforeunload',()=>{try{localStorage.setItem('cesim.vlsi.doc',JSON.stringify({name:ST.name,doc:JSON.parse(docText())}))}catch(e){}});
+window.CEX2={ST,loadLayout,fit,W2S,setTool,setLayer,toggleSim,get ex(){return ST.ex},get drc(){return ST.drc}};
+(function start(){buildPalette();setTool('paint');let d=null;if(!/blank/.test(location.search)){try{d=JSON.parse(localStorage.getItem('cesim.vlsi.doc')||'null')}catch(e){}}
+ if(d&&d.doc)loadLayout(VL.Layout.from(d.doc),d.name,null,d.doc.note);else{const r=VL_EXAMPLES.EX['Inverter (NOT)']();loadLayout(r.L,'inverter',null,r.note)}hint(TOOLHINT.paint)})();
+</script>
+</body></html>

@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link href="fonts/fonts.css" rel="stylesheet"><title>CEsim PCB</title>
+<style>
+:root{--bg:#e9edf2;--panel:#f7f8fa;--line:#cdd3dc;--text:#1b2230;--dim:#5e6979;--hover:#e1e7ef;--accent:#185fa5;--font:"IBM Plex Sans",-apple-system,"Segoe UI",Roboto,Arial,sans-serif;--mono:"IBM Plex Mono",ui-monospace,Menlo,monospace}
+*{box-sizing:border-box}html,body{height:100%;margin:0}body{background:var(--bg);color:var(--text);font:13px/1.35 var(--font);overflow:hidden}
+#app{display:grid;grid-template-rows:auto 1fr 28px;height:100%}
+#top{display:flex;flex-wrap:wrap;row-gap:2px;align-items:center;gap:2px;padding:4px 10px;min-height:44px;background:var(--panel);border-bottom:1px solid var(--line);user-select:none}
+.logo{flex:none;width:24px;height:24px;border-radius:6px;background:var(--accent);color:#fff;display:grid;place-items:center;font:600 10px var(--mono);margin-right:6px}
+#docname{flex:none;font-weight:600;margin-right:10px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:text;padding:3px 5px;border-radius:3px}#docname:hover{background:var(--hover)}
+.tb{flex:none;height:30px;min-width:30px;padding:0 9px;border:1px solid transparent;border-radius:4px;background:none;color:var(--text);cursor:pointer;font:12.5px var(--font);white-space:nowrap}
+.tb:hover{background:var(--hover);border-color:var(--line)}.tb.pri{background:var(--accent);color:#fff}.tb.pri:hover{filter:brightness(.93)}.tb.on{background:#dce9f8;border-color:#9dbde4}
+.tb kbd{font:10.5px var(--mono);color:var(--dim);margin-left:4px}.tb.pri kbd{color:#cfe3ff}
+.sep{flex:none;width:1px;height:22px;background:var(--line);margin:0 6px}
+.lay{display:flex;border:1px solid var(--line);border-radius:5px;overflow:hidden;flex:none}.lay button{height:28px;border:none;background:#fff;padding:0 9px;cursor:pointer;font:12px var(--font);display:flex;align-items:center;gap:5px}.lay button.on{background:#1b2230;color:#fff}.lay i{width:9px;height:9px;border-radius:2px;display:inline-block}
+#main{display:grid;grid-template-columns:172px minmax(0,1fr) 290px;min-height:0}
+#pal{background:var(--panel);border-right:1px solid var(--line);overflow:auto;padding:6px 8px 14px;user-select:none}
+h3{font:600 11px var(--font);color:var(--dim);text-transform:uppercase;letter-spacing:.06em;margin:10px 2px 6px}
+.pi{display:block;width:100%;border:1px solid transparent;background:none;border-radius:5px;padding:5px 7px;cursor:pointer;font:12.5px var(--font);color:var(--text);text-align:left}.pi:hover{background:#fff;border-color:#dde2e9}.pi.on{background:#dce9f8;border-color:#9dbde4}.pi small{display:block;color:var(--dim);font-size:11px}
+#stage{position:relative;overflow:hidden;background:#0b1220}
+#cv{width:100%;height:100%;display:block;touch-action:none;user-select:none}
+#hint{position:absolute;left:12px;top:10px;background:rgba(15,22,36,.85);color:#dbe4f0;border-radius:6px;padding:6px 10px;font-size:12px;pointer-events:none;max-width:65%}
+#zoom{position:absolute;right:10px;bottom:10px;display:flex;gap:4px}#zoom button{width:30px;height:30px;border:1px solid #2b3648;background:#162033;color:#dbe4f0;border-radius:5px;cursor:pointer;font-size:15px}
+#side{background:var(--panel);border-left:1px solid var(--line);overflow:auto;padding:4px 12px 16px}
+.card{background:#fff;border:1px solid #dde2e9;border-radius:8px;padding:9px 10px;margin-bottom:8px}.card b{font-size:13px}.sub{font-size:11.5px;color:var(--dim);margin-top:2px}
+.fld{display:flex;align-items:center;gap:6px;margin-top:7px;font-size:12px;color:var(--dim)}.fld label{min-width:70px}
+.fld input,.fld select{flex:1;min-width:0;height:26px;border:1px solid var(--line);border-radius:4px;padding:0 6px;font:12.5px var(--font);background:#fff}.fld input.sm{flex:none;width:64px}
+.btn{height:26px;padding:0 10px;border:1px solid var(--line);border-radius:4px;background:#fff;color:var(--text);cursor:pointer;font:12px var(--font)}.btn:hover{background:var(--hover)}.btn.pri{background:var(--accent);border-color:var(--accent);color:#fff}.btn.red{color:#b3261e}
+.pads{display:grid;grid-template-columns:auto 1fr;gap:3px 8px;align-items:center;margin-top:8px;font-size:12px}.pads input{height:24px;border:1px solid var(--line);border-radius:4px;padding:0 5px;font:12px var(--mono);min-width:0}
+.prob{display:flex;gap:8px;padding:5px 8px;border-radius:5px;cursor:pointer;font-size:12px;line-height:1.4}.prob:hover{background:#fff}.prob i{font-style:normal;flex:none}.prob.w i{color:#b07b00}.prob.e i{color:#c62828}
+.netrow{display:flex;justify-content:space-between;padding:3px 8px;border-radius:4px;cursor:pointer;font:12px var(--mono)}.netrow:hover{background:#fff}.netrow.on{background:#fff4c2}.netrow span{color:var(--dim);font-family:var(--font)}
+#statusbar{display:flex;align-items:center;gap:16px;padding:0 12px;background:var(--panel);border-top:1px solid var(--line);font-size:11.5px;color:var(--dim);white-space:nowrap;overflow:hidden}#status b{color:var(--text)}#status.err b{color:#b3261e}#status.ok b{color:#1f7a37}#coord{margin-left:auto;font-family:var(--mono)}
+.toast{position:fixed;left:50%;bottom:44px;transform:translateX(-50%);background:#1b2230;color:#fff;padding:9px 14px;border-radius:6px;font-size:12.5px;z-index:90;max-width:70vw}.toast.warn{background:#8a3a00}
+.menu{position:fixed;z-index:80;background:#fff;border:1px solid var(--line);border-radius:6px;box-shadow:0 10px 30px rgba(20,30,50,.18);padding:4px;min-width:250px;display:flex;flex-direction:column}
+.menu button{display:flex;justify-content:space-between;gap:20px;border:none;background:none;text-align:left;padding:7px 10px;font:12.5px var(--font);border-radius:4px;cursor:pointer;color:var(--text)}.menu button:hover{background:#eaf3ff}.menu button span{color:var(--dim)}.menu hr{border:none;border-top:1px solid var(--line);margin:4px 0}
+.ov{position:fixed;inset:0;background:rgba(15,20,30,.35);display:grid;place-items:center;z-index:70}
+.mdl{background:#fff;border-radius:10px;box-shadow:0 20px 50px rgba(0,0,0,.3);width:min(760px,92vw);max-height:86vh;display:flex;flex-direction:column}.mdl .mh2{display:flex;justify-content:space-between;align-items:center;padding:10px 16px;border-bottom:1px solid var(--line)}.mdl .mb{padding:10px 18px 16px;overflow:auto;font-size:13px;line-height:1.55}.mdl h4{margin:12px 0 4px;font-size:13px}.mdl .mf{display:flex;gap:8px;justify-content:flex-end;padding:10px 16px;border-top:1px solid var(--line)}
+.mdl textarea{width:100%;height:280px;font:12.5px/1.5 var(--mono);border:1px solid var(--line);border-radius:6px;padding:8px;resize:vertical}
+.edit{height:24px;font:13px var(--font);border:1px solid var(--accent);border-radius:4px;padding:0 4px}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}[hidden]{display:none!important}
+</style></head>
+<body><div id="app">
+<div id="top">
+ <div class="logo">CE</div><span id="docname" title="Click to rename">board</span>
+ <button class="tb" id="bFile">File ▾</button><button class="tb" id="bEx">Examples ▾</button><button class="tb" id="bUndo" title="Undo (Ctrl+Z)">↶</button><button class="tb" id="bRedo" title="Redo (Ctrl+Y)">↷</button><div class="sep"></div>
+ <button class="tb on" id="tSel" title="Select and move (S)">Select<kbd>S</kbd></button><button class="tb" id="tRoute" title="Draw tracks (X)">Route<kbd>X</kbd></button>
+ <div class="lay" title="Active copper layer (L switches)"><button id="lF" class="on"><i style="background:#d64545"></i>Top</button><button id="lB"><i style="background:#3f7ee8"></i>Bottom</button></div>
+ <button class="tb" id="bNet" title="Edit or import the netlist">Netlist</button><div class="sep"></div>
+ <button class="tb pri" id="bAuto" title="Route every connection automatically">Autoroute</button><button class="tb" id="bDrc" title="Check the design rules">Check (DRC)</button>
+ <button class="tb" id="bView" title="Switch between layer view and the finished board">Real view</button><button class="tb" id="bGerber" title="Export Gerber and drill files for manufacturing">Export Gerber</button><button class="tb" id="bRef">Reference</button>
+</div>
+<div id="main">
+ <div id="pal"></div>
+ <div id="stage"><canvas id="cv" aria-label="PCB layout"></canvas><div id="hint" hidden></div><div id="zoom"><button id="zIn" title="Zoom in">+</button><button id="zOut" title="Zoom out">−</button><button id="zFit" title="Fit">⤢</button></div></div>
+ <div id="side"></div>
+</div>
+<div id="statusbar"><span id="status"><b>Ready.</b></span><span id="stats"></span><span id="coord"></span></div>
+</div>
+<input type="file" id="fileIn" accept=".cepcb,.json" hidden><input type="file" id="netIn" accept=".cir,.net,.txt,.sp,.spice" hidden>
+<script src="pcb-core.js"></script>
+<script>
+'use strict';
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];const N=window.cesimNative;
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const ST={doc:null,name:'board',filePath:null,tool:'select',layer:'F',sel:null,route:null,placing:null,undo:[],redo:[],view:{s:12,ox:40,oy:40},real:false,flip:false,grid:0.635,hiNet:null,drc:null,cursor:[0,0],diagFirst:false};
+const cv=$('#cv'),cx=cv.getContext('2d');
+function emptyDoc(){return{board:{w:50.8,h:38.1},comps:[],nets:{},traces:[],vias:[],texts:[],rules:{...PCB.DEF_RULES}}}
+/* ---------- view ---------- */
+function size(){const r=cv.getBoundingClientRect();const d=devicePixelRatio||1;cv.width=Math.round(r.width*d);cv.height=Math.round(r.height*d);draw()}
+new ResizeObserver(size).observe(cv);
+const W2S=(x,y)=>{const v=ST.view;const xx=ST.flip?ST.doc.board.w-x:x;return[v.ox+xx*v.s,v.oy+y*v.s]};
+const S2W=(px,py)=>{const v=ST.view;let x=(px-v.ox)/v.s;if(ST.flip)x=ST.doc.board.w-x;return[x,(py-v.oy)/v.s]};
+function evPos(e){const r=cv.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top]}
+function fit(){const r=cv.getBoundingClientRect();const b=ST.doc.board;let x0=0,y0=0,x1=b.w,y1=b.h;for(const c of ST.doc.comps){const bb=PCB.compBox(c);x0=Math.min(x0,bb[0]);y0=Math.min(y0,bb[1]);x1=Math.max(x1,bb[2]);y1=Math.max(y1,bb[3])}const m=4;const s=Math.min((r.width-40)/(x1-x0+2*m),(r.height-40)/(y1-y0+2*m));const s2=Math.max(2,Math.min(80,s));ST.view={s:s2,ox:(r.width-(x1-x0)*s2)/2-(ST.flip?b.w-x1:x0)*s2,oy:(r.height-(y1-y0)*s2)/2-y0*s2};draw()}
+function zoomAt(f,px,py){const r=cv.getBoundingClientRect();if(px==null){px=r.width/2;py=r.height/2}const v=ST.view;const ns=Math.max(1.5,Math.min(200,v.s*f));const k=ns/v.s;ST.view={s:ns,ox:px-(px-v.ox)*k,oy:py-(py-v.oy)*k};draw()}
+const snapG=v=>Math.round(v/ST.grid)*ST.grid;
+/* ---------- drawing ---------- */
+const COL={F:'#d64545',B:'#3f7ee8',pad:'#c8a640',silk:'#e8e3a8',edge:'#e8c547',rat:'rgba(255,255,255,.75)',hole:'#0b1220',sel:'#ffffff',drc:'#ff4fd8'};
+let items=null,clus=null;function recompute(){items=PCB.copper(ST.doc);clus=PCB.clusters(items);ST.drc=PCB.drc(ST.doc);updStats()}
+function draw(){if(!ST.doc)return;const d=devicePixelRatio||1;cx.setTransform(d,0,0,d,0,0);const r=cv.getBoundingClientRect();cx.clearRect(0,0,r.width,r.height);const v=ST.view,s=v.s,doc=ST.doc,b=doc.board;
+ const P=(x,y)=>W2S(x,y);
+ // grid dots
+ if(!ST.real&&s*ST.grid>=7){cx.fillStyle='rgba(255,255,255,.08)';const g=ST.grid;for(let x=0;x<=b.w+1e-6;x+=g)for(let y=0;y<=b.h+1e-6;y+=g){const[a,c]=P(x,y);cx.fillRect(a-0.5,c-0.5,1,1)}}
+ // board
+ const[bx0,by0]=P(0,0),[bx1,by1]=P(b.w,b.h);const L=Math.min(bx0,bx1),T=Math.min(by0,by1),Wd=Math.abs(bx1-bx0),Hd=Math.abs(by1-by0);
+ if(ST.real){cx.fillStyle='#1f6b3a';cx.fillRect(L,T,Wd,Hd)}else{cx.fillStyle='#101a2b';cx.fillRect(L,T,Wd,Hd)}cx.strokeStyle=ST.real?'#c9b37a':COL.edge;cx.lineWidth=ST.real?2:1.4;cx.strokeRect(L,T,Wd,Hd);
+ const hi=ST.hiNet;const order=ST.real?[ST.flip?'F':'B',ST.flip?'B':'F']:(ST.layer==='F'?['B','F']:['F','B']);
+ const lineCap=(a,bb,w,col)=>{cx.strokeStyle=col;cx.lineWidth=Math.max(1,w*s);cx.lineCap='round';cx.beginPath();cx.moveTo(...P(...a));cx.lineTo(...P(...bb));cx.stroke()};
+ const padPath=(p,grow)=>{const sh=PCB.padShape({...p,w:p.w+2*(grow||0),h:p.h+2*(grow||0)});cx.beginPath();if(sh.k==='box'){const[a,c]=P(sh.x0,sh.y0),[e,f]=P(sh.x1,sh.y1);cx.rect(Math.min(a,e),Math.min(c,f),Math.abs(e-a),Math.abs(f-c))}else{const[a,c]=P(...sh.a),[e,f]=P(...sh.b);if(a===e&&c===f)cx.arc(a,c,sh.r*s,0,7);else{cx.lineCap='round';cx.lineWidth=sh.r*2*s;cx.moveTo(a,c);cx.lineTo(e,f);return'stroke'}}return'fill'};
+ const fillPad=(p,col,grow)=>{const m=padPath(p,grow);if(m==='stroke'){cx.strokeStyle=col;cx.stroke()}else{cx.fillStyle=col;cx.fill()}};
+ const visible=layer=>!ST.real||layer===(ST.flip?'B':'F');
+ for(const layer of order){if(ST.real&&!visible(layer))continue;const dim=!ST.real&&layer!==ST.layer;
+  for(const t of doc.traces)if(t.layer===layer){let col=ST.real?'#2f8a4c':COL[layer];if(!ST.real&&hi&&t.net===hi)col=layer==='F'?'#ff8a8a':'#8ab4ff';cx.globalAlpha=dim?.55:1;lineCap(t.a,t.b,t.w,col)}cx.globalAlpha=1}
+ // pads
+ if(!items)recompute();
+ for(const it of items){if(it.kind!=='pad')continue;const p=it.p;if(ST.real&&!it.layers.includes(ST.flip?'B':'F'))continue;let col=ST.real?'#d8d8d2':(p.drill?COL.pad:(ST.layer==='F'?COL.F:'#8a3a3a'));if(!ST.real&&hi&&it.net===hi)col='#ffe27a';fillPad(p,col)}
+ for(const vv of doc.vias){const[a,c]=P(vv.x,vv.y);cx.fillStyle=ST.real?'#2f8a4c':(hi&&vv.net===hi?'#ffe27a':'#b9b9b9');cx.beginPath();cx.arc(a,c,vv.d/2*s,0,7);cx.fill()}
+ // holes
+ cx.fillStyle=ST.real?'#121212':COL.hole;for(const it of items)if(it.kind==='pad'&&it.p.drill){const[a,c]=P(it.p.x,it.p.y);cx.beginPath();cx.arc(a,c,it.p.drill/2*s,0,7);cx.fill()}for(const vv of doc.vias){const[a,c]=P(vv.x,vv.y);cx.beginPath();cx.arc(a,c,vv.drill/2*s,0,7);cx.fill()}
+ // silk
+ if(!ST.real||!ST.flip){cx.strokeStyle=ST.real?'#f4f4f0':COL.silk;cx.lineWidth=Math.max(1,0.15*s);cx.lineCap='round';cx.lineJoin='round';
+  for(const c of doc.comps){if(!ST.real){const f=PCB.FP[c.fp];}for(const pl of PCB.silkOf(c)){cx.beginPath();pl.forEach((q,i)=>{const[a,e]=P(...q);i?cx.lineTo(a,e):cx.moveTo(a,e)});cx.stroke()}const[rx,ry]=PCB.refPos(c);const fs=1.0;for(const pl of PCB.textStrokes(c.ref,rx,ry,fs,0)){cx.beginPath();pl.forEach((q,i)=>{const[a,e]=P(...(ST.flip?[2*rx-q[0],q[1]]:q));i?cx.lineTo(a,e):cx.moveTo(a,e)});cx.stroke()}}
+  for(const tx of doc.texts||[])for(const pl of PCB.textStrokes(tx.text,tx.x,tx.y,tx.size||1.5,0)){cx.beginPath();pl.forEach((q,i)=>{const[a,e]=P(...q);i?cx.lineTo(a,e):cx.moveTo(a,e)});cx.stroke()}}
+ if(!ST.real){// values, pad names when zoomed
+  cx.fillStyle='rgba(232,227,168,.6)';cx.font=`${Math.max(9,Math.min(13,0.9*s))}px IBM Plex Sans`;cx.textAlign='center';for(const c of doc.comps){if(s<6||!c.value)continue;const bb=PCB.compBox(c);const[a,e]=P((bb[0]+bb[2])/2,bb[3]+1.1);cx.fillText(c.value,a,e)}
+  if(s>=14){cx.fillStyle='#0b1220';cx.font=`600 ${Math.min(12,0.55*s)}px IBM Plex Mono`;cx.textBaseline='middle';for(const it of items)if(it.kind==='pad'){const[a,e]=P(it.p.x,it.p.y);cx.fillText(it.pad,a,e+(it.p.drill?it.p.drill*s*0.75:0))}cx.textBaseline='alphabetic'}
+  // ratsnest
+  cx.strokeStyle=COL.rat;cx.lineWidth=1;cx.setLineDash([]);for(const l of ST.drc?ST.drc.ratsnest:[]){cx.globalAlpha=hi&&l.net!==hi?.25:1;cx.beginPath();cx.moveTo(...P(...l.a));cx.lineTo(...P(...l.b));cx.stroke()}cx.globalAlpha=1;
+  // DRC markers
+  if(ST.showDrc&&ST.drc){for(const q of ST.drc.items){if(q.kind==='unrouted')continue;const[a,e]=P(...q.at);cx.strokeStyle=q.sev==='error'?COL.drc:'#ffb020';cx.lineWidth=2;cx.beginPath();cx.arc(a,e,Math.max(7,0.8*s),0,7);cx.stroke()}}}
+ // selection
+ const sel=ST.sel;if(sel){cx.strokeStyle='#fff';cx.lineWidth=1.5;cx.setLineDash([4,3]);if(sel.comp!=null){const c=doc.comps[sel.comp];if(c){const bb=PCB.compBox(c);const[a,e]=P(bb[0],bb[1]),[f,g]=P(bb[2],bb[3]);cx.strokeRect(Math.min(a,f),Math.min(e,g),Math.abs(f-a),Math.abs(g-e))}}if(sel.trace!=null){const t=doc.traces[sel.trace];if(t){cx.setLineDash([]);cx.strokeStyle='rgba(255,255,255,.9)';cx.lineWidth=Math.max(1,t.w*s)+3;cx.globalAlpha=.35;cx.beginPath();cx.moveTo(...P(...t.a));cx.lineTo(...P(...t.b));cx.stroke();cx.globalAlpha=1}}if(sel.via!=null){const vv=doc.vias[sel.via];if(vv){const[a,e]=P(vv.x,vv.y);cx.beginPath();cx.arc(a,e,vv.d/2*s+3,0,7);cx.stroke()}}cx.setLineDash([])}
+ // routing preview
+ const rt=ST.route;if(rt){const pts=rt.pts.concat(routeTail(rt.pts[rt.pts.length-1],ST.cursor));let li=rt.layer;cx.globalAlpha=.85;for(let i=1;i<pts.length;i++){const sw=rt.vias.find(q=>q.after===i-1);lineCap(pts[i-1],pts[i],rt.w,COL[rt.layerAt?rt.layerAt(i-1):li])}cx.globalAlpha=1;for(const q of rt.vias){const[a,e]=P(...q.at);cx.fillStyle='#b9b9b9';cx.beginPath();cx.arc(a,e,ST.doc.rules.via/2*s,0,7);cx.fill()}
+  const[a,e]=P(...ST.cursor);cx.strokeStyle='#fff';cx.lineWidth=1;cx.beginPath();cx.arc(a,e,rt.w/2*s+2,0,7);cx.stroke()}
+ if(ST.placing&&ST.placing.at){const c={ref:'?',fp:ST.placing.fp,x:ST.placing.at[0],y:ST.placing.at[1],rot:ST.placing.rot||0};cx.globalAlpha=.6;for(const p of PCB.padsOf(c))fillPad(p,COL.pad);cx.strokeStyle=COL.silk;cx.lineWidth=1;for(const pl of PCB.silkOf(c)){cx.beginPath();pl.forEach((q,i)=>{const[x,y]=P(...q);i?cx.lineTo(x,y):cx.moveTo(x,y)});cx.stroke()}cx.globalAlpha=1}
+ // board corner handle
+ if(!ST.real&&ST.tool==='select'){const[a,e]=P(b.w,b.h);cx.fillStyle=COL.edge;cx.fillRect(a-4,e-4,8,8)}}
+/* ---------- routing helpers ---------- */
+function routeTail(from,to){const dx=to[0]-from[0],dy=to[1]-from[1];const ax=Math.abs(dx),ay=Math.abs(dy);const d=Math.min(ax,ay);if(d<1e-9||Math.abs(ax-ay)<1e-9)return[to];const sx=Math.sign(dx),sy=Math.sign(dy);const st=ax>ay?[sx*(ax-d),0]:[0,sy*(ay-d)];
+ const corner=ST.diagFirst?[from[0]+sx*d,from[1]+sy*d]:[from[0]+st[0],from[1]+st[1]];return[corner.map(v=>Math.round(v*1e4)/1e4),to]}
+function copperAt(x,y,layer){// best copper item under the point on a layer
+ if(!items)recompute();let best=null;for(const it of items){if(layer&&!it.layers.includes(layer))continue;const d=PCB.shapeDist({k:'cap',a:[x,y],b:[x,y],r:0},it.shape);if(d<=0.05&&(!best||it.kind==='pad'&&best.kind!=='pad'||it.kind==='via'&&best.kind==='trace'))best=it}return best}
+function itemNet(it){if(!it)return'';if(it.net)return it.net;const i=items.indexOf(it);const c=clus[i];const p=items.find((x,j)=>clus[j]===c&&x.net);return p?p.net:''}
+/* ---------- editing ---------- */
+function snapshot(){ST.undo.push(JSON.stringify(ST.doc));if(ST.undo.length>200)ST.undo.shift();ST.redo=[]}
+function changed(){items=null;recompute();draw();renderSide();saveLocal()}
+function undo(){if(!ST.undo.length)return;ST.redo.push(JSON.stringify(ST.doc));ST.doc=JSON.parse(ST.undo.pop());ST.sel=null;changed()}
+function redo(){if(!ST.redo.length)return;ST.undo.push(JSON.stringify(ST.doc));ST.doc=JSON.parse(ST.redo.pop());ST.sel=null;changed()}
+function delSel(){const s=ST.sel;if(!s)return;snapshot();const d=ST.doc;if(s.comp!=null){const c=d.comps[s.comp];for(const k of Object.keys(d.nets))if(k.startsWith(c.ref+'.'))delete d.nets[k];d.comps.splice(s.comp,1)}else if(s.trace!=null)d.traces.splice(s.trace,1);else if(s.via!=null)d.vias.splice(s.via,1);ST.sel=null;changed()}
+function rotSel(){if(ST.placing){ST.placing.rot=((ST.placing.rot||0)+90)%360;draw();return}const s=ST.sel;if(!s||s.comp==null)return;snapshot();const c=ST.doc.comps[s.comp];c.rot=((c.rot||0)+90)%360;changed()}
+function setTool(t){ST.tool=t;ST.route=null;ST.placing=null;$$('.pi').forEach(x=>x.classList.remove('on'));$('#tSel').classList.toggle('on',t==='select');$('#tRoute').classList.toggle('on',t==='route');cv.style.cursor=t==='route'?'crosshair':'';hint(t==='route'?'Click a pad to start a track. Click to add corners, V adds a via and changes layer, / flips the corner, Backspace removes the last corner. Click a pad of the same net to finish':'');draw()}
+function setLayer(l){ST.layer=l;$('#lF').classList.toggle('on',l==='F');$('#lB').classList.toggle('on',l==='B');if(ST.route){ST.route.switchTo&&ST.route.switchTo(l)}draw()}
+function hint(t){const h=$('#hint');h.textContent=t||'';h.hidden=!t}
+function nextRef(pfx){let n=1;while(ST.doc.comps.some(c=>c.ref===pfx+n))n++;return pfx+n}
+const FP_PFX={R_Axial:'R',R_0805:'R',C_Disc:'C',C_0805:'C',CP_Radial:'C',D_DO41:'D',LED_5mm:'D',LED_0805:'D','TO-92':'Q',Pot_Trim:'RV',SW_Push_6mm:'SW',Terminal_2:'J',Header_1x2:'J',Header_1x3:'J',Header_1x4:'J',Header_1x6:'J','DIP-8':'U','DIP-14':'U','DIP-16':'U',Seg7:'DS'};
+/* route state machine */
+function startRoute(x,y){const it=copperAt(x,y,ST.layer)||copperAt(x,y,null);if(!it){toast('Start the track on a pad, a via or another track',true);return}let layer=ST.layer;if(!it.layers.includes(layer)){layer=it.layers[0];setLayer(layer)}const net=itemNet(it);const start=it.kind==='pad'?[it.p.x,it.p.y]:it.kind==='via'?[it.v.x,it.v.y]:[x,y];
+ ST.route={pts:[start],segLayers:[],vias:[],layer,net,w:ST.doc.rules.trace,from:it};ST.route.layerAt=i=>ST.route.segLayers[i]||ST.route.layer;hint(`Routing net ${net||'(no net)'} on the ${layer==='F'?'top':'bottom'} layer. Click to add corners, V for a via, Esc to stop`);draw()}
+function routeClick(x,y,dbl){const rt=ST.route;const last=rt.pts[rt.pts.length-1];const tgt=copperAt(x,y,rt.layer);let end=[x,y];let finish=false;
+ if(tgt&&tgt!==rt.from){const n=itemNet(tgt);if(n&&rt.net&&n!==rt.net){toast(`That ${tgt.kind} is on net ${n}, not ${rt.net}. A track there would make a short`,true);return}if(tgt.kind==='pad'){end=[tgt.p.x,tgt.p.y];finish=true}else if(tgt.kind==='via'){end=[tgt.v.x,tgt.v.y];finish=true}else if(n===rt.net&&rt.pts.length>1)finish=true}
+ const tail=routeTail(last,end);for(const p of tail){if(Math.hypot(p[0]-rt.pts[rt.pts.length-1][0],p[1]-rt.pts[rt.pts.length-1][1])<1e-6)continue;rt.segLayers.push(rt.layer);rt.pts.push(p)}if(dbl)finish=true;if(finish)commitRoute();else draw()}
+function routeVia(){const rt=ST.route;if(!rt)return;const at=rt.pts[rt.pts.length-1];if(rt.pts.length<2&&rt.from&&rt.from.kind==='pad'&&rt.from.p.drill){setLayer(rt.layer=rt.layer==='F'?'B':'F');return}const other=rt.layer==='F'?'B':'F';const tgt=copperAt(at[0],at[1],null);if(!(tgt&&tgt.kind==='pad'&&tgt.p.drill))rt.vias.push({at:at.slice()});rt.layer=other;setLayer(other);draw()}
+function commitRoute(){const rt=ST.route;if(rt.pts.length<2){ST.route=null;draw();return}snapshot();for(let i=1;i<rt.pts.length;i++)ST.doc.traces.push({a:rt.pts[i-1],b:rt.pts[i],w:rt.w,layer:rt.segLayers[i-1],net:rt.net});for(const v of rt.vias)ST.doc.vias.push({x:v.at[0],y:v.at[1],d:ST.doc.rules.via,drill:ST.doc.rules.viaDrill,net:rt.net});ST.route=null;hint('Click a pad to start the next track');changed()}
+/* ---------- pointer ---------- */
+let drag=null;
+cv.addEventListener('pointerdown',e=>{cv.focus();const[px,py]=evPos(e);const[wx,wy]=S2W(px,py);const gx=snapG(wx),gy=snapG(wy);if(e.button===1||e.button===2){if(e.button===2&&ST.route){ST.route=null;draw();return}return startPan(e,px,py)}cv.setPointerCapture(e.pointerId);
+ if(ST.placing){snapshot();const c={ref:nextRef(FP_PFX[ST.placing.fp]||'U'),fp:ST.placing.fp,value:'',x:gx,y:gy,rot:ST.placing.rot||0};ST.doc.comps.push(c);ST.sel={comp:ST.doc.comps.length-1};if(!e.shiftKey)setTool('select');changed();toast(`Placed ${c.ref}. Give its pads nets in the panel, or use Netlist`);return}
+ if(ST.tool==='route'){const p=[gx,gy];const near=copperAt(wx,wy,ST.route?ST.route.layer:ST.layer);const pt=near&&near.kind==='pad'?[near.p.x,near.p.y]:p;if(!ST.route)startRoute(...(near?[wx,wy]:p));else routeClick(...(near?[wx,wy]:p),e.detail>=2);return}
+ // board corner
+ const b=ST.doc.board;const[cxp,cyp]=W2S(b.w,b.h);if(!ST.real&&Math.abs(px-cxp)<7&&Math.abs(py-cyp)<7){snapshot();drag={kind:'board',moved:false};return}
+ const hit=hitTest(wx,wy);if(hit){ST.sel=hit;if(hit.comp!=null){snapshot();const c=ST.doc.comps[hit.comp];drag={kind:'comp',c,start:[gx,gy],orig:[c.x,c.y],moved:false}}draw();renderSide();return}
+ ST.sel=null;draw();renderSide();startPan(e,px,py)});
+function startPan(e,px,py){drag={kind:'pan',px,py,v:{...ST.view}};cv.setPointerCapture(e.pointerId);cv.style.cursor='grabbing'}
+function hitTest(x,y){const d=ST.doc;const vis=ST.real?[ST.flip?'B':'F']:[ST.layer,ST.layer==='F'?'B':'F'];
+ for(let i=d.vias.length-1;i>=0;i--){const v=d.vias[i];if(Math.hypot(v.x-x,v.y-y)<=v.d/2)return{via:i}}
+ for(const L of vis)for(let i=d.traces.length-1;i>=0;i--){const t=d.traces[i];if(t.layer===L&&PCB.ptSeg(x,y,...t.a,...t.b)<=t.w/2+0.15)return{trace:i}}
+ for(let i=d.comps.length-1;i>=0;i--){const bb=PCB.compBox(d.comps[i]);if(x>=bb[0]&&x<=bb[2]&&y>=bb[1]&&y<=bb[3])return{comp:i}}return null}
+cv.addEventListener('pointermove',e=>{const[px,py]=evPos(e);const[wx,wy]=S2W(px,py);const gx=snapG(wx),gy=snapG(wy);
+ let cur=[gx,gy];if(ST.route){const t=copperAt(wx,wy,ST.route.layer);if(t&&t.kind==='pad')cur=[t.p.x,t.p.y];else if(t&&t.kind==='via')cur=[t.v.x,t.v.y]}ST.cursor=cur;
+ const h=copperAt(wx,wy,null);$('#coord').textContent=`${wx.toFixed(2)}, ${wy.toFixed(2)} mm${h?` · ${h.kind==='pad'?h.ref+'.'+h.pad:h.kind} · net ${itemNet(h)||'none'}`:''}`;
+ if(ST.placing){ST.placing.at=[gx,gy];draw()}else if(ST.route)draw();
+ if(!drag)return;
+ if(drag.kind==='pan'){ST.view={...drag.v,ox:drag.v.ox+px-drag.px,oy:drag.v.oy+py-drag.py};draw();return}
+ if(drag.kind==='comp'){const dx=gx-drag.start[0],dy=gy-drag.start[1];if(!dx&&!dy&&!drag.moved)return;drag.moved=true;drag.c.x=Math.round((drag.orig[0]+dx)*1e4)/1e4;drag.c.y=Math.round((drag.orig[1]+dy)*1e4)/1e4;items=null;draw();return}
+ if(drag.kind==='board'){drag.moved=true;ST.doc.board.w=Math.max(5,Math.round(wx/1.27)*1.27);ST.doc.board.h=Math.max(5,Math.round(wy/1.27)*1.27);draw()}});
+cv.addEventListener('pointerup',()=>{if(!drag)return;const d=drag;drag=null;cv.style.cursor=ST.tool==='route'?'crosshair':'';if(d.kind==='comp'||d.kind==='board'){if(!d.moved)ST.undo.pop();else changed()}});
+cv.addEventListener('wheel',e=>{e.preventDefault();const[px,py]=evPos(e);zoomAt(e.deltaY>0?0.87:1.15,px,py)},{passive:false});
+cv.addEventListener('contextmenu',e=>e.preventDefault());cv.tabIndex=0;
+document.addEventListener('keydown',e=>{if(/INPUT|SELECT|TEXTAREA/.test(e.target.tagName))return;const k=e.key,c=e.ctrlKey||e.metaKey;
+ if(k==='Escape'){if(ST.route){if(ST.route.pts.length>1)commitRoute();else{ST.route=null;draw()}}else if(ST.placing)setTool('select');else{ST.sel=null;ST.hiNet=null;draw();renderSide()}closeMenu();const o=$('.ov');if(o)o.remove()}
+ else if(k==='Backspace'&&ST.route){e.preventDefault();const rt=ST.route;if(rt.pts.length>1){rt.pts.pop();rt.segLayers.pop();rt.vias=rt.vias.filter(v=>rt.pts.some(p=>p[0]===v.at[0]&&p[1]===v.at[1]))}else ST.route=null;draw()}
+ else if(k==='Delete'||k==='Backspace'){e.preventDefault();delSel()}
+ else if(!c&&(k==='r'||k==='R'))rotSel();else if(!c&&(k==='x'||k==='X'))setTool('route');else if(!c&&(k==='s'||k==='S'))setTool('select');else if(!c&&(k==='l'||k==='L'))setLayer(ST.layer==='F'?'B':'F');else if(!c&&(k==='v'||k==='V'))routeVia();else if(k==='/'){ST.diagFirst=!ST.diagFirst;draw()}
+ else if(c&&k.toLowerCase()==='z'){e.preventDefault();e.shiftKey?redo():undo()}else if(c&&k.toLowerCase()==='y'){e.preventDefault();redo()}else if(c&&k.toLowerCase()==='s'){e.preventDefault();saveFile(e.shiftKey)}else if(c&&k.toLowerCase()==='o'){e.preventDefault();$('#fileIn').click()}});
+/* ---------- side panel ---------- */
+function renderSide(){const el=$('#side');const d=ST.doc;const s=ST.sel;let h='';
+ if(s&&s.comp!=null&&d.comps[s.comp]){const c=d.comps[s.comp];const f=PCB.FP[c.fp];h+=`<h3>Selected part</h3><div class="card"><b>${esc(c.ref)}</b> <span class="sub">${esc(f.name)}</span>
+  <div class="fld"><label>Reference</label><input id="fRef" value="${esc(c.ref)}"></div><div class="fld"><label>Value</label><input id="fVal" value="${esc(c.value||'')}"></div>
+  <div class="fld"><label>Footprint</label><select id="fFp">${Object.keys(PCB.FP).filter(k=>PCB.FP[k].pads.length===f.pads.length).map(k=>`<option value="${k}" ${k===c.fp?'selected':''}>${esc(PCB.FP[k].name)}</option>`).join('')}</select></div>
+  <div class="fld"><label>Position</label><input class="sm" id="fX" value="${c.x.toFixed(2)}"><input class="sm" id="fY" value="${c.y.toFixed(2)}"><span>mm</span></div>
+  <div class="fld"><button class="btn" id="fRot">Rotate</button><button class="btn red" id="fDel">Delete</button></div>
+  <div class="sub" style="margin-top:8px">Pad nets</div><div class="pads">${[...new Set(f.pads.map(p=>p.n))].map(n=>`<span>${esc(n)}</span><input data-pad="${esc(n)}" value="${esc(d.nets[c.ref+'.'+n]||'')}" placeholder="no net">`).join('')}</div></div>`}
+ else if(s&&s.trace!=null&&d.traces[s.trace]){const t=d.traces[s.trace];h+=`<h3>Selected track</h3><div class="card"><b>Track</b> <span class="sub">${t.layer==='F'?'top':'bottom'} · net ${esc(t.net||'none')} · ${Math.hypot(t.b[0]-t.a[0],t.b[1]-t.a[1]).toFixed(2)} mm long</span><div class="fld"><label>Width</label><input class="sm" id="fW" value="${t.w}"><span>mm</span></div><div class="fld"><button class="btn" id="fFlip">Move to the ${t.layer==='F'?'bottom':'top'}</button><button class="btn red" id="fDel">Delete</button></div><div class="fld"><button class="btn" id="fDelNet">Delete all tracks of this net</button></div></div>`}
+ else if(s&&s.via!=null&&d.vias[s.via]){const v=d.vias[s.via];h+=`<h3>Selected via</h3><div class="card"><b>Via</b> <span class="sub">net ${esc(v.net||'none')} · ${v.d} mm, drill ${v.drill} mm</span><div class="fld"><button class="btn red" id="fDel">Delete</button></div></div>`}
+ // problems
+ const q=ST.drc||{items:[]};const errs=q.items.filter(x=>x.sev==='error'),un=q.items.filter(x=>x.kind==='unrouted'),oth=q.items.filter(x=>x.sev==='warning'&&x.kind!=='unrouted');
+ h+=`<h3>Check ${errs.length?`· ${errs.length} error${errs.length>1?'s':''}`:''}</h3>`;if(!q.items.length)h+=`<div class="sub" style="padding:2px 6px">${d.comps.length?'All connections routed, no rule broken.':'The board is empty.'}</div>`;
+ for(const x of errs.slice(0,40))h+=`<div class="prob e" data-at="${x.at}"><i>●</i><span>${esc(x.msg)}</span></div>`;for(const x of oth.slice(0,20))h+=`<div class="prob w" data-at="${x.at}"><i>▲</i><span>${esc(x.msg)}</span></div>`;if(un.length)h+=`<div class="prob w" id="pUn"><i>▲</i><span>${un.length} connection${un.length>1?'s':''} not routed yet (the thin white lines). Draw them or press Autoroute</span></div>`;
+ // nets
+ const nets=PCB.nets(d);h+=`<h3>Nets (${nets.length})</h3><div>`+nets.map(n=>{const pads=Object.entries(d.nets).filter(([,v])=>v===n).length;return`<div class="netrow${ST.hiNet===n?' on':''}" data-net="${esc(n)}">${esc(n)}<span>${pads} pad${pads>1?'s':''}</span></div>`}).join('')+'</div>';
+ // board & rules
+ const R=d.rules;h+=`<h3>Board and rules</h3><div class="card"><div class="fld"><label>Size</label><input class="sm" id="bW" value="${d.board.w.toFixed(2)}"><span>×</span><input class="sm" id="bH" value="${d.board.h.toFixed(2)}"><span>mm</span></div>
+  <div class="fld"><label>Track width</label><input class="sm" id="rT" value="${R.trace}"><span>mm</span></div><div class="fld"><label>Clearance</label><input class="sm" id="rC" value="${R.clearance}"><span>mm</span></div>
+  <div class="fld"><label>Via</label><input class="sm" id="rV" value="${R.via}"><span>drill</span><input class="sm" id="rVD" value="${R.viaDrill}"></div><div class="fld"><label>Grid</label><select id="rG">${[1.27,0.635,0.3175,0.254].map(g=>`<option ${g===ST.grid?'selected':''} value="${g}">${g} mm</option>`).join('')}</select></div>
+  <div class="fld"><button class="btn" id="bShrink">Fit board to parts</button><button class="btn" id="bPlace">Arrange parts</button></div></div>`;
+ if(ST.note)h+=`<h3>About this example</h3><div class="card" style="font-size:12px;line-height:1.5">${esc(ST.note)}</div>`;
+ el.innerHTML=h;bindSide()}
+function num(id){const v=parseFloat($(id).value);return isFinite(v)?v:null}
+function bindSide(){const d=ST.doc,s=ST.sel;const on=(id,ev,f)=>{const e=$(id);if(e)e.addEventListener(ev,f)};const c=s&&s.comp!=null?d.comps[s.comp]:null;
+ on('#fRef','change',e=>{const v=e.target.value.trim().toUpperCase();if(!/^[A-Z]+\d+$/.test(v)){toast('A reference is letters then a number, like R4',true);renderSide();return}if(d.comps.some(x=>x!==c&&x.ref===v)){toast(v+' is already used',true);renderSide();return}snapshot();for(const k of Object.keys(d.nets))if(k.startsWith(c.ref+'.')){d.nets[v+k.slice(c.ref.length)]=d.nets[k];delete d.nets[k]}c.ref=v;changed()});
+ on('#fVal','change',e=>{snapshot();c.value=e.target.value;changed()});on('#fFp','change',e=>{snapshot();c.fp=e.target.value;changed()});
+ on('#fX','change',()=>{const v=num('#fX');if(v!=null){snapshot();c.x=v;changed()}});on('#fY','change',()=>{const v=num('#fY');if(v!=null){snapshot();c.y=v;changed()}});
+ on('#fRot','click',rotSel);on('#fDel','click',delSel);
+ $$('#side .pads input').forEach(inp=>inp.addEventListener('change',()=>{snapshot();const k=c.ref+'.'+inp.dataset.pad;const v=inp.value.trim();if(v)d.nets[k]=v;else delete d.nets[k];changed()}));
+ on('#fW','change',()=>{const v=num('#fW');if(v>0){snapshot();d.traces[s.trace].w=v;changed()}});on('#fFlip','click',()=>{snapshot();const t=d.traces[s.trace];t.layer=t.layer==='F'?'B':'F';changed()});
+ on('#fDelNet','click',()=>{const n=d.traces[s.trace].net;snapshot();d.traces=d.traces.filter(t=>t.net!==n);d.vias=d.vias.filter(v=>v.net!==n);ST.sel=null;changed()});
+ on('#bW','change',()=>{const v=num('#bW');if(v>2){snapshot();d.board.w=v;changed()}});on('#bH','change',()=>{const v=num('#bH');if(v>2){snapshot();d.board.h=v;changed()}});
+ const rule=(id,k)=>on(id,'change',()=>{const v=num(id);if(v>0){snapshot();d.rules[k]=v;changed()}});rule('#rT','trace');rule('#rC','clearance');rule('#rV','via');rule('#rVD','viaDrill');
+ on('#rG','change',e=>{ST.grid=+e.target.value;draw()});
+ on('#bShrink','click',()=>{if(!d.comps.length)return;snapshot();const bb=d.comps.map(PCB.compBox);const x0=Math.min(...bb.map(b=>b[0])),y0=Math.min(...bb.map(b=>b[1]));const dx=Math.round((3-x0)/1.27)*1.27,dy=Math.round((3-y0)/1.27)*1.27;for(const c of d.comps){c.x+=dx;c.y+=dy}for(const t of d.traces){t.a=[t.a[0]+dx,t.a[1]+dy];t.b=[t.b[0]+dx,t.b[1]+dy]}for(const v of d.vias){v.x+=dx;v.y+=dy}const b2=d.comps.map(PCB.compBox);d.board.w=Math.ceil((Math.max(...b2.map(b=>b[2]))+3)/1.27)*1.27;d.board.h=Math.ceil((Math.max(...b2.map(b=>b[3]))+3)/1.27)*1.27;changed();fit()});
+ on('#bPlace','click',()=>{if(!d.comps.length)return;if(d.traces.length&&!confirmBox('Arranging the parts removes all tracks. Continue?'))return;snapshot();d.traces=[];d.vias=[];PCB.autoPlace(d);changed();fit()});
+ $$('#side .prob[data-at]').forEach(p=>p.onclick=()=>{const[x,y]=p.dataset.at.split(',').map(Number);ST.showDrc=true;const r=cv.getBoundingClientRect();ST.view.s=Math.max(ST.view.s,20);const[a,b]=[ST.flip?d.board.w-x:x,y];ST.view.ox=r.width/2-a*ST.view.s;ST.view.oy=r.height/2-b*ST.view.s;draw()});
+ const pu=$('#pUn');if(pu)pu.onclick=()=>autoroute();
+ $$('#side .netrow').forEach(r=>r.onclick=()=>{ST.hiNet=ST.hiNet===r.dataset.net?null:r.dataset.net;draw();renderSide()})}
+function confirmBox(m){return window.confirm?window.confirm(m):true}
+function updStats(){const d=ST.doc,q=ST.drc;const len=d.traces.reduce((s,t)=>s+Math.hypot(t.b[0]-t.a[0],t.b[1]-t.a[1]),0);$('#stats').textContent=`${d.comps.length} parts · ${PCB.nets(d).length} nets · ${d.traces.length} tracks (${len.toFixed(0)} mm) · ${d.vias.length} vias · ${d.board.w.toFixed(1)} × ${d.board.h.toFixed(1)} mm`;
+ const un=q.ratsnest.length;if(q.errors)setStatus(`<b>${q.errors} rule error${q.errors>1?'s':''}.</b> See the Check list on the right`,'err');else if(un)setStatus(`<b>${un} connection${un>1?'s':''} to route.</b> Press X to draw tracks, or Autoroute`);else if(d.comps.length)setStatus('<b>Board complete.</b> All connections routed and no rule broken. Export Gerber to manufacture it','ok');else setStatus('<b>Empty board.</b> Open an example, import a netlist, or place parts from the left')}
+/* ---------- actions ---------- */
+function autoroute(){const d=ST.doc;if(!d.comps.length){toast('Place some parts first',true);return}setStatus('<b>Routing…</b>');setTimeout(()=>{const before=ST.drc.ratsnest.length;const r=PCB.autoroute(d,{width:d.rules.trace});if(!r.routed&&!r.failed.length){toast('Everything is already routed');return}snapshot();d.traces.push(...r.traces);d.vias.push(...r.vias);changed();const left=ST.drc.ratsnest.length;toast(left?`Routed ${r.routed} connection${r.routed===1?'':'s'}; ${left} could not fit. Move parts apart or make the board bigger, then try again`:`Routed ${r.routed} connection${r.routed===1?'':'s'} with ${r.vias.length} via${r.vias.length===1?'':'s'} in ${r.ms} ms`,!!left)},20)}
+function runDrc(){ST.showDrc=true;recompute();draw();renderSide();const q=ST.drc;toast(q.errors?`${q.errors} rule error${q.errors>1?'s':''} found, marked in pink`:q.ratsnest.length?`No rule broken, but ${q.ratsnest.length} connection${q.ratsnest.length>1?'s are':' is'} not routed`:'No problems: the board is ready to manufacture',!!q.errors)}
+async function exportGerber(){const d=ST.doc;recompute();if(ST.drc.errors&&!confirmBox(`The board has ${ST.drc.errors} rule error${ST.drc.errors>1?'s':''}. Export anyway?`))return;const base=ST.name.replace(/[^\w.-]+/g,'_')||'board';const files=PCB.gerberFiles(d,base);const z=PCB.zip(files);let b64='';for(let i=0;i<z.length;i+=0x8000)b64+=String.fromCharCode.apply(null,z.subarray(i,i+0x8000));b64=btoa(b64);const nm=base+'-gerber.zip';
+ if(N&&N.saveBinary){const r=await N.saveBinary(nm,b64);if(r)toast(`Saved ${Object.keys(files).length} manufacturing files in ${nm}`)}else{const a=document.createElement('a');a.href='data:application/zip;base64,'+b64;a.download=nm;document.body.appendChild(a);a.click();a.remove();toast(`Saved ${Object.keys(files).length} manufacturing files in ${nm}`)}}
+function exportPng(){const d=devicePixelRatio||1;const url=cv.toDataURL('image/png');const nm=ST.name.replace(/[^\w.-]+/g,'_')+'.png';if(N&&N.saveBinary)N.saveBinary(nm,url.split(',')[1]);else{const a=document.createElement('a');a.href=url;a.download=nm;a.click()}}
+function netlistDialog(text){const o=document.createElement('div');o.className='ov';const cur=text!=null?text:docToNetlist();o.innerHTML=`<div class="mdl" role="dialog" aria-label="Netlist"><div class="mh2"><b>Netlist</b><button class="btn" id="nlX">Close</button></div><div class="mb"><div class="sub" style="margin-bottom:6px">One part per line: <code>NAME node node … VALUE</code>. R resistor, C capacitor (1 µF and more becomes electrolytic), D diode (value LED for an LED), Q transistor (C B E), V or J connector, S push button, U chip (end with DIP-8, DIP-14 or DIP-16). Node 0 is GND. Lines starting with * are comments.</div><textarea id="nlT" spellcheck="false">${esc(cur)}</textarea><div id="nlW" class="sub" style="color:#8a3a00"></div></div><div class="mf"><button class="btn" id="nlFile">Open file…</button><span style="flex:1"></span><button class="btn" id="nlNew">Replace the board</button><button class="btn pri" id="nlUp">Update (keep positions)</button></div></div>`;document.body.appendChild(o);
+ const close=()=>o.remove();o.onclick=e=>{if(e.target===o)close()};$('#nlX').onclick=close;$('#nlFile').onclick=()=>{$('#netIn').click();close()};const ta=$('#nlT');ta.addEventListener('keydown',e=>e.stopPropagation());
+ const apply=keep=>{const r=PCB.fromNetlist(ta.value);if(!r.comps.length){$('#nlW').textContent=r.warn.join(' · ')||'No parts found.';return}snapshot();applyNetlist(r,keep);close();toast(`${r.comps.length} parts, ${PCB.nets(ST.doc).length} nets${r.warn.length?'. '+r.warn[0]:''}`,!!r.warn.length)};$('#nlUp').onclick=()=>apply(true);$('#nlNew').onclick=()=>apply(false);setTimeout(()=>ta.focus(),30)}
+function applyNetlist(r,keep){const d=ST.doc;if(keep&&d.comps.length){const old=new Map(d.comps.map(c=>[c.ref,c]));const fresh=[];for(const c of r.comps){const o=old.get(c.ref);if(o){c.x=o.x;c.y=o.y;c.rot=o.rot;if(PCB.FP[o.fp].pads.length===PCB.FP[c.fp].pads.length)c.fp=o.fp}else fresh.push(c)}d.comps=r.comps;d.nets=r.nets;if(fresh.length){let x=3;const y=d.board.h+6;for(const c of fresh){c.x=0;c.y=0;const bb=PCB.compBox(c);c.x=Math.round((x-bb[0])/1.27)*1.27;c.y=Math.round((y-bb[1])/1.27)*1.27;x+=bb[2]-bb[0]+3}toast(`${fresh.length} new part${fresh.length>1?'s are':' is'} below the board. Drag them into place`)}}
+ else{d.comps=r.comps;d.nets=r.nets;d.traces=[];d.vias=[];PCB.autoPlace(d)}changed();fit()}
+function docToNetlist(){const d=ST.doc;if(!d.comps.length)return`* Example: an LED with a resistor and a 2-pin connector\nJ1 vcc 0\nR1 vcc a 470\nD1 a 0 LED\n`;const L=[`* ${ST.name}`,'* [footprint] at the end of a line keeps the exact footprint; the nodes follow its pads in order'];
+ for(const c of d.comps){const names=[...new Set(PCB.FP[c.fp].pads.map(p=>p.n))];const n=names.map(p=>(d.nets[c.ref+'.'+p]||'nc').replace(/^GND$/,'0'));L.push(`${c.ref} ${n.join(' ')}${c.value?' '+c.value.replace(/[\[\]]/g,''):''} [${c.fp}]`)}return L.join('\n')+'\n'}
+/* ---------- files ---------- */
+function toast(m,w){$$('.toast').forEach(x=>x.remove());const t=document.createElement('div');t.className='toast'+(w?' warn':'');t.textContent=m;document.body.appendChild(t);setTimeout(()=>t.remove(),w?5500:3200)}
+function setStatus(h,k){const s=$('#status');s.innerHTML=h;s.className=k||''}
+function menu(btn,list){closeMenu();const m=document.createElement('div');m.className='menu';m.id='menu';for(const it of list){if(it==='-'){m.appendChild(document.createElement('hr'));continue}const b=document.createElement('button');b.innerHTML=`${esc(it[0])}${it[2]?`<span>${it[2]}</span>`:''}`;b.onclick=()=>{closeMenu();it[1]()};m.appendChild(b)}document.body.appendChild(m);const r=btn.getBoundingClientRect();m.style.left=r.left+'px';m.style.top=(r.bottom+4)+'px';setTimeout(()=>document.addEventListener('pointerdown',outside,true),0)}
+function outside(e){if(!e.target.closest('#menu'))closeMenu()}function closeMenu(){const m=$('#menu');if(m)m.remove();document.removeEventListener('pointerdown',outside,true)}
+function setName(n){ST.name=n||'board';$('#docname').textContent=ST.name;document.title=ST.name+' · CEsim PCB'}
+function loadDoc(d,name,path,note){d=Object.assign(emptyDoc(),d);d.rules=Object.assign({...PCB.DEF_RULES},d.rules||{});d.comps=(d.comps||[]).filter(c=>PCB.FP[c.fp]);ST.doc=d;ST.note=note||d.note||'';ST.sel=null;ST.route=null;ST.hiNet=null;ST.showDrc=false;ST.undo=[];ST.redo=[];ST.filePath=path||null;setName(name);changed();requestAnimationFrame(fit)}
+function docText(){const d=ST.doc;return JSON.stringify({format:'cesim-pcb',version:1,board:d.board,rules:d.rules,comps:d.comps,nets:d.nets,traces:d.traces,vias:d.vias,texts:d.texts,note:ST.note||undefined})}
+window.cesimOpenText=(name,text,path)=>{if(/\.(cir|net|txt|sp|spice)$/i.test(name)){netlistDialog(text);return}try{const d=JSON.parse(text);if(d.format!=='cesim-pcb')throw 0;loadDoc(d,name.replace(/\.[^.]+$/,''),path);toast('Opened '+name)}catch(e){toast('This file is not a CEsim board',true)}};
+$('#fileIn').addEventListener('change',async e=>{const f=e.target.files[0];if(f)window.cesimOpenText(f.name,await f.text(),N&&N.pathFor?N.pathFor(f):null);e.target.value=''});
+$('#netIn').addEventListener('change',async e=>{const f=e.target.files[0];if(f)netlistDialog(await f.text());e.target.value=''});
+async function saveFile(asNew){const nm=ST.name.replace(/[^\w.-]+/g,'_')+'.cepcb';const text=docText();if(N&&N.write&&ST.filePath&&!asNew){await N.write(ST.filePath,text);toast('Saved');return}if(N&&N.save){const r=await N.save(nm,text);if(r){ST.filePath=r;setName(r.split(/[\\/]/).pop().replace(/\.[^.]+$/,''));toast('Saved '+r.split(/[\\/]/).pop())}return}const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:'application/json'}));a.download=nm;document.body.appendChild(a);a.click();a.remove()}
+document.addEventListener('dragover',e=>e.preventDefault());document.addEventListener('drop',async e=>{e.preventDefault();const f=e.dataTransfer.files[0];if(f)window.cesimOpenText(f.name,await f.text(),N&&N.pathFor?N.pathFor(f):null)});
+/* ---------- examples ---------- */
+const EX={
+ 'LED and resistor':['* LED with a current-limiting resistor\nJ1 vcc 0\nR1 vcc a 470\nD1 a 0 LED',true,'The simplest board: a 2-pin connector for 5 to 9 V, a resistor and an LED, already routed. Switch to Real view to see the finished board.'],
+ '555 blinker':['* 555 astable blinker\nJ1 vcc 0\nR1 vcc dis 1k\nR2 dis thr 47k\nC1 thr 0 10u\nC2 ctl 0 10n\nU1 0 thr out vcc ctl thr dis vcc DIP-8\nR3 out led 470\nD1 led 0 LED',false,'The thin white lines are connections still to route. Press X and click from pad to pad, or press Autoroute.'],
+ 'Transistor switch':['* NPN transistor switching an LED\nJ1 vcc 0\nS1 vcc b1\nR1 b1 base 10k\nQ1 col base 0 2N2222\nR2 vcc a 330\nD1 a col LED',false,'Q1 uses the TO-92 pinout E B C. Route it by hand to practise, then run Check (DRC).'],
+ 'Logic gates (74LS08)':['* Two switches into an AND gate, LED on the output\nJ1 vcc 0\nJ2 a b\nR1 a 0 10k\nR2 b 0 10k\nU1 a b y nc nc nc 0 nc nc nc nc nc nc vcc DIP-14\nR3 y led 330\nD1 led 0 LED',false,'Pin 14 of the chip is +5 V and pin 7 is ground. J2 brings the two inputs in from switches off the board.'],
+ 'LED bar on a pin header':['* Four LEDs driven from a 6-pin header (for example from a microcontroller)\nJ1 d1 d2 d3 d4 0 vcc\nR1 d1 a1 330\nR2 d2 a2 330\nR3 d3 a3 330\nR4 d4 a4 330\nD1 a1 0 LED\nD2 a2 0 LED\nD3 a3 0 LED\nD4 a4 0 LED',false,'Every LED shares the ground net. Route the ground on the bottom layer and the signals on the top, then check with DRC.'],
+};
+function loadExample(k){const[text,route,note]=EX[k];const r=PCB.fromNetlist(text);const d=Object.assign(emptyDoc(),{comps:r.comps,nets:r.nets});PCB.autoPlace(d);if(route){const res=PCB.autoroute(d);d.traces.push(...res.traces);d.vias.push(...res.vias)}loadDoc(d,k.toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,''),null,note)}
+/* ---------- palette ---------- */
+const PAL=[['Passive',['R_Axial','C_Disc','CP_Radial','Pot_Trim','R_0805','C_0805']],['Semiconductors',['D_DO41','LED_5mm','LED_0805','TO-92','DIP-8','DIP-14','DIP-16','Seg7']],['Connectors',['Terminal_2','Header_1x2','Header_1x3','Header_1x4','Header_1x6','SW_Push_6mm']]];
+function buildPalette(){let h='';for(const[g,list]of PAL){h+=`<h3>${g}</h3>`;for(const k of list){const f=PCB.FP[k];const[nm,...rest]=f.name.split(', ');h+=`<button class="pi" data-fp="${k}">${esc(nm)}<small>${esc(rest.join(', ')||(f.pads.some(p=>!p.drill)?'surface mount':''))}</small></button>`}}$('#pal').innerHTML=h;
+ $$('.pi').forEach(b=>b.onclick=()=>{setTool('select');ST.placing={fp:b.dataset.fp,rot:0,at:null};b.classList.add('on');hint('Click on the board to place it. R rotates, Shift+click places another, Esc cancels')})}
+/* ---------- wiring up ---------- */
+$('#bFile').onclick=e=>menu(e.currentTarget,[['New board',()=>loadDoc(emptyDoc(),'board'),''],['Open…',()=>$('#fileIn').click(),'Ctrl+O'],'-',['Save',()=>saveFile(false),'Ctrl+S'],['Save as…',()=>saveFile(true),'Ctrl+Shift+S'],'-',['Import netlist…',()=>$('#netIn').click(),''],['Edit netlist',()=>netlistDialog(),''],'-',['Export Gerber and drill (.zip)',exportGerber,''],['Export picture (PNG)',exportPng,'']]);
+$('#bEx').onclick=e=>menu(e.currentTarget,Object.keys(EX).map(k=>[k,()=>{loadExample(k);toast('Loaded: '+k)}]));
+$('#tSel').onclick=()=>setTool('select');$('#tRoute').onclick=()=>setTool('route');$('#lF').onclick=()=>setLayer('F');$('#lB').onclick=()=>setLayer('B');$('#bNet').onclick=()=>netlistDialog();$('#bAuto').onclick=autoroute;$('#bDrc').onclick=runDrc;$('#bGerber').onclick=exportGerber;$('#bUndo').onclick=undo;$('#bRedo').onclick=redo;$('#bRef').onclick=showRef;
+$('#bView').onclick=e=>{if(!ST.real){ST.real=true;ST.flip=false}else if(!ST.flip){ST.flip=true}else{ST.real=false;ST.flip=false}e.currentTarget.textContent=!ST.real?'Real view':ST.flip?'Layer view':'Bottom side';e.currentTarget.classList.toggle('on',ST.real);fit()};
+$('#zIn').onclick=()=>zoomAt(1.25);$('#zOut').onclick=()=>zoomAt(0.8);$('#zFit').onclick=fit;
+$('#docname').onclick=()=>{const el=$('#docname');const inp=document.createElement('input');inp.className='edit';inp.value=ST.name;el.textContent='';el.appendChild(inp);inp.focus();inp.select();let done=false;const fin=ok=>{if(done)return;done=true;setName(ok&&inp.value.trim()?inp.value.trim():ST.name);saveLocal()};inp.onkeydown=e=>{if(e.key==='Enter')fin(true);if(e.key==='Escape')fin(false);e.stopPropagation()};inp.onblur=()=>fin(true)};
+function showRef(){const o=document.createElement('div');o.className='ov';o.innerHTML=`<div class="mdl" role="dialog" aria-label="Reference"><div class="mh2"><b>PCB reference</b><button class="btn" id="refX">Close</button></div><div class="mb">
+<h4>From circuit to board</h4><p>A board starts from a netlist: which pin of which part connects to which. Bring one from the Breadboard or the Circuit tool, write it in Netlist, or place parts from the left and type each pad's net in the panel. Thin white lines (the ratsnest) show connections that still need copper.</p>
+<h4>Placing</h4><p>Drag parts to move them, R rotates. Put parts that connect close together, and keep connectors at the edge. Drag the yellow square at the board corner, or type a size, to resize the board.</p>
+<h4>Routing</h4><p>Press X, click a pad and click to add corners; tracks run straight or at 45°. / flips the corner, V drops a via and continues on the other layer, Backspace undoes the last corner, and a click on a pad of the same net finishes. You cannot end a track on a pad of another net. L switches between the top (red) and bottom (blue) copper. Autoroute routes everything that is left.</p>
+<h4>Design rules</h4><p>Check (DRC) looks for copper of different nets that is too close or touching (a short), tracks thinner than the minimum, copper near the edge, overlapping parts and connections not routed yet. Click a problem to jump to it.</p>
+<h4>Manufacturing</h4><p>Export Gerber writes a .zip with the top and bottom copper, solder mask, silkscreen and board outline in Gerber RS-274X, plus the drill file in Excellon. Board makers accept this .zip as it is.</p>
+<h4>Keys</h4><p>S select · X route · L change layer · V via · R rotate · Delete remove · Ctrl+Z undo · mouse wheel zoom · drag the background or use the middle button to move the view</p></div></div>`;document.body.appendChild(o);o.onclick=e=>{if(e.target===o||e.target.id==='refX')o.remove()}}
+let svT=null;function saveLocal(){clearTimeout(svT);svT=setTimeout(()=>{try{localStorage.setItem('cesim.pcb.doc',JSON.stringify({name:ST.name,doc:JSON.parse(docText())}))}catch(e){}},400)}
+window.addEventListener('beforeunload',()=>{try{localStorage.setItem('cesim.pcb.doc',JSON.stringify({name:ST.name,doc:JSON.parse(docText())}))}catch(e){}});
+function takeHandoff(){let h=null;try{h=JSON.parse(localStorage.getItem('cesim.handoff.pcb')||'null');localStorage.removeItem('cesim.handoff.pcb')}catch(e){}if(!h)return false;
+ if(h.kind==='pcb'){const d=Object.assign(emptyDoc(),{comps:h.comps,nets:h.nets});PCB.autoPlace(d);loadDoc(d,h.name||'board',null,'');toast(`Opened ${h.comps.length} parts from the ${h.from||'Breadboard'}. Arrange them, then route`);if(h.skipped&&h.skipped.length)setTimeout(()=>toast('Not placed (no footprint): '+[...new Set(h.skipped)].join(', '),true),3400);return true}
+ if(h.kind==='netlist'){const r=PCB.fromNetlist(h.text);const d=Object.assign(emptyDoc(),{comps:r.comps,nets:r.nets});if(r.comps.length)PCB.autoPlace(d);loadDoc(d,h.name||'board',null,'');toast(`Opened ${r.comps.length} parts from the ${h.from||'Circuit tool'}${r.warn.length?'. '+r.warn.length+' line'+(r.warn.length>1?'s':'')+' skipped':''}`,!!r.warn.length);return true}return false}
+window.addEventListener('focus',()=>setTimeout(takeHandoff,50));window.addEventListener('storage',e=>{if(e.key==='cesim.handoff.pcb'&&e.newValue)takeHandoff()});
+window.CEP={ST,loadDoc,loadExample,autoroute,runDrc,fit,W2S,S2W,setTool,setLayer,get drc(){return ST.drc},EX,docToNetlist,netlistDialog};
+(function start(){buildPalette();if(takeHandoff())return;let d=null;if(!/blank/.test(location.search)){try{d=JSON.parse(localStorage.getItem('cesim.pcb.doc')||'null')}catch(e){}}if(d&&d.doc){loadDoc(d.doc,d.name,null,d.doc.note)}else loadExample('LED and resistor')})();
+</script>
+</body></html>

@@ -1,6 +1,6 @@
 # CEsim Studio
 
-**Circuits, digital logic, Verilog, MIPS and RISC-V, 8086 assembly, Arduino, diagrams and 3D in one desktop app.**
+**Circuits, breadboards, PCB and VLSI layout, digital logic, Verilog, MIPS and RISC-V, 8086 assembly, Arduino, diagrams and 3D in one desktop app.**
 BY. YOUSEF A.ALGHAMDI
 
 CEsim Studio is a launcher that opens several tools, each in its own window:
@@ -10,6 +10,9 @@ CEsim Studio is a launcher that opens several tools, each in its own window:
 | **Circuit** | Schematic capture with live simulation, a large parts library and instruments (multimeter, oscilloscope, function generator, probes, meters). Text notes, net labels, title block, export to PNG / JPG / WebP / SVG / PDF, BOM and node-voltage CSV. | `.cesim` · `.cir` |
 | **Circuit code** | Write a circuit as text (SPICE style) with a live preview and error checks. Copy the built-in prompt into any AI chat with a photo of your circuit, paste the answer back, and build it in one click. | `.cir` · text |
 | **Circuit from image** | Turns a photo or screenshot of a schematic into an editable circuit, using a vision model that runs on your own computer with [Ollama](https://ollama.com). Nothing is uploaded. | `.png` · `.jpg` · paste |
+| **Breadboard** | A real-looking breadboard with resistors, LEDs, buttons, switches, potentiometers, capacitors, diodes, transistors, 74LS logic chips, a 555 timer, a 7-segment display, batteries and meters. The circuit runs live: LEDs glow with their current, too much current burns them, and every hole shows its voltage. Opens the circuit as a schematic or as a PCB. | `.cebb` |
+| **PCB** | Two-layer board layout from a netlist: footprints, ratsnest, tracks at 90° and 45°, vias, an autorouter, a design-rule check, and a finished-board view. Exports Gerber RS-274X and Excellon drill files in one .zip for board makers. | `.cepcb` · Gerber · Excellon |
+| **VLSI** | CMOS layout on a λ grid: n-well, diffusion, poly, two metals, contacts and vias. Design-rule check, transistor and wire extraction, a truth table that names the gate, logic values on the wires, and a cross-section. Exports GDSII, CIF and a SPICE netlist. | `.cevlsi` · GDSII · CIF |
 | **Logic** | Digital circuits with gates, multiplexers, decoders, adders, flip-flops, registers, counters and displays, on single wires or multi-bit buses. Live simulation, clock, timing diagram and truth table. Opens `.circ` files. | `.cedig` · `.circ` |
 | **Boolean tools** | Truth tables, K-maps with groups, minimal SOP and POS, canonical forms, and a state machine (FSM) designer that writes the flip-flop equations. Builds any result as a circuit in Logic. | |
 | **Architecture** | MIPS and RISC-V (RV32IM) assembler and simulator. Every step lights up the single-cycle datapath with its values and control signals, and the Pipeline tab places the program in a 5-stage pipeline with stalls, forwarding and flushes. | `.s` · `.asm` |
@@ -72,6 +75,27 @@ VEE  0    vee  DC 15
 - The simulator follows the Verilog standard for widths, signs, x and z, blocking and non-blocking assignments and `$random`, and gives the same output as other simulators on the examples.
 - File → Export waveform as VCD or PNG. `.vcd` files from other tools open in the viewer.
 
+## Breadboard
+
+- Drag parts from the left onto the board. The five holes of each column are connected, and so is each power rail; hover a hole to see which holes it joins.
+- Press **W** to draw wires, **R** to rotate, and **F5** to run. While it runs you can press buttons, slide switches and turn knobs with the mouse wheel.
+- Problems explain what went wrong: an LED without a resistor, a short circuit, a chip without power, or a leg that is not in a hole.
+- **Open in Circuit** turns the board into a schematic, and **Open in PCB** turns it into a printed circuit board.
+
+## PCB
+
+- Start from an example, from the Breadboard or the Circuit tool (*Transfer → Send to PCB*), or write a netlist in **Netlist**.
+- Move parts, then press **X** to draw tracks from pad to pad. **V** adds a via and continues on the other layer, **L** switches layers. A track cannot end on a pad of another net.
+- **Autoroute** routes what is left, **Check (DRC)** lists every broken rule, and **Real view** shows the finished board from the top and the bottom.
+- **Export Gerber** saves the copper, solder mask, silkscreen, outline and drill files in one .zip, ready for a board maker.
+
+## VLSI
+
+- Choose a layer (keys 1 to 6) and drag to paint. **C** places a contact, **U** a via, **T** names a wire. Poly crossing diffusion makes a transistor.
+- Name the power wires VDD and GND and the inputs and outputs: the truth table appears and names the gate, and **Simulate** colours each wire by its value.
+- The Check list shows the design rules that are broken, and **Cross-section** (**K**) shows the chip cut along a row.
+- Exports GDSII and CIF layouts and a SPICE netlist of the extracted transistors.
+
 ## Architecture
 
 - Choose **MIPS** or **RISC-V**, open an example, and press **F8** to step. The datapath shows the instruction that just ran: blue parts and wires carry data, orange lines are control signals, and the boxes show the values.
@@ -124,7 +148,7 @@ Installers:
 ## Project layout
 
 ```
-app/            Electron app (studio.html launcher, circuit, logic, bool, hdl, arch, asm, ino, diagram and 3d tools, main.js, preload.js)
+app/            Electron app (studio.html launcher, circuit, bb, pcb, vlsi, logic, bool, hdl, arch, asm, ino, diagram and 3d tools, main.js, preload.js)
 app/lib/        Bundled libraries (3D bundle, canvas2svg)
 app/fonts/      IBM Plex fonts (SIL Open Font License)
 src3d/          Source of the 3D tool bundle (three.js, three-bvh-csg)
@@ -140,7 +164,7 @@ Electron, three.js, three-bvh-csg and three-mesh-bvh (MIT), canvas2svg (MIT, see
 
 ### بالعربي
 
-**CEsim Studio** برنامج سطح مكتب فيه محاكي دوائر، ومحاكي دوائر رقمية وأدوات الجبر البولياني، ومحاكي Verilog مع عارض الإشارات، ومحاكي معمارية MIPS وRISC-V مع مسار البيانات والـ Pipeline، ومحاكي 8086 بلغة التجميع، ومحاكي Arduino بقطع افتراضية، وأداة رسم مخططات، وتصميم ثلاثي الأبعاد بقياسات حقيقية، وأداة تحول صورة الدائرة إلى دائرة قابلة للمحاكاة عن طريق ذكاء اصطناعي يشتغل على جهازك (Ollama).
+**CEsim Studio** برنامج سطح مكتب فيه محاكي دوائر، ولوحة تجارب Breadboard تشتغل مباشرة، وتصميم لوحات PCB مع تصدير ملفات التصنيع، وتصميم شرائح VLSI بترانزستورات CMOS، ومحاكي دوائر رقمية وأدوات الجبر البولياني، ومحاكي Verilog مع عارض الإشارات، ومحاكي معمارية MIPS وRISC-V مع مسار البيانات والـ Pipeline، ومحاكي 8086 بلغة التجميع، ومحاكي Arduino بقطع افتراضية، وأداة رسم مخططات، وتصميم ثلاثي الأبعاد بقياسات حقيقية، وأداة تحول صورة الدائرة إلى دائرة قابلة للمحاكاة عن طريق ذكاء اصطناعي يشتغل على جهازك (Ollama).
 النسخ متوفرة للماك (Apple Silicon) والويندوز واللينكس من صفحة **Releases**.
 
 BY. YOUSEF A.ALGHAMDI
