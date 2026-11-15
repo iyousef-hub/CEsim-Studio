@@ -19,7 +19,7 @@ CEsim Studio is a launcher that opens several tools, each in its own window:
 | **Verilog** | Verilog modules and testbenches on a 4-state event-driven simulator, with a waveform viewer, VCD import and export, and a testbench writer. | `.v` · `.vcd` |
 | **8086** | Assembler and emulator for the 8086. Step forward and back, breakpoints, registers and flags, memory, stack, variables, machine-code listing, a DOS console (INT 21h, 10h, 16h) and virtual ports with LEDs, a 7-segment display and switches. Saves `.COM` programs. | `.asm` · `.com` |
 | **Arduino** | Runs Arduino sketches on a virtual Uno in real time: LEDs, RGB LED, buttons, switches, potentiometer, light, temperature, ultrasonic and motion sensors, servo, buzzer and a 16×2 LCD. Serial Monitor, Serial Plotter and live variables. | `.ino` |
-| **Diagram** | Flowcharts, state machines, datapaths and networks with smart connectors, auto layout, text-to-diagram, minimap and find. | `.cediag` · `.drawio` · `.mmd` |
+| **Diagram** | Flowcharts, networks, UML, BPMN, data structures, charts, 3D shapes and neural networks: 367 shapes in 21 groups. Hover arrows add connected shapes, a sketch page turns hand-drawn lines into straight lines and shapes, a shape maker saves your own shapes, and a neural-network framework draws or trains networks. | `.cediag` · `.drawio` · `.mmd` |
 | **3D** | Millimetre-accurate modelling with holes, groups, arrays, shells, a board library and enclosure maker. Adjustable zoom / rotate / pan speed. | `.ce3d` · `.stl` · `.obj` · `.3mf` · `.glb` |
 
 The Studio window has five themes and eight accent colours (plus a custom colour).
@@ -95,6 +95,15 @@ VEE  0    vee  DC 15
 - Name the power wires VDD and GND and the inputs and outputs: the truth table appears and names the gate, and **Simulate** colours each wire by its value.
 - The Check list shows the design rules that are broken, and **Cross-section** (**K**) shows the chip cut along a row.
 - Exports GDSII and CIF layouts and a SPICE netlist of the extracted transistors.
+
+## Diagram
+
+- Hover a shape and blue arrows appear. Click one to add a connected copy, hover it to choose another shape, Shift+click to connect to the next shape, or drag it to connect anywhere. The connector takes the line colour and width of the first shape.
+- The right panel has Style (preset styles, gradient, line pattern, rounded, sketch, glass, shadow, default style), Text (fonts, writing direction, background and border, spacing, automatic size) and Arrange (size, flip, keep proportions, order, save as my shape).
+- **Sketch page** is a page for free drawing: a wobbly line becomes straight, a loop becomes a circle, rectangle or triangle, and holding still at the end of a stroke snaps it. Pen, marker and eraser, with colours and widths.
+- **Shape maker** draws a new outline point by point or freehand, smooths it, and can turn it into a 3D solid. Saved shapes appear under My shapes and travel with the file.
+- **Neural network** draws a network as neurons or as layer blocks (CNN, RNN, transformer), or trains a small network on a 2D problem and shows what each neuron learned. Select it to change it and redraw.
+- Exports PNG, JPG, WebP, SVG, PDF, HTML, JSON, .drawio, Mermaid, animated SVG with flowing connectors, and print. **Present** shows the pages full screen.
 
 ## Architecture
 
