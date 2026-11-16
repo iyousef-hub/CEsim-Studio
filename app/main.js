@@ -111,8 +111,8 @@ const template = [
   { label: 'View', submenu: [{ role: 'reload' }, { role: 'togglefullscreen' }, { type: 'separator' }, { role: 'resetZoom' }, { role: 'zoomIn' }, { role: 'zoomOut' }, { type: 'separator' }, { role: 'toggleDevTools' }] },
   { role: 'windowMenu' }
 ];
-if (!isMac) template.push({ label: 'Help', submenu: [{ label: 'About CEsim Studio', click: () => dialog.showMessageBox({ type: 'info', title: 'CEsim Studio', message: 'CEsim Studio', detail: 'Version 1.11.0\nBY. YOUSEF A.ALGHAMDI' }) }] });
-app.setAboutPanelOptions({ applicationName: 'CEsim Studio', applicationVersion: '1.11.0', credits: 'BY. YOUSEF A.ALGHAMDI' });
+if (!isMac) template.push({ label: 'Help', submenu: [{ label: 'About CEsim Studio', click: () => dialog.showMessageBox({ type: 'info', title: 'CEsim Studio', message: 'CEsim Studio', detail: 'Version 1.12.0\nBY. YOUSEF A.ALGHAMDI' }) }] });
+app.setAboutPanelOptions({ applicationName: 'CEsim Studio', applicationVersion: '1.12.0', credits: 'BY. YOUSEF A.ALGHAMDI' });
 app.whenReady().then(() => { Menu.setApplicationMenu(Menu.buildFromTemplate(template)); createStudio(); pendingPaths.splice(0).forEach(openPath); app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createStudio(); }); });
 app.on('window-all-closed', () => { if (!isMac) app.quit(); });
 /* self-test hook (only runs when CESIM_SELFTEST is set) */

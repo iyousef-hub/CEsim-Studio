@@ -198,7 +198,7 @@ kbd{font:11px var(--font-mono);border:1px solid var(--ui-border);border-bottom-w
 </div>
 <div id="splash" role="dialog" aria-label="CEsim"><div class="sp-box"><canvas id="sp-cv"></canvas><div class="sp-in">
  <div class="sp-row"><div class="sp-logo">CE</div><div><div class="sp-name">CE<span>sim</span></div><div class="sp-sub">Circuit Design &amp; Simulation Suite</div></div></div>
- <div class="sp-ver">Version 1.11.0</div><div class="sp-bar"><i id="sp-bar"></i></div><div class="sp-foot"><span id="sp-msg">Loading component database…</span><span class="sp-by">BY. YOUSEF</span></div>
+ <div class="sp-ver">Version 1.12.0</div><div class="sp-bar"><i id="sp-bar"></i></div><div class="sp-foot"><span id="sp-msg">Loading component database…</span><span class="sp-by">BY. YOUSEF</span></div>
 </div></div></div>
 <script src="lib/canvas2svg.js"></script>
 <script>(function(){if(!window.C2S)return;const P=C2S.prototype;const os=P.save,or=P.restore,ost=P.stroke;P.setLineDash=function(a){this.__dash=a||[]};P.getLineDash=function(){return this.__dash||[]};P.save=function(){(this.__ds=this.__ds||[]).push(this.__dash);os.call(this)};P.restore=function(){this.__dash=(this.__ds||[]).pop();or.call(this)};P.stroke=function(){ost.apply(this,arguments);if(this.__dash&&this.__dash.length&&this.__currentElement)this.__currentElement.setAttribute("stroke-dasharray",this.__dash.join(","))}})()</script>
@@ -399,7 +399,7 @@ function opampBuild(c,n,E,db){const m=(db[c.p.model])||MODELS.opamp.Ideal;const 
 function opampDraw(c,tx){POLY(c,[-20,-25,-20,25,25,0],CV.bg);L(c,-30,-10,-20,-10);L(c,-30,10,-20,10);L(c,25,0,30,0);L(c,0,-30,0,-14);L(c,0,30,0,14);tx("+",-15,-6,10,"part","center");tx("−",-15,14,10,"part","center")}
 def("opamp",{name:"Operational amplifier",ar:"مضخم عمليات",prefix:"U",pins:[[-30,-10,"+"],[-30,10,"−"],[30,0,"OUT"],[0,-30,"V+"],[0,30,"V−"]],bb:[-30,-30,30,30],props:{model:"uA741"},fields:[fSel("model","Model",Object.keys(MODELS.opamp))],
  draw(c,st,tx){opampDraw(c,tx)},val(c){return [c.p.model]},build(c,n,E){opampBuild(c,n,E,MODELS.opamp)},labelSuffix:"A",labelRight:1,
- spice(c,n){const m=MODELS.opamp[c.p.model]||MODELS.opamp.Ideal;return `* ${c.p.model} macro (gain ${m.a}, GBW ${m.gbw})\nE${c.label} ${n[2]} 0 ${n[0]} ${n[1]} ${m.a}`}});
+ spice(c,n){const m=MODELS.opamp[c.p.model]||MODELS.opamp.Ideal;const sub=String(c.p.model||"Ideal").toUpperCase().replace(/[^A-Z0-9_]/g,"_");(toCir.subs||(toCir.subs={}))[sub]=`.SUBCKT ${sub} INP INN OUT VP VN\n* ${c.p.model}: open-loop gain ${m.a}, GBW ${m.gbw}\nRIN INP INN 2MEG\nE1 INT 0 INP INN ${m.a}\nROUT INT OUT 75\nRVP VP 0 1G\nRVN VN 0 1G\n.ENDS ${sub}`;return `X${c.label} ${n[0]} ${n[1]} ${n[2]} ${n[3]} ${n[4]} ${sub}`}});
 def("comparator",{name:"Comparator",ar:"مقارن",prefix:"U",pins:[[-30,-10,"+"],[-30,10,"−"],[30,0,"OUT"],[0,-30,"V+"],[0,30,"V−"]],bb:[-30,-30,30,30],props:{model:"LM339"},fields:[fSel("model","Model",Object.keys(MODELS.comparator))],
  labelRight:1,draw(c,st,tx){opampDraw(c,tx);L(c,0,-6,4,-6,4,4,8,4)},val(c){return [c.p.model]},build(c,n,E){opampBuild(c,n,E,MODELS.comparator)}});
 def("timer555",{name:"555 Timer",ar:"مؤقت 555",prefix:"U",pins:[[-10,-50,"VCC"],[10,-50,"RST"],[-40,-20,"TRI"],[-40,0,"THR"],[-40,20,"DIS"],[40,-20,"OUT"],[40,20,"CON"],[0,50,"GND"]],bb:[-40,-50,40,50],props:{model:"NE555"},fields:[fSel("model","Model",["NE555","LM555","TLC555 (CMOS)","ICM7555"])],
@@ -936,8 +936,15 @@ function textWin(title,text,note){const body=el(`${note?`<p style="font-size:12p
  foot.children[1].onclick=async()=>{const ta=body.querySelector("textarea");try{await navigator.clipboard.writeText(ta.value);toast("Copied.")}catch(e){ta.select();try{document.execCommand("copy");toast("Copied.")}catch(_){toast("Select the text and press Ctrl+C.",true)}}};return w}
 function tryDownload(name,text,mime){try{if(window.cesimNative&&window.cesimNative.save){window.cesimNative.save(name,text);return true}const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([text],{type:mime||"text/plain"}));a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500);return true}catch(e){return false}}
 function exportDesign(){if(window.cesimNative){saveFileNative(true);return}const s=serialize(D);const fname=D.name.replace(/[^\w.-]+/g,"_")+".cesim";tryDownload(fname,s,"application/json");textWin("Save as file — "+fname,s,"If your browser blocked the download, copy this text into a file named <b>"+esc(fname)+"</b>. Open it later with File → Open.")}
-function toCir(){const net=nets();const lines=["* "+D.name+" — exported from CEsim","* SPICE netlist — opens in SPICE-compatible simulators"];for(const c of D.comps){const L_=LIB[c.t];if(!L_.spice)continue;const n=net.pinNodes.get(c.id).map(k=>k===0?"0":String(k));lines.push(L_.spice(c,n))}
- const dt=autoDt(D);lines.push(".tran "+si(dt,"")+" "+si(dt*2000,""));lines.push(".end");return lines.join("\n")}
+function toCir(){const net=nets();toCir.subs={};const lines=["* "+D.name+" — exported from CEsim","* SPICE netlist — opens in SPICE-compatible simulators"];const used=new Set();
+ for(const c of D.comps){const L_=LIB[c.t];if(!L_.spice)continue;const n=net.pinNodes.get(c.id).map(k=>k===0?"0":String(k));
+  // a part named R1 is written R1, not RR1
+  const out=String(L_.spice(c,n)).split("\n").map(l=>{if(/^[*.]/.test(l))return l;const m=l.match(/^([A-Za-z])(\S+)(.*)$/);if(!m)return l;let nm=m[2].toUpperCase().startsWith(m[1].toUpperCase())?m[2]:m[1]+m[2];nm=nm.replace(/[^\w]/g,"_");let k=nm,i=2;while(used.has(k.toUpperCase()))k=nm+"_"+i++;used.add(k.toUpperCase());return k+m[3]});
+  lines.push(...out)}
+ for(const t of Object.values(toCir.subs))lines.push(t);
+ const dt=autoDt(D);lines.push(".tran "+si(dt,"")+" "+si(dt*2000,""));lines.push(".end");
+ // SPICE units: u for micro, MEG for mega (M means milli in SPICE)
+ return lines.map(l=>/^\*/.test(l)?l:l.replace(/µ/g,"u").replace(/Ω/g,"").replace(/(\d)M(?![A-Za-z])/g,"$1MEG")).join("\n")}
 function sendToPcb(){if(!D.comps.some(c=>c.t!=="gnd")){toast("The design is empty.",true);return}let text;try{text=circuitToCode(D)}catch(e){toast(e.message,true);return}try{localStorage.setItem("cesim.handoff.pcb",JSON.stringify({kind:"netlist",text,name:D.name,from:"Circuit tool"}))}catch(e){}const N=window.cesimNative;if(N&&N.openTool)N.openTool("pcb");else window.open("pcb.html","_blank");toast("Opening the board in the PCB tool.")}
 function exportCir(){const s=toCir();const fname=D.name.replace(/[^\w.-]+/g,"_")+".cir";tryDownload(fname,s);if(window.cesimNative)return;textWin("SPICE netlist — "+fname,s,"Most circuit simulators open SPICE netlists (.cir) with File → Open. Parts with custom models may be replaced by generic parts.")}
 function schematicBounds(includeSheet){if(includeSheet)return[-30,-30,SHEET.w+30,SHEET.h+30];let x1=1e9,y1=1e9,x2=-1e9,y2=-1e9;for(const c of D.comps){const b=wbbox(c);x1=Math.min(x1,b[0]);y1=Math.min(y1,b[1]);x2=Math.max(x2,b[2]+60);y2=Math.max(y2,b[3]+20)}for(const w of D.wires)for(const p of w.pts){x1=Math.min(x1,p.x);y1=Math.min(y1,p.y);x2=Math.max(x2,p.x);y2=Math.max(y2,p.y)}if(x1>x2){x1=0;y1=0;x2=400;y2=300}return[x1-40,y1-50,x2+40,y2+30]}
@@ -1033,7 +1040,8 @@ function buildPlaced(d,parts,xw,xg,xn){const warn=[];
    if(seen[nm]==null)seen[nm]=k;else if(seen[nm]!==k)warn.push(`Node ${nm}: the wires do not join ${c.label} pin ${pin} to the rest of ${nm}.`);
    if(owner[k]!=null&&owner[k]!==nm)warn.push(`Nodes ${owner[k]} and ${nm} are joined by the wires.`);else owner[k]=nm})}
  d.comps.forEach(c=>delete c._nodes);d._codeWarn=[...new Set(warn)];return d}
-function importCir(text,name){const d=newDoc(name);const lines=text.split(/\r?\n/);const joined=[];for(const l of lines){if(/^\s*\+/.test(l)&&joined.length)joined[joined.length-1]+=" "+l.replace(/^\s*\+/,"");else joined.push(l)}
+function stripSubckt(t){let inS=false;return String(t).split(/\r?\n/).map(l=>{if(/^\s*\.subckt\b/i.test(l)){inS=true;return "*"}if(inS){if(/^\s*\.ends\b/i.test(l))inS=false;return "*"}return l}).join("\n")}
+function importCir(text,name){text=stripSubckt(text);const d=newDoc(name);const lines=text.split(/\r?\n/);const joined=[];for(const l of lines){if(/^\s*\+/.test(l)&&joined.length)joined[joined.length-1]+=" "+l.replace(/^\s*\+/,"");else joined.push(l)}
  const models={};for(const l0 of joined){const l=l0.replace(/\s[;$].*$/,"");const m=l.match(/^\s*\.model\s+(\S+)\s+(\w+)/i);if(m)models[m[1].toLowerCase()]=m[2].toUpperCase()}
  const parts=[];const xw=[],xg=[],xn=[];for(const raw of joined){const l0=raw.replace(/\s[;$].*$/,"").replace(/^[;$].*$/,"").trim();if(!l0||/^[*.;]/.test(l0))continue;
   if(/^W\s/i.test(l0)){const pts=[...l0.slice(2).matchAll(/(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)/g)].map(m=>({x:Math.round(+m[1]),y:Math.round(+m[2])}));if(pts.length<2)throw new Error("A wire line needs two or more points, like W 100,40 100,200");xw.push(pts);continue}
@@ -1236,7 +1244,7 @@ function circuitToCode(doc,opt){opt=opt||{};const LAY=!!opt.layout;const keep=D;
   if(LAY)for(const w of doc.wires)if(w.pts.length>=2)out.push("W "+w.pts.map(p=>p.x+","+p.y).join(" "));
   if(skipped.length)out.push("* Not written as code (add them on the sheet): "+skipped.join(", "));
   out.push(".end")}finally{D=keep;netCache=null}return out.join("\n")}
-function lintCode(text){const msgs=[];const lines=text.split(/\r?\n/);const cnt={},where={},names={};let parts=0,ground=false;
+function lintCode(text){text=stripSubckt(text);const msgs=[];const lines=text.split(/\r?\n/);const cnt={},where={},names={};let parts=0,ground=false;
  const nodesOf=(L,tk)=>L==="Q"?tk.slice(1,4):L==="M"?tk.slice(1,4):L==="X"?tk.slice(1,6):L==="E"||L==="G"?tk.slice(1,5):tk.slice(1,3);
  lines.forEach((raw,i)=>{const l0=raw.replace(/;.*$/,"").trim();if(!l0||/^[*.+]/.test(l0))return;if(/^W\s/i.test(l0))return;const LY=takeLayout(l0);const l=LY.s;if(/^(GND|NET)\b/i.test(l))return;const tk=codeTokens(l);let L=tk[0][0].toUpperCase();
   if(!/^PART$/i.test(tk[0]))for(let q=tk.length-1;q>0;q--)if(/^[A-Za-z_]\w*=/.test(tk[q]))tk.splice(q,1);
