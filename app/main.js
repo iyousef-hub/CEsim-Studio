@@ -4,7 +4,7 @@ nativeTheme.themeSource = 'light';
 let studio = null; const pendingPaths = [];
 const TOOL_FILE = { breadboard: 'bb.html', pcb: 'pcb.html', vlsi: 'vlsi.html', arch: 'arch.html', hdl: 'hdl.html', asm: 'asm.html', arduino: 'ino.html', logic: 'logic.html', bool: 'bool.html', imgcircuit: 'circuit.html', codecircuit: 'circuit.html', circuit: 'circuit.html', diagram: 'diagram.html', '3d': '3d.html' };
 const TOOL_TITLE = { breadboard: 'CEsim Breadboard', pcb: 'CEsim PCB', vlsi: 'CEsim VLSI', arch: 'CEsim Architecture', hdl: 'CEsim Verilog', asm: 'CEsim 8086', arduino: 'CEsim Arduino', logic: 'CEsim Logic', bool: 'CEsim Boolean tools', imgcircuit: 'CEsim Circuit', codecircuit: 'CEsim Circuit', circuit: 'CEsim Circuit', diagram: 'CEsim Diagram', '3d': 'CEsim 3D' };
-const EXT_TOOL = { cebb: 'breadboard', cepcb: 'pcb', cevlsi: 'vlsi', s: 'arch', v: 'hdl', vcd: 'hdl', asm: 'asm', ino: 'arduino', cedig: 'logic', circ: 'logic', cesim: 'circuit', cir: 'circuit', net: 'circuit', sp: 'circuit', cediag: 'diagram', drawio: 'diagram', dio: 'diagram', xml: 'diagram', mmd: 'diagram', mermaid: 'diagram', svg: 'diagram', png: 'diagram', jpg: 'diagram', jpeg: 'diagram', ce3d: '3d', stl: '3d', obj: '3d', '3mf': '3d' };
+const EXT_TOOL = { cebb: 'breadboard', cepcb: 'pcb', cevlsi: 'vlsi', msk: 'vlsi', s: 'arch', v: 'hdl', vcd: 'hdl', asm: 'asm', ino: 'arduino', cedig: 'logic', circ: 'logic', cesim: 'circuit', cir: 'circuit', net: 'circuit', sp: 'circuit', cediag: 'diagram', drawio: 'diagram', dio: 'diagram', xml: 'diagram', mmd: 'diagram', mermaid: 'diagram', svg: 'diagram', png: 'diagram', jpg: 'diagram', jpeg: 'diagram', ce3d: '3d', stl: '3d', obj: '3d', '3mf': '3d' };
 const BINARY = new Set(['stl', '3mf', 'png', 'jpg', 'jpeg']);
 const recentFile = () => path.join(app.getPath('userData'), 'recent.json');
 function readRecent() { try { return JSON.parse(fs.readFileSync(recentFile(), 'utf8')) } catch (e) { return [] } }
@@ -95,7 +95,7 @@ ipcMain.handle('cesim-pdf', async (e, { name, svg }) => {
 });
 app.on('open-file', (e, p) => { e.preventDefault(); if (app.isReady()) openPath(p); else pendingPaths.push(p); });
 /* Windows / Linux: files arrive as command-line arguments; keep a single instance */
-const OPENABLE = /\.(cebb|cepcb|cevlsi|s|v|vcd|asm|ino|cesim|cir|net|sp|cedig|circ|cediag|drawio|dio|mmd|mermaid|ce3d|stl|obj|3mf|ms\d+|msm)$/i;
+const OPENABLE = /\.(cebb|cepcb|cevlsi|msk|s|v|vcd|asm|ino|cesim|cir|net|sp|cedig|circ|cediag|drawio|dio|mmd|mermaid|ce3d|stl|obj|3mf|ms\d+|msm)$/i;
 const argFiles = argv => argv.slice(1).filter(a => a && !a.startsWith('-') && OPENABLE.test(a) && (() => { try { return fs.statSync(a).isFile(); } catch (e) { return false; } })());
 if (process.platform !== 'darwin' && !process.env.CESIM_SELFTEST) {
   if (!app.requestSingleInstanceLock()) app.quit();
@@ -111,8 +111,8 @@ const template = [
   { label: 'View', submenu: [{ role: 'reload' }, { role: 'togglefullscreen' }, { type: 'separator' }, { role: 'resetZoom' }, { role: 'zoomIn' }, { role: 'zoomOut' }, { type: 'separator' }, { role: 'toggleDevTools' }] },
   { role: 'windowMenu' }
 ];
-if (!isMac) template.push({ label: 'Help', submenu: [{ label: 'About CEsim Studio', click: () => dialog.showMessageBox({ type: 'info', title: 'CEsim Studio', message: 'CEsim Studio', detail: 'Version 1.13.0\nBY. YOUSEF A.ALGHAMDI' }) }] });
-app.setAboutPanelOptions({ applicationName: 'CEsim Studio', applicationVersion: '1.13.0', credits: 'BY. YOUSEF A.ALGHAMDI' });
+if (!isMac) template.push({ label: 'Help', submenu: [{ label: 'About CEsim Studio', click: () => dialog.showMessageBox({ type: 'info', title: 'CEsim Studio', message: 'CEsim Studio', detail: 'Version 1.14.0\nBY. YOUSEF A.ALGHAMDI' }) }] });
+app.setAboutPanelOptions({ applicationName: 'CEsim Studio', applicationVersion: '1.14.0', credits: 'BY. YOUSEF A.ALGHAMDI' });
 app.whenReady().then(() => { Menu.setApplicationMenu(Menu.buildFromTemplate(template)); createStudio(); pendingPaths.splice(0).forEach(openPath); app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createStudio(); }); });
 app.on('window-all-closed', () => { if (!isMac) app.quit(); });
 /* self-test hook (only runs when CESIM_SELFTEST is set) */

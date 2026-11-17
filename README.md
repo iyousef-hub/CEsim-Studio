@@ -7,12 +7,12 @@ CEsim Studio is a launcher that opens several tools, each in its own window:
 
 | Tool | What it does | Files |
 |---|---|---|
-| **Circuit** | Schematic capture with live simulation, a large parts library and instruments (multimeter, oscilloscope, function generator, probes, meters). Text notes, net labels, title block, export to PNG / JPG / WebP / SVG / PDF, BOM and node-voltage CSV. Export to `.ms14` design files. | `.cesim` · `.cir` · `.ms14` |
+| **Circuit** | Schematic capture with live simulation, a large parts library (diodes, zeners, LEDs, BJTs, MOSFETs, JFETs, SCR, TRIAC, DIAC, optocouplers, op-amps, regulators, logic and more) and instruments (multimeter, oscilloscope, function generator, probes, meters). Text notes, net labels, title block, export to PNG / JPG / WebP / SVG / PDF, BOM and node-voltage CSV. Export to `.ms14` design files. | `.cesim` · `.cir` · `.ms14` |
 | **Circuit code** | Write a circuit as text (SPICE style) with a live preview and error checks. Copy the built-in prompt into any AI chat with a photo of your circuit, paste the answer back, and build it in one click. | `.cir` · text |
 | **Circuit from image** | Turns a photo or screenshot of a schematic into an editable circuit, using a vision model that runs on your own computer with [Ollama](https://ollama.com). Nothing is uploaded. | `.png` · `.jpg` · paste |
 | **Breadboard** | A real-looking breadboard with resistors, LEDs, buttons, switches, potentiometers, capacitors, diodes, transistors, 74LS logic chips, a 555 timer, a 7-segment display, batteries and meters. The circuit runs live: LEDs glow with their current, too much current burns them, and every hole shows its voltage. Opens the circuit as a schematic or as a PCB. | `.cebb` |
 | **PCB** | Two-layer board layout from a netlist: footprints, ratsnest, tracks at 90° and 45°, vias, an autorouter, a design-rule check, and a finished-board view. Exports Gerber RS-274X and Excellon drill files in one .zip for board makers. | `.cepcb` · Gerber · Excellon |
-| **VLSI** | CMOS layout on a λ grid: n-well, diffusion, poly, two metals, contacts and vias. Design-rule check, transistor and wire extraction, a truth table that names the gate, logic values on the wires, and a cross-section. Exports GDSII, CIF and a SPICE netlist. | `.cevlsi` · GDSII · CIF |
+| **VLSI** | CMOS layout on a λ grid: n-well, diffusion, poly, three metals, contacts and vias. Design-rule check, transistor and wire extraction, a truth table that names the gate, logic values on the wires, and a cross-section. Exports GDSII, CIF, a SPICE netlist, a `.MSK` layout and a `.sch` transistor schematic; opens `.MSK`. | `.cevlsi` · `.MSK` · `.sch` · GDSII · CIF |
 | **Logic** | Digital circuits with gates, multiplexers, decoders, adders, flip-flops, registers, counters and displays, on single wires or multi-bit buses. Live simulation, clock, timing diagram and truth table. Opens `.circ` files. | `.cedig` · `.circ` |
 | **Boolean tools** | Truth tables, K-maps with groups, minimal SOP and POS, canonical forms, and a state machine (FSM) designer that writes the flip-flop equations. Builds any result as a circuit in Logic. | |
 | **Architecture** | MIPS and RISC-V (RV32IM) assembler and simulator. Every step lights up the single-cycle datapath with its values and control signals, and the Pipeline tab places the program in a 5-stage pipeline with stalls, forwarding and flushes. | `.s` · `.asm` |
@@ -79,11 +79,11 @@ W 500,190 570,190
 **Transfer → Export design (.ms14)…** saves the open circuit as a `.ms14` design file.
 
 - The drawing is kept: every part sits where it is in CEsim, turned and mirrored the same way, with the same wires, junctions and ground symbols. Labels stay upright on turned parts.
-- Names and values are kept (R1, Q1, 10 kΩ, BC107BP), with the real SPICE model of each diode, transistor and chip.
+- Every part keeps its own name and model: 2N3904, IRF540N, 1N4742A, TL072, LM7812 and every other part number in the library is written with the model CEsim simulates it with, so both give the same readings.
 - Settings are kept: source amplitude, frequency and offset, transformer ratio, potentiometer position and key, and the function generator and oscilloscope settings.
 - All Workbook labs export this way, and their readings match the ones in CEsim.
 
-Basic logic gates (AND, OR, NOT, NAND, NOR, XOR, XNOR) are not exported yet. A part that cannot be exported is listed in the message after saving.
+Not exported yet: the basic logic gates (AND, OR, NOT, NAND, NOR, XOR, XNOR), JFETs, SCR, TRIAC, DIAC and optocouplers. A part that cannot be exported is listed in the message after saving.
 
 ## Logic and Boolean tools
 
@@ -115,10 +115,13 @@ Basic logic gates (AND, OR, NOT, NAND, NOR, XOR, XNOR) are not exported yet. A p
 
 ## VLSI
 
-- Choose a layer (keys 1 to 6) and drag to paint. **C** places a contact, **U** a via, **T** names a wire. Poly crossing diffusion makes a transistor.
+- Choose a layer (keys 1 to 7) and drag to paint: n-well, n and p diffusion, poly, and three metal layers. **C** places a contact, **U** a via (metal 1 to 2), **V** a via 2 (metal 2 to 3), **T** names a wire. Poly crossing diffusion makes a transistor.
 - Name the power wires VDD and GND and the inputs and outputs: the truth table appears and names the gate, and **Simulate** colours each wire by its value.
 - The Check list shows the design rules that are broken, and **Cross-section** (**K**) shows the chip cut along a row.
 - Exports GDSII and CIF layouts and a SPICE netlist of the extracted transistors.
+- **Export layout (.MSK)** writes the layout with its inputs set as clocks (each one twice as slow as the one before, so the run goes through the whole truth table), its outputs ready to watch, and VDD and VSS set.
+- **Export transistor schematic (.sch)** writes every nMOS and pMOS with its W and L, a VDD and a VSS symbol, a button on each input and a lamp on each output, each net on its own wire.
+- **Open** reads `.MSK` layouts, with their inputs and outputs.
 
 ## Diagram
 

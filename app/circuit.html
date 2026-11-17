@@ -198,7 +198,7 @@ kbd{font:11px var(--font-mono);border:1px solid var(--ui-border);border-bottom-w
 </div>
 <div id="splash" role="dialog" aria-label="CEsim"><div class="sp-box"><canvas id="sp-cv"></canvas><div class="sp-in">
  <div class="sp-row"><div class="sp-logo">CE</div><div><div class="sp-name">CE<span>sim</span></div><div class="sp-sub">Circuit Design &amp; Simulation Suite</div></div></div>
- <div class="sp-ver">Version 1.13.0</div><div class="sp-bar"><i id="sp-bar"></i></div><div class="sp-foot"><span id="sp-msg">Loading component database…</span><span class="sp-by">BY. YOUSEF</span></div>
+ <div class="sp-ver">Version 1.14.0</div><div class="sp-bar"><i id="sp-bar"></i></div><div class="sp-foot"><span id="sp-msg">Loading component database…</span><span class="sp-by">BY. YOUSEF</span></div>
 </div></div></div>
 <script src="lib/canvas2svg.js"></script>
 <script src="ms14.js"></script>
@@ -234,6 +234,12 @@ const MODELS={
  schottky:{"1N5817":{is:3e-5,n:1.2},"1N5818":{is:3e-5,n:1.2},"1N5819":{is:3e-5,n:1.4},"BAT54":{is:2e-7,n:1.1},"BAT85":{is:2e-7,n:1.1},"SS14":{is:2e-5,n:1.3},"SB560":{is:5e-5,n:1.3},"MBR745":{is:3e-5,n:1.2}},
  opamp:{"Ideal":{a:1e6,gbw:1e9,sr:1e9,drop:0},"uA741":{a:2e5,gbw:1e6,sr:0.5e6,drop:1.5},"LM741":{a:2e5,gbw:1e6,sr:0.5e6,drop:1.5},"LM358":{a:1e5,gbw:1e6,sr:0.3e6,drop:1.5},"LM324":{a:1e5,gbw:1.2e6,sr:0.5e6,drop:1.5},"TL071":{a:2e5,gbw:3e6,sr:13e6,drop:1.5},"TL072":{a:2e5,gbw:3e6,sr:13e6,drop:1.5},"TL082":{a:2e5,gbw:4e6,sr:13e6,drop:1.5},"LF356":{a:2e5,gbw:5e6,sr:12e6,drop:1.5},"AD712KN":{a:4e5,gbw:4e6,sr:20e6,drop:1.5},"NE5532":{a:1e5,gbw:10e6,sr:9e6,drop:1.5},"OP07":{a:5e5,gbw:0.6e6,sr:0.3e6,drop:1.2},"OPA2134":{a:1e6,gbw:8e6,sr:20e6,drop:1},"LM318":{a:2e5,gbw:15e6,sr:70e6,drop:1.5},"MCP6002 (RRIO)":{a:1e5,gbw:1e6,sr:0.6e6,drop:0.02},"OPA344 (RRIO)":{a:1e5,gbw:1e6,sr:0.8e6,drop:0.01},"CA3140":{a:1e5,gbw:4.5e6,sr:9e6,drop:1}},
  comparator:{"LM311":{a:2e5,gbw:1e9,sr:1e9,drop:0.3},"LM339":{a:2e5,gbw:1e9,sr:1e9,drop:0.3},"LM393":{a:2e5,gbw:1e9,sr:1e9,drop:0.3},"LM319":{a:4e4,gbw:1e9,sr:1e9,drop:0.3}},
+ njfet:{"Generic N-JFET":{vto:-2,beta:1e-3,lam:0.005},"2N5457":{vto:-1.372,beta:1.125e-3,lam:2.3e-3},"2N3819":{vto:-3,beta:1.304e-3,lam:2.25e-3},"J201":{vto:-0.8,beta:1.4e-3,lam:0.005},"J310":{vto:-3,beta:4e-3,lam:0.01},"BF245A":{vto:-1.5,beta:1.8e-3,lam:0.01},"MPF102":{vto:-3,beta:1e-3,lam:0.005}},
+ pjfet:{"Generic P-JFET":{vto:2,beta:1e-3,lam:0.005},"2N5460":{vto:1.5,beta:1.3e-3,lam:0.005},"J175":{vto:4.5,beta:1.5e-3,lam:0.01},"2N3820":{vto:3,beta:0.8e-3,lam:0.005}},
+ scr:{"2N5060":{igt:200e-6,ih:5e-3,vbo:30},"C106B":{igt:200e-6,ih:3e-3,vbo:200},"TIC106D":{igt:200e-6,ih:5e-3,vbo:400},"BT151-500R":{igt:2e-3,ih:7e-3,vbo:500},"2N6504":{igt:9e-3,ih:18e-3,vbo:50}},
+ triac:{"BT136-600":{igt:5e-3,ih:2.2e-3,vbo:600},"BT137-600":{igt:5e-3,ih:4e-3,vbo:600},"BTA16-600B":{igt:25e-3,ih:25e-3,vbo:600},"MAC97A6":{igt:2e-3,ih:1.5e-3,vbo:400},"Q4008L4":{igt:25e-3,ih:25e-3,vbo:400}},
+ diac:{"DB3":{vbo:32,dv:5,ih:1e-3},"DB4":{vbo:40,dv:5,ih:1e-3},"BR100":{vbo:32,dv:6,ih:1e-3}},
+ opto:{"4N25":{ctr:0.5},"4N35":{ctr:1.0},"PC817":{ctr:1.0},"TLP521-1":{ctr:1.0},"CNY17-2":{ctr:0.9},"4N26":{ctr:0.5}},
  reg:{"LM7805":{v:5,drop:2},"LM7806":{v:6,drop:2},"LM7809":{v:9,drop:2},"LM7812":{v:12,drop:2},"LM7815":{v:15,drop:2},"LM7824":{v:24,drop:2},"LM7905":{v:-5,drop:2},"LM7912":{v:-12,drop:2},"LM7915":{v:-15,drop:2},"LM1117-3.3":{v:3.3,drop:1.2},"LM1117-5.0":{v:5,drop:1.2},"AMS1117-3.3":{v:3.3,drop:1.1},"LM2940-5":{v:5,drop:0.5},"LM78L05":{v:5,drop:1.7}}
 };
 const ZENERS={};[["1N4728A",3.3],["1N4729A",3.6],["1N4730A",3.9],["1N4731A",4.3],["1N4732A",4.7],["1N4733A",5.1],["1N4734A",5.6],["1N4735A",6.2],["1N4736A",6.8],["1N4737A",7.5],["1N4738A",8.2],["1N4739A",9.1],["1N4740A",10],["1N4741A",11],["1N4742A",12],["1N4743A",13],["1N4744A",15],["1N4745A",16],["1N4746A",18],["1N4747A",20],["1N4748A",22],["1N4749A",24],["1N4750A",27],["1N4751A",30],["1N4752A",33],["BZX55C2V7",2.7],["BZX55C3V0",3],["BZX55C5V1",5.1],["BZX55C9V1",9.1],["BZX55C12",12]].forEach(([n,v])=>ZENERS[n]=v);
@@ -391,6 +397,48 @@ def("nmos",{name:"MOSFET N-channel",ar:"موسفت N",prefix:"Q",pins:[[-30,0,"G
  draw(c){mosDraw(c,0)},val(c){return [c.p.model]},build(c,n,E){mosBuild(c,n,E,1)},spice(c,n){const m=MODELS.nmos[c.p.model]||{};return `M${c.label} ${n[1]} ${n[0]} ${n[2]} ${n[2]} M_${c.label}\n.model M_${c.label} NMOS(VTO=${m.vth} KP=${m.k} LAMBDA=${m.lam})`}});
 def("pmos",{name:"MOSFET P-channel",ar:"موسفت P",prefix:"Q",pins:[[-30,0,"G"],[10,-30,"D"],[10,30,"S"]],bb:[-30,-30,14,30],props:{model:"IRF9540N"},fields:[fSel("model","Model",Object.keys(MODELS.pmos))],
  draw(c){mosDraw(c,1)},val(c){return [c.p.model]},build(c,n,E){mosBuild(c,n,E,-1)},spice(c,n){const m=MODELS.pmos[c.p.model]||{};return `M${c.label} ${n[1]} ${n[0]} ${n[2]} ${n[2]} M_${c.label}\n.model M_${c.label} PMOS(VTO=${-m.vth} KP=${m.k} LAMBDA=${m.lam})`}});
+/* JFET: square law with channel-length modulation, the same equations as SPICE */
+function jfetBuild(c,n,E,pol){const m=MODELS[pol>0?"njfet":"pjfet"][c.p.model]||{vto:-2*pol,beta:1e-3,lam:0.005};const vp=pol*m.vto;// vp < 0
+ const ids=(vgs,vds)=>{const ov=vgs-vp;if(ov<=0)return 0;if(vds<ov)return m.beta*vds*(2*ov-vds)*(1+m.lam*vds);return m.beta*ov*ov*(1+m.lam*vds)};
+ const f=v=>{const vg=pol*v[0];let vd=pol*v[1],vs=pol*v[2];let s=1;if(vd<vs){const t=vd;vd=vs;vs=t;s=-1}let i=s*ids(vg-vs,vd-vs)+1e-9*(v[1]-v[2])*pol;
+  const gs=1e-14*(lexp((vg-pol*v[2])/Vt)-1),gd=1e-14*(lexp((vg-pol*v[1])/Vt)-1);return [pol*(gs+gd),pol*(i-gd),pol*(-i-gs)]};E.NL([n[0],n[1],n[2]],f)}
+function jfetDraw(c,p){L(c,-30,0,-2,0);L(c,0,-14,0,14);L(c,0,-9,10,-9,10,-30);L(c,0,9,10,9,10,30);if(p)arrowHead(c,-2,0,-14,0,6);else arrowHead(c,-16,0,-1,0,6)}
+def("njfet",{name:"JFET N-channel",ar:"ترانزستور JFET N",prefix:"Q",pins:[[-30,0,"G"],[10,-30,"D"],[10,30,"S"]],bb:[-30,-30,14,30],props:{model:"2N5457"},fields:[fSel("model","Model",Object.keys(MODELS.njfet))],
+ draw(c){jfetDraw(c,0)},val(c){return [c.p.model]},build(c,n,E){jfetBuild(c,n,E,1)},spice(c,n){const m=MODELS.njfet[c.p.model]||{};return `J${c.label} ${n[1]} ${n[0]} ${n[2]} J_${c.label}\n.model J_${c.label} NJF(VTO=${m.vto} BETA=${m.beta} LAMBDA=${m.lam})`}});
+def("pjfet",{name:"JFET P-channel",ar:"ترانزستور JFET P",prefix:"Q",pins:[[-30,0,"G"],[10,-30,"D"],[10,30,"S"]],bb:[-30,-30,14,30],props:{model:"2N5460"},fields:[fSel("model","Model",Object.keys(MODELS.pjfet))],
+ draw(c){jfetDraw(c,1)},val(c){return [c.p.model]},build(c,n,E){jfetBuild(c,n,E,-1)},spice(c,n){const m=MODELS.pjfet[c.p.model]||{};return `J${c.label} ${n[1]} ${n[0]} ${n[2]} J_${c.label}\n.model J_${c.label} PJF(VTO=${-m.vto} BETA=${m.beta} LAMBDA=${m.lam})`}});
+/* thyristors: they latch on above the gate trigger current (or at breakover) and stay on until the current falls below the holding current */
+const ISON=1/Math.exp(1/(2*Vt));// about 1 V at 1 A when on
+function thyBuild(c,n,E,bi){const m=MODELS[bi?"triac":"scr"][c.p.model]||{igt:1e-3,ih:5e-3,vbo:100};const st=E.st;st.on=false;
+ // n: [A or MT2, K or MT1, G]
+ const main=v=>{const va=v[0]-v[1];if(!st.on)return 1e-9*va;if(!bi&&va<0)return 1e-9*va;const s=va<0?-1:1;return s*ISON*(lexp(Math.abs(va)/(2*Vt))-1)+1e-6*va};
+ const gate=v=>{const vg=v[2]-v[1];const i=1e-12*(lexp(vg/(1.5*Vt))-1);return bi?i-1e-12*(lexp(-vg/(1.5*Vt))-1):i};
+ E.NL([n[0],n[1],n[2]],v=>{const ia=main(v),ig=gate(v);return [ia,-ia-ig,ig]});
+ E.post(()=>{const v=[E.v(n[0]),E.v(n[1]),E.v(n[2])];const ia=main(v),ig=gate(v),va=v[0]-v[1];st.i=ia;
+  if(!st.on){if((bi?Math.abs(ig):ig)>m.igt&&(bi||va>0.3)||Math.abs(va)>m.vbo&&(bi||va>0))st.on=true}
+  else if(Math.abs(ia)<m.ih)st.on=false})}
+function thySym(c,two){L(c,-30,0,-8,0);L(c,6,0,30,0);diodeSym(c,-8,6,0,CV.part);if(two){POLY(c,[6,-14,6,-2,-8,-8],CV.part);L(c,-8,-14,-8,-2)}}
+def("scr",{name:"SCR (thyristor)",ar:"ثايرستور SCR",prefix:"D",pins:[[-30,0,"A"],[30,0,"K"],[10,30,"G"]],bb:[-30,-10,30,30],props:{model:"2N5060"},fields:[fSel("model","Model",Object.keys(MODELS.scr))],
+ draw(c,st){thySym(c,0);L(c,6,4,10,10,10,30);if(st&&st.on){c.save();c.fillStyle="#ffcc00";CIR(c,-16,-12,3,"#ffcc00");c.restore()}},val(c,st){return [c.p.model+(st&&st.on?" on":"")]},build(c,n,E){thyBuild(c,n,E,0)},
+ spice(c,n){const sub="SCR_"+String(c.p.model).replace(/\W+/g,"_");(toCir.subs||(toCir.subs={}))[sub]=`.SUBCKT ${sub} A K G\n* two-transistor model of the ${c.p.model}\nQP G N1 A QSP\nQN N1 G K QSN\n.model QSP PNP(BF=1 IS=1e-14)\n.model QSN NPN(BF=100 IS=1e-14)\n.ENDS ${sub}`;return `X${c.label} ${n[0]} ${n[1]} ${n[2]} ${sub}`}});
+def("triac",{name:"TRIAC",ar:"ترياك",prefix:"D",pins:[[-30,0,"MT2"],[30,0,"MT1"],[10,30,"G"]],bb:[-30,-16,30,30],props:{model:"BT136-600"},fields:[fSel("model","Model",Object.keys(MODELS.triac))],
+ draw(c,st){thySym(c,1);L(c,6,4,10,10,10,30);if(st&&st.on)CIR(c,-16,-18,3,"#ffcc00")},val(c,st){return [c.p.model+(st&&st.on?" on":"")]},build(c,n,E){thyBuild(c,n,E,1)},
+ spice(c,n){const sub="TRIAC_"+String(c.p.model).replace(/\W+/g,"_");(toCir.subs||(toCir.subs={}))[sub]=`.SUBCKT ${sub} MT2 MT1 G\n* two antiparallel two-transistor thyristors\nQP1 G N1 MT2 QTP\nQN1 N1 G MT1 QTN\nQP2 G N2 MT1 QTP\nQN2 N2 G MT2 QTN\n.model QTP PNP(BF=1 IS=1e-14)\n.model QTN NPN(BF=100 IS=1e-14)\n.ENDS ${sub}`;return `X${c.label} ${n[0]} ${n[1]} ${n[2]} ${sub}`}});
+def("diac",{name:"DIAC",ar:"دياك",prefix:"D",pins:[[-30,0,"1"],[30,0,"2"]],bb:[-30,-16,30,9],props:{model:"DB3"},fields:[fSel("model","Model",Object.keys(MODELS.diac))],
+ draw(c,st){L(c,-30,0,-8,0);L(c,6,0,30,0);L(c,-8,-16,-8,8);L(c,6,-16,6,8);POLY(c,[-8,-14,-8,-2,6,-8],CV.part);POLY(c,[6,-6,6,6,-8,0],CV.part)},val(c,st){return [c.p.model+(st&&st.on?" on":"")]},
+ build(c,n,E){const m=MODELS.diac[c.p.model]||MODELS.diac.DB3;const st=E.st;st.on=false;const von=m.vbo-m.dv;
+  const f=v=>{const d=v[0]-v[1];let i=1e-9*d;if(st.on){const a=Math.abs(d)-von;if(a>0)i+=(d<0?-1:1)*a/10}return [i,-i]};E.NL([n[0],n[1]],f);
+  E.post(()=>{const d=E.v(n[0])-E.v(n[1]);const i=f([E.v(n[0]),E.v(n[1])])[0];st.i=i;if(!st.on&&Math.abs(d)>m.vbo)st.on=true;else if(st.on&&Math.abs(i)<m.ih)st.on=false})},
+ spice(c,n){return `* ${c.label}: DIAC ${c.p.model} (breakover ${(MODELS.diac[c.p.model]||{}).vbo} V) has no standard SPICE element`}});
+def("opto",{name:"Optocoupler",ar:"عازل ضوئي",prefix:"U",pins:[[-30,-20,"A"],[-30,20,"K"],[30,-20,"C"],[30,20,"E"]],bb:[-30,-26,30,26],props:{model:"4N35"},fields:[fSel("model","Model",Object.keys(MODELS.opto))],
+ draw(c,st){c.strokeRect(-24,-26,48,52);L(c,-30,-20,-14,-20,-14,-7);L(c,-14,7,-14,20,-30,20);POLY(c,[-21,-7,-7,-7,-14,6],st&&st.i>1e-4?"#ff6040":CV.part);L(c,-21,7,-7,7);
+  L(c,-5,-4,3,-4);arrowHead(c,-5,-4,4,-4,4);L(c,-5,3,3,3);arrowHead(c,-5,3,4,3,4);L(c,8,-12,8,12);L(c,8,-5,18,-14,18,-20,30,-20);L(c,8,5,18,14,18,20,30,20);arrowHead(c,8,5,18,14,5)},
+ val(c){return [c.p.model]},
+ build(c,n,E){const m=MODELS.opto[c.p.model]||MODELS.opto["4N35"];const is=0.01/Math.exp(1.2/(2*Vt));const st=E.st;
+  const f=v=>{const vd=v[0]-v[1];const iF=is*(lexp(vd/(2*Vt))-1)+1e-12*vd;const vce=v[2]-v[3];const ic=(iF>0?m.ctr*iF:0)*(vce>0?1-Math.exp(-vce/0.1):0)*(1+0.01*Math.max(0,vce))+1e-10*vce;return [iF,-iF,ic,-ic]};
+  E.NL([n[0],n[1],n[2],n[3]],f);E.post(()=>{st.i=f([E.v(n[0]),E.v(n[1]),E.v(n[2]),E.v(n[3])])[0]})},
+ spice(c,n){const m=MODELS.opto[c.p.model]||{ctr:1};const sub="OPTO_"+String(c.p.model).replace(/\W+/g,"_");(toCir.subs||(toCir.subs={}))[sub]=`.SUBCKT ${sub} A K C E\n* ${c.p.model}: LED, and a collector current of CTR = ${m.ctr} times the LED current\nD1 A N1 DLED\nVS N1 K 0\n* the collector current CTR x If flows from C to E while the supply allows; the rest comes from E, so C saturates near E\nD2 C N2 DSAT\nF1 N2 E VS ${m.ctr}\nD3 E N2 DSAT\nRCE C E 1G\n.model DSAT D(IS=1e-9 N=1)\n.model DLED D(IS=${(0.01/Math.exp(1.2/(2*Vt))).toExponential(3)} N=2)\n.ENDS ${sub}`;return `X${c.label} ${n[0]} ${n[1]} ${n[2]} ${n[3]} ${sub}`}});
+
 
 /* ---- analog ---- */
 function opampBuild(c,n,E,db){const m=(db[c.p.model])||MODELS.opamp.Ideal;const st=E.st;st.vi=0;const hasP=E.conn(3),hasN=E.conn(4);
@@ -531,8 +579,8 @@ const DB=[
    ["TRANSFORMER","xfmr",()=>[1,2,5,10,15,20,50].map(r=>({n:"TS_IDEAL "+r+":1",p:{ratio:String(r)}}))],
    ["SWITCH","spst",()=>[{n:"SPST"}]],["SWITCH ","spdt",()=>[{n:"SPDT"}]],["SWITCH  ","push",()=>[{n:"PB_DPST (NO)",p:{type:"NO"}},{n:"PB (NC)",p:{type:"NC"}}]],
    ["RELAY","relay",()=>[5,12,24].map(v=>({n:"RELAY_"+v+"V",p:{coilV:String(v),coilR:String(v*v/0.36|0)}}))]]},
- {g:"Diodes",icon:"dio",fams:[["DIODE","diode",()=>Object.keys(MODELS.diode).map(m=>({n:m,p:{model:m}}))],["SCHOTTKY_DIODE","schottky",()=>Object.keys(MODELS.schottky).map(m=>({n:m,p:{model:m}}))],["ZENER","zener",()=>Object.keys(ZENERS).map(m=>({n:m+" ("+ZENERS[m]+"V)",p:{model:m}}))],["LED","led",()=>Object.keys(LEDC).map(m=>({n:"LED_"+m,p:{color:m}}))],["FWB (bridge)","bridge",()=>["1N4001","1N4007","1N5408"].map(m=>({n:"FWB_"+m,p:{model:m}}))]]},
- {g:"Transistors",icon:"bjt",fams:[["BJT_NPN","npn",()=>Object.keys(MODELS.npn).map(m=>({n:m,p:{model:m}}))],["BJT_PNP","pnp",()=>Object.keys(MODELS.pnp).map(m=>({n:m,p:{model:m}}))],["MOS_N","nmos",()=>Object.keys(MODELS.nmos).map(m=>({n:m,p:{model:m}}))],["MOS_P","pmos",()=>Object.keys(MODELS.pmos).map(m=>({n:m,p:{model:m}}))]]},
+ {g:"Diodes",icon:"dio",fams:[["DIODE","diode",()=>Object.keys(MODELS.diode).map(m=>({n:m,p:{model:m}}))],["SCHOTTKY_DIODE","schottky",()=>Object.keys(MODELS.schottky).map(m=>({n:m,p:{model:m}}))],["ZENER","zener",()=>Object.keys(ZENERS).map(m=>({n:m+" ("+ZENERS[m]+"V)",p:{model:m}}))],["LED","led",()=>Object.keys(LEDC).map(m=>({n:"LED_"+m,p:{color:m}}))],["FWB (bridge)","bridge",()=>["1N4001","1N4007","1N5408"].map(m=>({n:"FWB_"+m,p:{model:m}}))],["SCR","scr",()=>Object.keys(MODELS.scr).map(m=>({n:m,p:{model:m}}))],["TRIAC","triac",()=>Object.keys(MODELS.triac).map(m=>({n:m,p:{model:m}}))],["DIAC","diac",()=>Object.keys(MODELS.diac).map(m=>({n:m,p:{model:m}}))],["OPTOCOUPLER","opto",()=>Object.keys(MODELS.opto).map(m=>({n:m,p:{model:m}}))]]},
+ {g:"Transistors",icon:"bjt",fams:[["BJT_NPN","npn",()=>Object.keys(MODELS.npn).map(m=>({n:m,p:{model:m}}))],["BJT_PNP","pnp",()=>Object.keys(MODELS.pnp).map(m=>({n:m,p:{model:m}}))],["MOS_N","nmos",()=>Object.keys(MODELS.nmos).map(m=>({n:m,p:{model:m}}))],["MOS_P","pmos",()=>Object.keys(MODELS.pmos).map(m=>({n:m,p:{model:m}}))],["JFET_N","njfet",()=>Object.keys(MODELS.njfet).map(m=>({n:m,p:{model:m}}))],["JFET_P","pjfet",()=>Object.keys(MODELS.pjfet).map(m=>({n:m,p:{model:m}}))]]},
  {g:"Analog",icon:"opa",fams:[["OPAMP","opamp",()=>Object.keys(MODELS.opamp).map(m=>({n:m,p:{model:m}}))],["COMPARATOR","comparator",()=>Object.keys(MODELS.comparator).map(m=>({n:m,p:{model:m}}))]]},
  {g:"TTL / CMOS",icon:"gate",fams:["and","or","not","buf","nand","nor","xor","xnor"].map(t=>[t.toUpperCase()+"_GATES",t,()=>["74HC","74LS","74HCT","CD4000"].map(f=>({n:LIB[t].val({p:{family:f}})[0],p:{family:f}}))]).concat([["FLIP_FLOPS","dff",()=>[{n:"74HC74 (D)"}]],["FLIP_FLOPS ","jkff",()=>[{n:"74HC107 (JK)"}]],["COUNTERS","counter",()=>[{n:"74HC161 (4-bit)"}]]])},
  {g:"Mixed",icon:"chip",fams:[["TIMER","timer555",()=>["NE555","LM555","TLC555 (CMOS)","ICM7555"].map(m=>({n:m,p:{model:m}}))]]},
@@ -948,7 +996,7 @@ function toCir(){const net=nets();toCir.subs={};const lines=["* "+D.name+" — e
  // SPICE units: u for micro, MEG for mega (M means milli in SPICE)
  return lines.map(l=>/^\*/.test(l)?l:l.replace(/µ/g,"u").replace(/Ω/g,"").replace(/(\d)M(?![A-Za-z])/g,"$1MEG")).join("\n")}
 function sendToPcb(){if(!D.comps.some(c=>c.t!=="gnd")){toast("The design is empty.",true);return}let text;try{text=circuitToCode(D)}catch(e){toast(e.message,true);return}try{localStorage.setItem("cesim.handoff.pcb",JSON.stringify({kind:"netlist",text,name:D.name,from:"Circuit tool"}))}catch(e){}const N=window.cesimNative;if(N&&N.openTool)N.openTool("pcb");else window.open("pcb.html","_blank");toast("Opening the board in the PCB tool.")}
-async function ms14Bytes(doc){const keep=D;D=doc;netCache=null;try{const net=nets();return await MS14.exportDoc(doc,{LIB,pinPos,bbox:wbbox,pinNodes:net.pinNodes,conn:net.conn})}finally{D=keep;netCache=null}}
+async function ms14Bytes(doc){const keep=D;D=doc;netCache=null;try{const net=nets();return await MS14.exportDoc(doc,{LIB,MODELS,ZENERS,pinPos,bbox:wbbox,pinNodes:net.pinNodes,conn:net.conn})}finally{D=keep;netCache=null}}
 async function exportMs14(){try{const r=await ms14Bytes(D);const fname=D.name.replace(/[^\w.-]+/g,"_")+".ms14";
  if(window.cesimNative&&window.cesimNative.saveBinary){let b="";for(let i=0;i<r.bytes.length;i+=32768)b+=String.fromCharCode.apply(null,r.bytes.subarray(i,i+32768));await window.cesimNative.saveBinary(fname,btoa(b))}else{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([r.bytes],{type:"application/octet-stream"}));a.download=fname;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500)}
  toast(r.warn.length?"Saved "+fname+". "+r.warn.length+" part(s) were left out: "+r.warn.join("; "):"Saved "+fname)}catch(e){toast(".ms14 export failed: "+e.message)}}
@@ -1168,7 +1216,7 @@ RL   out  0    10k
 .end
 `;
 function codePartList(){const skip=/^(gnd|netlabel|text|wire|res|cap|ind|dcv|acv|idc|diode|zener|led|npn|pnp|nmos|pmos|opamp|vcvs|ammeter|voltmeter|pot)$/;return Object.keys(LIB).filter(t=>!skip.test(t)).map(t=>{const L=LIB[t];const set=(L.fields||[]).map(f=>f[0]+"="+(L.props&&L.props[f[0]]!=null?L.props[f[0]]:"")).join(" ");return `PART ${t} ${L.prefix||"U"}1 ${(()=>{const seen={};return L.pins.map(p=>{let n=String(p[2]).replace("−","-");const bar=/[\u0305\u0304¯̅]|^\/|'$/.test(n);n=n.replace(/[^\w+-]/g,"")||"pin";if(bar||seen[n])n+="bar";seen[n]=1;return n}).join(" ")})()}${set?"  "+set:""}   ${L.name}`}).join("\n")}
-function codeModelList(){const g=(k,lab)=>MODELS[k]?lab+": "+Object.keys(MODELS[k]).join(", "):"";return [g("diode","Diodes"),"Zener diodes: "+Object.keys(ZENERS).join(", "),g("npn","NPN"),g("pnp","PNP"),g("opamp","Op-amps")].filter(Boolean).join("\n")}
+function codeModelList(){const g=(k,lab)=>MODELS[k]?lab+": "+Object.keys(MODELS[k]).join(", "):"";return [g("diode","Diodes"),"Zener diodes: "+Object.keys(ZENERS).join(", "),g("npn","NPN"),g("pnp","PNP"),g("nmos","N-MOSFET"),g("pmos","P-MOSFET"),g("njfet","N-JFET"),g("pjfet","P-JFET"),g("opamp","Op-amps"),g("comparator","Comparators"),g("reg","Regulators"),g("scr","SCR"),g("triac","TRIAC"),g("diac","DIAC"),g("opto","Optocouplers")].filter(Boolean).join("\n")}
 const CODE_PROMPT=`You are helping me enter a circuit into my simulator, CEsim Studio. I will send you a picture (or a description) of a circuit. Reply with ONLY its netlist in the format below, inside one code block, with no explanation.
 
 FORMAT (SPICE style, one part per line):

@@ -64,11 +64,17 @@ class Builder{
  add(key,ref,x,y,M,opt){opt=opt||{};const T=this.T.templates[key];if(!T)throw new Error("No .ms14 part for "+key);const D=this;
   const s2=frag(this.doc,T.sym),c2=frag(this.doc,T.cic),p2=T.ports.map(p=>frag(this.doc,p));
   /* the SPICE model is its own element; one per part type, shared by every part of that type */
-  const md=T.model&&!this.models[key]?frag(this.doc,T.model):null;this.assign(md?[s2,c2,md,...p2]:[s2,c2,...p2]);
+  const own=opt.model&&T.model?opt.model:null;const mk=key+(own?"|"+own.name:"");
+  const md=T.model&&!this.models[mk]?frag(this.doc,T.model):null;this.assign(md?[s2,c2,md,...p2]:[s2,c2,...p2]);
+  if(own){/* this part's own name and model in place of the family part's */
+   const fam=(/__([A-Z_]+)__1$/.exec(T.model.match(/LocalName="([^"]*)"/)[1])||[,"PART"])[1];const full=own.name+"__"+fam+"__1";
+   if(md){md.firstElementChild.setAttribute("LocalName","&ASC"+full);for(const e of md.getElementsByTagName("CiaCString"))e.setAttribute("String","&ASC"+own.text.replace(/NAME/g,full))}
+   const cs=c2.getElementsByTagName("CiaCollString")[0];const it=cs?kids(kid(cs,"strings"),"Item"):[];
+   if(it[1])it[1].setAttribute("Value","&ASC"+own.name);if(it[3])it[3].setAttribute("Value","&ASC"+own.name);if(it[5])it[5].setAttribute("Value","&ASC"+own.text.replace(/NAME/g,own.name))}
   if(T.model){if(md){md.firstElementChild.setAttribute("Scope",this.circ.parentNode.getAttribute("CiID")||md.firstElementChild.getAttribute("Scope"));
     const last=this.els.lastElementChild;this.els.insertBefore(md,last);this.els.insertBefore(this.doc.createTextNode("\n"),last);
-    this.item(kid(this.circ,"Models"),{CiID:md.getAttribute("CiID")});this.models[key]=md.getAttribute("CiID")}
-   c2.firstElementChild.setAttribute("Model",this.models[key])}
+    this.item(kid(this.circ,"Models"),{CiID:md.getAttribute("CiID")});this.models[mk]=md.getAttribute("CiID")}
+   c2.firstElementChild.setAttribute("Model",this.models[mk])}
   for(const cl of s2.getElementsByTagName("ConnectList"))clear(cl);
   for(const p of p2)clear(kid(p.firstElementChild,"Nodes"));
   const ng=guid();c2.firstElementChild.setAttribute("InstanceID",ng);const gnd=key==="GROUND";
@@ -131,8 +137,26 @@ function txt(v){return String(v==null?"":v).trim().replace(/µ/g,"u").replace(/\
 function eng(x){if(!isFinite(x))return "0";const a=Math.abs(x);if(a===0)return "0";const P=[[1e9,"G"],[1e6,"M"],[1e3,"k"],[1,""],[1e-3,"m"],[1e-6,"µ"],[1e-9,"n"],[1e-12,"p"]];
  for(const [m,s] of P)if(a>=m*0.9999)return +(x/m).toPrecision(4)+s;return +(x/1e-12).toPrecision(4)+"p"}
 const OMEGA="Ω";
+
+/* ---- each CEsim part keeps its own name and model: the family symbol gets this part's model ---- */
+const g6=v=>String(+(+v).toPrecision(6));
+const MDL={
+ bjt:(pol,m,hfe)=>`.MODEL NAME ${pol} IS=${g6(m.is)} BF=${g6(hfe||m.bf)} BR=${g6(m.br)}`,
+ diode:m=>`.MODEL NAME D IS=${g6(m.is)} N=${g6(m.n)}`,
+ zener:vz=>[".SUBCKT NAME 1 2","D1 1 2 NAME_D",`.MODEL NAME_D D IS=1e-14 BV=${g6(vz)} IBV=1m`,".ENDS"].join(NL),
+ mos:(pol,m)=>[".SUBCKT NAME 1 2 3","M1 1 2 3 3 NAME_M L=1u W=1u",`.MODEL NAME_M ${pol}MOS LEVEL=1 VTO=${g6(pol==="N"?m.vth:-m.vth)} KP=${g6(m.k)} LAMBDA=${g6(m.lam)}`,".ENDS"].join(NL),
+ /* op-amp and comparator: gain, one pole at GBW/A, output held inside the supplies less the dropout */
+ amp:(m,order)=>{const P=order;// node names for each pin position
+  const cp=m.a/(2*Math.PI*Math.max(1,m.gbw)*1e3),dr=Math.max(0.005,m.drop||0);
+  return[`.SUBCKT NAME ${P.join(" ")}`,`RIN INP INN 2MEG`,`E1 N1 0 INP INN ${g6(m.a)}`,`RP N1 N2 1k`,`CP N2 0 ${g6(cp)}`,`E2 N3 0 N2 0 1`,`ROUT N3 OUT 75`,
+   `VCP VP NHI DC ${g6(dr)}`,`DHI OUT NHI NAME_D`,`VCN NLO VN DC ${g6(dr)}`,`DLO NLO OUT NAME_D`,`RVP VP 0 1G`,`RVN VN 0 1G`,`.MODEL NAME_D D IS=1e-15 N=0.01`,".ENDS"].join(NL)},
+ /* regulator: out = Vin - dropout, held between 0 and the rated voltage */
+ reg:m=>{const pos=m.v>0;return[".SUBCKT NAME IN OUT GND","RQ IN GND 2k","E1 A GND IN GND 1",`VD A B DC ${g6(pos?m.drop:-m.drop)}`,"RB B M 1k",`VR R GND DC ${g6(m.v)}`,
+   pos?"DR M R NAME_D":"DR R M NAME_D",pos?"DZ GND M NAME_D":"DZ M GND NAME_D","E2 C GND M GND 1","RO C OUT 0.05",".MODEL NAME_D D IS=1e-15 N=0.01",".ENDS"].join(NL)}};
+const safe=n=>String(n).replace(/[^\w.+-]+/g,"_");
 function map(c,info){const p=c.p||{},t=c.t;const two=(k,a,b)=>[k,[a,b]];
- const npnKey=m=>/^BC107/i.test(m)?"BC107BP":/^BC54[78]/i.test(m)?"BC547B":"2N2222A";
+ const MD=(info.H&&info.H.MODELS)||{},ZN=(info.H&&info.H.ZENERS)||{};const own=(key,name,text)=>({key,model:{name:safe(name),text},value:name});
+ const npnKey=m=>/^BC107BP$/i.test(m)?"BC107BP":/^BC547B$/i.test(m)?"BC547B":/^2N2222A?$/i.test(m)?"2N2222A":null;
  switch(t){
   case "gnd":return{key:"GROUND",pins:["1"]};
   case "vcc":return{key:"VCC",pins:["VCC"],params:{0:[null,txt(p.voltage)]},value:txt(p.voltage)+"V"};
@@ -155,20 +179,20 @@ function map(c,info){const p=c.p||{},t=c.t;const two=(k,a,b)=>[k,[a,b]];
   case "spdt":return{key:"SPDT",pins:["2","1","3"]};
   case "relay":return{key:"EDR201A05",pins:["C1","C2","L1","L2"]};
   case "motor":return{key:"MOTOR_RATED",pins:["2","1"]};
-  case "diode":return{key:/4148|914/.test(p.model)?"1N4148":"1N4007",pins:["A","K"]};
-  case "schottky":return{key:"1N5817G",pins:["A","K"]};
-  case "zener":return{key:"1N4735A",pins:["A","K"]};
+  case "diode":{const nm=String(p.model||"Generic");if(/^1N4148$/.test(nm))return{key:"1N4148",pins:["A","K"]};if(/^1N4007$/.test(nm))return{key:"1N4007",pins:["A","K"]};const m=(MD.diode||{})[nm]||{is:1e-14,n:1};return{...own(/4148|914/.test(nm)?"1N4148":"1N4007",nm==="Generic"?"DIODE":nm,MDL.diode(m)),pins:["A","K"]}}
+  case "schottky":{const nm=String(p.model||"1N5819");if(/^1N5817G?$/.test(nm))return{key:"1N5817G",pins:["A","K"]};const m=(MD.schottky||{})[nm]||{is:3e-5,n:1.4};return{...own("1N5817G",nm,MDL.diode(m)),pins:["A","K"]}}
+  case "zener":{const nm=String(p.model||"1N4735A");if(nm==="1N4735A")return{key:"1N4735A",pins:["A","K"]};return{...own("1N4735A",nm,MDL.zener(ZN[nm]||5.1)),pins:["A","K"]}}
   case "led":return{key:"LED_red",pins:["A","K"]};
   case "bridge":return{key:"1B4B42",pins:["AC1","AC2","V+","V-"]};
-  case "npn":return{key:npnKey(String(p.model||"")),pins:["B","C","E"]};
-  case "pnp":return{key:"2N2907A",pins:["B","C","E"]};
-  case "nmos":return{key:"2N7000",pins:["G","D","S"]};
-  case "pmos":return{key:"2N6804",pins:["G","D","S"]};
+  case "npn":{const nm=String(p.model||"Generic NPN");const k=npnKey(nm);if(k&&!num(p.hfe))return{key:k,pins:["B","C","E"]};const m=(MD.npn||{})[nm]||{bf:100,is:1e-14,br:1};return{...own("2N2222A",nm.replace(/\s*\(.*\)/,"").replace(/^Generic /,""),MDL.bjt("NPN",m,num(p.hfe))),pins:["B","C","E"]}}
+  case "pnp":{const nm=String(p.model||"Generic PNP");if(/^2N2907A$/.test(nm)&&!num(p.hfe))return{key:"2N2907A",pins:["B","C","E"]};const m=(MD.pnp||{})[nm]||{bf:100,is:1e-14,br:1};return{...own("2N2907A",nm.replace(/\s*\(.*\)/,"").replace(/^Generic /,""),MDL.bjt("PNP",m,num(p.hfe))),pins:["B","C","E"]}}
+  case "nmos":{const nm=String(p.model||"Generic NMOS");if(nm==="2N7000")return{key:"2N7000",pins:["G","D","S"]};const m=(MD.nmos||{})[nm]||{vth:2,k:0.02,lam:0.01};return{...own("2N7000",nm.replace(/\s*\(.*\)/,"").replace(/^Generic /,""),MDL.mos("N",m)),pins:["G","D","S"]}}
+  case "pmos":{const nm=String(p.model||"Generic PMOS");if(nm==="2N6804")return{key:"2N6804",pins:["G","D","S"]};const m=(MD.pmos||{})[nm]||{vth:2,k:0.02,lam:0.01};return{...own("2N6804",nm.replace(/\s*\(.*\)/,"").replace(/^Generic /,""),MDL.mos("P",m)),pins:["G","D","S"]}}
   case "opamp":{const sup=info.conn&&(info.conn[3]||info.conn[4]);if(!sup)return{key:"OPAMP_3T_VIRTUAL",pins:["IN+","IN-","OUT",null,null],value:"OPAMP_3T_VIRTUAL"};
-   return/741/.test(p.model||"")?{key:"UA741CD",pins:["IN+","IN-","OUT","VS+","VS-"]}:{key:"OPAMP_5T_VIRTUAL",pins:["IN+","IN-","OUT","VS+","VS-"]}}
-  case "comparator":return{key:"LM339N",pins:["1IN+","1IN-","1OUT","VS+","VS-"]};
+   {const nm=String(p.model||"Ideal");if(/^(uA|UA|LM)741$/.test(nm))return{key:"UA741CD",pins:["IN+","IN-","OUT","VS+","VS-"]};if(nm==="Ideal")return{key:"OPAMP_5T_VIRTUAL",pins:["IN+","IN-","OUT","VS+","VS-"]};const m=(MD.opamp||{})[nm]||{a:2e5,gbw:1e6,drop:1.5};return{...own("UA741CD",nm.replace(/\s*\(.*\)/,""),MDL.amp(m,["INP","INN","VP","VN","OUT"])),pins:["IN+","IN-","OUT","VS+","VS-"]}}}
+  case "comparator":{const nm=String(p.model||"LM339");if(nm==="LM339")return{key:"LM339N",pins:["1IN+","1IN-","1OUT","VS+","VS-"]};const m=(MD.comparator||{})[nm]||{a:2e5,gbw:1e9,drop:0.3};return{...own("LM339N",nm,MDL.amp(m,["INP","INN","OUT","VP","VN"])),pins:["1IN+","1IN-","1OUT","VS+","VS-"]}}
   case "timer555":return{key:"LM555CN",pins:["VCC","RST","TRI","THR","DIS","OUT","CON","GND"]};
-  case "reg":return{key:"LM7805CT",pins:["IN","OUT","GND"]};
+  case "reg":{const nm=String(p.model||"LM7805");if(nm==="LM7805")return{key:"LM7805CT",pins:["IN","OUT","GND"]};const m=(MD.reg||{})[nm]||{v:5,drop:2};return{...own("LM7805CT",nm,MDL.reg(m)),pins:["IN","OUT","GND"]}}
   case "lm317":return{key:"LM317K",pins:["IN","OUT","ADJ"]};
   case "dff":return{key:"7474N",pins:["1D","1CLK","1Q","~1Q"]};
   case "jkff":return{key:"7476N",pins:["1J","1CLK","1K","1Q","~1Q"]};
@@ -234,13 +258,13 @@ async function exportDoc(doc,H){const T=await templates();const B=new Builder(T)
  const used=new Set(),refOf={},msPin={};// msPin["x,y"] -> [{ref,pin}]
  const K=(x,y)=>x+","+y;
  let auto=0;
- for(const c of doc.comps){const L=H.LIB[c.t];const m=map(c,{conn:H.conn.get(c.id)});if(!m){if(c.t!=="text")warn.push((c.label||c.t)+" ("+(L&&L.name||c.t)+") has no .ms14 part and was left out");continue}
+ for(const c of doc.comps){const L=H.LIB[c.t];const m=map(c,{conn:H.conn.get(c.id),H});if(!m){if(c.t!=="text")warn.push((c.label||c.t)+" ("+(L&&L.name||c.t)+") has no .ms14 part and was left out");continue}
   let ref=c.t==="gnd"?"G"+(++auto):c.t==="netlabel"?String(c.p.name||"NET"):String(c.label||"").replace(/[^\w+-]/g,"")||((L.prefix||"U")+(++auto));
   if(c.t!=="gnd"&&c.t!=="netlabel"){while(used.has(ref.toUpperCase()))ref=ref+"_"+(++auto);used.add(ref.toUpperCase())}
   const local=B.localPins(m.key);const idx=[],lp=[],tp=[];
   m.pins.forEach((nm,i)=>{if(nm==null)return;const nmx=nm in local?nm:Object.keys(local)[0];const pp=H.pinPos(c,i);idx.push([i,nmx]);lp.push(local[nmx]);tp.push([(pp.x-minx)*S+90,(pp.y-miny)*S+90])});
   const o=orient(lp,tp);const x=sn(o.off[0]),y=sn(o.off[1]);
-  const pins=B.add(m.key,ref,x,y,o.M,{params:m.params,strings:m.strings,value:m.value,edit:m.edit,edit2:m.edit2,instEdit:m.instEdit,display:c.t==="netlabel"?ref:undefined});
+  const pins=B.add(m.key,ref,x,y,o.M,{params:m.params,strings:m.strings,value:m.value,model:m.model,edit:m.edit,edit2:m.edit2,instEdit:m.instEdit,display:c.t==="netlabel"?ref:undefined});
   refOf[c.id]={ref,m,idx};
   for(const [i,nm] of idx){const pp=H.pinPos(c,i);(msPin[K(pp.x,pp.y)]=msPin[K(pp.x,pp.y)]||[]).push({ref,pin:nm,node:H.pinNodes.get(c.id)[i],conn:H.conn.get(c.id)[i]})}}
  const netName=n=>n===0?"0":String(n);
@@ -285,5 +309,5 @@ async function exportDoc(doc,H){const T=await templates();const B=new Builder(T)
    B.wire([[a.x,a.y],[r,a.y],[r,top],[l,top],[l,b.y],[b.x,b.y]],{ref:R.ref,pin:"QA"},{ref:R.ref,pin:"INB"},net);B.connect(R.ref,"INB",net)}}
  return{bytes:pack(B.bytes()),warn}}
 
-root.MS14={exportDoc,implode,pack,templates,map,num,eng};
+root.MS14={exportDoc,implode,pack,templates,map,num,eng,MDL};
 })(typeof window!=="undefined"?window:globalThis);

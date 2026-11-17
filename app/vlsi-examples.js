@@ -3,7 +3,7 @@
 'use strict';
 const V=root.VL||(typeof require!=='undefined'?require('./vlsi-core.js'):null);
 function cut(L,kind,x,y,under){// a 2×2 contact or via with 1λ of every joined layer around it
- L.rect(kind,x,y,2,2);L.rect('m1',x-1,y-1,4,4);if(kind==='via')L.rect('m2',x-1,y-1,4,4);if(under)L.rect(under,x-1,y-1,4,4);return L}
+ L.rect(kind,x,y,2,2);if(kind!=='via2')L.rect('m1',x-1,y-1,4,4);if(kind==='via'||kind==='via2')L.rect('m2',x-1,y-1,4,4);if(kind==='via2')L.rect('m3',x-1,y-1,4,4);if(under)L.rect(under,x-1,y-1,4,4);return L}
 function rails(L,w){L.rect('m1',0,0,w,4).rect('m1',0,42,w,4);L.label('VDD',1,1).label('GND',1,43);return L}
 // inverter: 24λ wide
 function inverter(L,ox,opt){opt=opt||{};const o=(x)=>x+ox;
