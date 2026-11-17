@@ -74,6 +74,10 @@ GND @ 600 500
 W 500,190 570,190
 ```
 
+## Device models
+
+Transistor models can carry the Gummel-Poon parameters (Early voltages, knee currents, leakage diodes, RB, RE, RC) and diode models a series resistance and breakdown voltage. The BC107BP, 1N4007 and 1N4735A use the same parameters as in Multisim, so the lab circuits give the same meter readings (for example Ie = 8.84 mA, Vbe = 0.701 V in the common base circuit). For the same readings as Multisim, set voltmeters to 10 MOhm (`rin=10M` in circuit code).
+
 ## Export to .ms14
 
 **Transfer → Export design (.ms14)…** saves the open circuit as a `.ms14` design file.

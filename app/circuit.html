@@ -198,7 +198,7 @@ kbd{font:11px var(--font-mono);border:1px solid var(--ui-border);border-bottom-w
 </div>
 <div id="splash" role="dialog" aria-label="CEsim"><div class="sp-box"><canvas id="sp-cv"></canvas><div class="sp-in">
  <div class="sp-row"><div class="sp-logo">CE</div><div><div class="sp-name">CE<span>sim</span></div><div class="sp-sub">Circuit Design &amp; Simulation Suite</div></div></div>
- <div class="sp-ver">Version 1.17.0</div><div class="sp-bar"><i id="sp-bar"></i></div><div class="sp-foot"><span id="sp-msg">Loading component database…</span><span class="sp-by">BY. YOUSEF</span></div>
+ <div class="sp-ver">Version 1.18.0</div><div class="sp-bar"><i id="sp-bar"></i></div><div class="sp-foot"><span id="sp-msg">Loading component database…</span><span class="sp-by">BY. YOUSEF</span></div>
 </div></div></div>
 <script src="lib/canvas2svg.js"></script>
 <script src="ms14.js"></script>
@@ -226,11 +226,11 @@ function decades(series,from,to){const out=[];for(let d=from;d<to*0.999;d*=10)fo
 
 /* ================= device models ================= */
 const MODELS={
- npn:{"Generic NPN":{bf:100,is:1e-14,br:1},"2N2222A":{bf:200,is:14.3e-15,br:6},"2N3904":{bf:300,is:6.7e-15,br:0.74},"BC547B":{bf:290,is:7e-14,br:7.6},"BC107BP":{bf:294,is:1.478e-14,br:7.6},"BC107B":{bf:294,is:1.478e-14,br:7.6},"BC107A":{bf:180,is:1.478e-14,br:7.6},"BC107":{bf:220,is:1.478e-14,br:7.6},"BC548":{bf:250,is:7e-14,br:7},"BC337":{bf:300,is:4e-14,br:5},"2N4401":{bf:180,is:26e-15,br:4},"BD139":{bf:100,is:1e-13,br:2},"TIP31C":{bf:50,is:1.8e-12,br:3},"TIP41C":{bf:60,is:2e-12,br:3},"2N3055":{bf:50,is:5e-12,br:2},"MJE3055":{bf:60,is:4e-12,br:2},"TIP120 (Darlington)":{bf:2500,is:5e-13,br:5},"PN2222A":{bf:200,is:14e-15,br:6},"2N5551":{bf:120,is:2.5e-14,br:3},"S8050":{bf:200,is:3e-14,br:4},"C1815":{bf:250,is:2e-14,br:4}},
+ npn:{"Generic NPN":{bf:100,is:1e-14,br:1},"2N2222A":{bf:200,is:14.3e-15,br:6},"2N3904":{bf:300,is:6.7e-15,br:0.74},"BC547B":{bf:290,is:7e-14,br:7.6},"BC107BP":{bf:400,is:1.8e-14,br:35.5,nf:0.9955,nr:1.005,ise:5e-14,ne:1.46,isc:1.72e-13,nc:1.27,ikf:0.14,ikr:0.03,vaf:80,var:12.5,rb:0.56,re:0.6,rc:0.25},"BC107B":{bf:294,is:1.478e-14,br:7.6},"BC107A":{bf:180,is:1.478e-14,br:7.6},"BC107":{bf:220,is:1.478e-14,br:7.6},"BC548":{bf:250,is:7e-14,br:7},"BC337":{bf:300,is:4e-14,br:5},"2N4401":{bf:180,is:26e-15,br:4},"BD139":{bf:100,is:1e-13,br:2},"TIP31C":{bf:50,is:1.8e-12,br:3},"TIP41C":{bf:60,is:2e-12,br:3},"2N3055":{bf:50,is:5e-12,br:2},"MJE3055":{bf:60,is:4e-12,br:2},"TIP120 (Darlington)":{bf:2500,is:5e-13,br:5},"PN2222A":{bf:200,is:14e-15,br:6},"2N5551":{bf:120,is:2.5e-14,br:3},"S8050":{bf:200,is:3e-14,br:4},"C1815":{bf:250,is:2e-14,br:4}},
  pnp:{"Generic PNP":{bf:100,is:1e-14,br:1},"2N3906":{bf:180,is:1.4e-15,br:4},"2N2907A":{bf:230,is:6.5e-15,br:6},"BC557B":{bf:290,is:1e-14,br:5},"BC558":{bf:250,is:1e-14,br:5},"BC327":{bf:250,is:4e-14,br:5},"2N4403":{bf:180,is:6e-15,br:4},"BD140":{bf:100,is:1e-13,br:2},"TIP32C":{bf:50,is:1.8e-12,br:3},"TIP42C":{bf:60,is:2e-12,br:3},"MJ2955":{bf:50,is:5e-12,br:2},"2N5401":{bf:120,is:2.5e-14,br:3},"S8550":{bf:200,is:3e-14,br:4},"A1015":{bf:200,is:2e-14,br:4}},
  nmos:{"Generic NMOS":{vth:2,k:0.02,lam:0.01},"2N7000":{vth:2.1,k:0.32,lam:0.01},"BS170":{vth:2,k:0.25,lam:0.01},"IRF540N":{vth:3,k:20,lam:0.005},"IRFZ44N":{vth:3,k:25,lam:0.005},"IRF530":{vth:3,k:8,lam:0.005},"IRF3205":{vth:3,k:40,lam:0.003},"IRLZ44N (logic)":{vth:1.5,k:30,lam:0.005},"IRF840":{vth:3.5,k:5,lam:0.005},"2N7002":{vth:1.8,k:0.2,lam:0.01},"AO3400":{vth:1.1,k:6,lam:0.01}},
  pmos:{"Generic PMOS":{vth:2,k:0.02,lam:0.01},"BS250":{vth:2.5,k:0.2,lam:0.01},"IRF9540N":{vth:3,k:10,lam:0.005},"IRF9Z34N":{vth:3,k:8,lam:0.005},"FQP27P06":{vth:3,k:12,lam:0.005},"IRF4905":{vth:3,k:30,lam:0.004},"AO3401":{vth:1,k:5,lam:0.01},"NDP6020P":{vth:0.8,k:10,lam:0.01}},
- diode:{"Generic":{is:1e-14,n:1},"1N4148":{is:2.52e-9,n:1.75},"1N914":{is:2.52e-9,n:1.75},"1N4001":{is:1.4e-8,n:1.98},"1N4002":{is:1.4e-8,n:1.98},"1N4004":{is:1.4e-8,n:1.98},"1N4007":{is:7e-9,n:1.8},"1N5408":{is:1e-8,n:1.9},"UF4007":{is:5e-9,n:1.9},"BAV21":{is:2e-9,n:1.8},"FR107":{is:6e-9,n:1.9}},
+ diode:{"Generic":{is:1e-14,n:1},"1N4148":{is:2.52e-9,n:1.75},"1N914":{is:2.52e-9,n:1.75},"1N4001":{is:1.4e-8,n:1.98},"1N4002":{is:1.4e-8,n:1.98},"1N4004":{is:1.4e-8,n:1.98},"1N4007":{is:3.19863e-8,n:2,rs:0.0428545,bv:1100,ibv:1e-4},"1N5408":{is:1e-8,n:1.9},"UF4007":{is:5e-9,n:1.9},"BAV21":{is:2e-9,n:1.8},"FR107":{is:6e-9,n:1.9}},
  schottky:{"1N5817":{is:3e-5,n:1.2},"1N5818":{is:3e-5,n:1.2},"1N5819":{is:3e-5,n:1.4},"BAT54":{is:2e-7,n:1.1},"BAT85":{is:2e-7,n:1.1},"SS14":{is:2e-5,n:1.3},"SB560":{is:5e-5,n:1.3},"MBR745":{is:3e-5,n:1.2}},
  opamp:{"Ideal":{a:1e6,gbw:1e9,sr:1e9,drop:0},"uA741":{a:2e5,gbw:1e6,sr:0.5e6,drop:1.5},"LM741":{a:2e5,gbw:1e6,sr:0.5e6,drop:1.5},"LM358":{a:1e5,gbw:1e6,sr:0.3e6,drop:1.5},"LM324":{a:1e5,gbw:1.2e6,sr:0.5e6,drop:1.5},"TL071":{a:2e5,gbw:3e6,sr:13e6,drop:1.5},"TL072":{a:2e5,gbw:3e6,sr:13e6,drop:1.5},"TL082":{a:2e5,gbw:4e6,sr:13e6,drop:1.5},"LF356":{a:2e5,gbw:5e6,sr:12e6,drop:1.5},"AD712KN":{a:4e5,gbw:4e6,sr:20e6,drop:1.5},"NE5532":{a:1e5,gbw:10e6,sr:9e6,drop:1.5},"OP07":{a:5e5,gbw:0.6e6,sr:0.3e6,drop:1.2},"OPA2134":{a:1e6,gbw:8e6,sr:20e6,drop:1},"LM318":{a:2e5,gbw:15e6,sr:70e6,drop:1.5},"MCP6002 (RRIO)":{a:1e5,gbw:1e6,sr:0.6e6,drop:0.02},"OPA344 (RRIO)":{a:1e5,gbw:1e6,sr:0.8e6,drop:0.01},"CA3140":{a:1e5,gbw:4.5e6,sr:9e6,drop:1}},
  comparator:{"LM311":{a:2e5,gbw:1e9,sr:1e9,drop:0.3},"LM339":{a:2e5,gbw:1e9,sr:1e9,drop:0.3},"LM393":{a:2e5,gbw:1e9,sr:1e9,drop:0.3},"LM319":{a:4e4,gbw:1e9,sr:1e9,drop:0.3}},
@@ -243,6 +243,8 @@ const MODELS={
  reg:{"LM7805":{v:5,drop:2},"LM7806":{v:6,drop:2},"LM7809":{v:9,drop:2},"LM7812":{v:12,drop:2},"LM7815":{v:15,drop:2},"LM7824":{v:24,drop:2},"LM7905":{v:-5,drop:2},"LM7912":{v:-12,drop:2},"LM7915":{v:-15,drop:2},"LM1117-3.3":{v:3.3,drop:1.2},"LM1117-5.0":{v:5,drop:1.2},"AMS1117-3.3":{v:3.3,drop:1.1},"LM2940-5":{v:5,drop:0.5},"LM78L05":{v:5,drop:1.7}}
 };
 const ZENERS={};[["1N4728A",3.3],["1N4729A",3.6],["1N4730A",3.9],["1N4731A",4.3],["1N4732A",4.7],["1N4733A",5.1],["1N4734A",5.6],["1N4735A",6.2],["1N4736A",6.8],["1N4737A",7.5],["1N4738A",8.2],["1N4739A",9.1],["1N4740A",10],["1N4741A",11],["1N4742A",12],["1N4743A",13],["1N4744A",15],["1N4745A",16],["1N4746A",18],["1N4747A",20],["1N4748A",22],["1N4749A",24],["1N4750A",27],["1N4751A",30],["1N4752A",33],["BZX55C2V7",2.7],["BZX55C3V0",3],["BZX55C5V1",5.1],["BZX55C9V1",9.1],["BZX55C12",12]].forEach(([n,v])=>ZENERS[n]=v);
+/* zener models with full diode parameters: 1N4735A matches the Multisim readings of the lab workbook (Figs. 4.4 to 4.6) */
+const ZMODELS={"1N4735A":{is:7.2e-13,n:0.9,rs:0.2338,bv:6.1067,ibv:1e-3}};
 const LEDC={red:{vf:1.8,c:"#ff3b30"},orange:{vf:2.0,c:"#ff8a00"},yellow:{vf:2.1,c:"#ffd60a"},green:{vf:2.2,c:"#30d158"},blue:{vf:3.0,c:"#2f7bff"},white:{vf:3.1,c:"#f4f8ff"},"infrared":{vf:1.3,c:"#8b2b2b"},"UV":{vf:3.4,c:"#a855f7"}};
 
 /* ================= symbol drawing helpers ================= */
@@ -362,16 +364,21 @@ def("motor",{name:"DC Motor",ar:"موتور تيار مستمر",prefix:"M",pins
  build(c,n,E){const st=E.st;st.ang=0;st.spd=0;E.Rf(n[0],n[1],()=>Math.max(0.01,P(c).res));E.post(()=>{const v=E.v(n[0])-E.v(n[1]);st.spd=clamp(v/P(c).voltage,-1.5,1.5);if(Math.abs(st.spd)<0.02)st.spd=0})}});
 
 /* ---- diodes ---- */
-function diodeBuild(c,n,E,is,nf,vz){const st=E.st;const f=v=>{const vd=v[0]-v[1];let i=is*(lexp(vd/(nf*Vt))-1)+1e-12*vd;if(vz)i-=1e-3*lexp((-vd-vz)/Vt);return [i,-i]};E.NL([n[0],n[1]],f);E.post(()=>{st.i=f([E.v(n[0]),E.v(n[1])])[0]})}
+function diodeBuild(c,n,E,is,nf,vz,o){const st=E.st;o=o||{};const rs=o.rs||0,bv=o.bv||vz,ibv=o.ibv||1e-3,nb=o.nbv||(o.bv?nf:1);
+ const I=x=>is*(lexp(x/(nf*Vt))-1)+1e-12*x-(bv?ibv*lexp((-x-bv)/(nb*Vt)):0);
+ const D=x=>is*lexp(x/(nf*Vt))/(nf*Vt)+1e-12+(bv?ibv*lexp((-x-bv)/(nb*Vt))/(nb*Vt):0);
+ /* with a series resistance the junction voltage x solves x + I(x) rs = vd */
+ const cur=vd=>{if(!rs)return I(vd);let x=Math.min(vd,0.8),lo=-1e3,hi=1e3;for(let k=0;k<80;k++){const g=x+I(x)*rs-vd;if(Math.abs(g)<1e-13)break;if(g>0)hi=x;else lo=x;let nx=x-g/(1+D(x)*rs);if(!(nx>=lo&&nx<=hi))nx=(lo+hi)/2;if(Math.abs(nx-x)<1e-13){x=nx;break}x=nx}return (vd-x)/rs};
+ const f=v=>{const i=cur(v[0]-v[1]);return [i,-i]};E.NL([n[0],n[1]],f);E.post(()=>{st.i=f([E.v(n[0]),E.v(n[1])])[0]})}
 def("diode",{name:"Diode",ar:"دايود",prefix:"D",pins:[[-30,0,"A"],[30,0,"K"]],bb:[-30,-9,30,9],props:{model:"1N4148"},fields:[fSel("model","Model",Object.keys(MODELS.diode))],
  draw(c){L(c,-30,0,-8,0);L(c,6,0,30,0);diodeSym(c,-8,6,0,CV.part)},val(c){return [c.p.model]},
- build(c,n,E){const m=MODELS.diode[c.p.model]||MODELS.diode.Generic;diodeBuild(c,n,E,m.is,m.n)},spice(c,n){const m=MODELS.diode[c.p.model]||MODELS.diode.Generic;return `D${c.label} ${n[0]} ${n[1]} D_${c.label}\n.model D_${c.label} D(IS=${m.is} N=${m.n})`}});
+ build(c,n,E){const m=MODELS.diode[c.p.model]||MODELS.diode.Generic;diodeBuild(c,n,E,m.is,m.n,0,m)},spice(c,n){const m=MODELS.diode[c.p.model]||MODELS.diode.Generic;return `D${c.label} ${n[0]} ${n[1]} D_${c.label}\n.model D_${c.label} D(IS=${m.is} N=${m.n}${m.rs?" RS="+m.rs:""}${m.bv?" BV="+m.bv+" IBV="+m.ibv:""})`}});
 def("schottky",{name:"Schottky diode",ar:"دايود شوتكي",prefix:"D",pins:[[-30,0,"A"],[30,0,"K"]],bb:[-30,-9,30,9],props:{model:"1N5819"},fields:[fSel("model","Model",Object.keys(MODELS.schottky))],
  draw(c){L(c,-30,0,-8,0);L(c,6,0,30,0);POLY(c,[-9,-8,-9,8,5,0],CV.part);L(c,9,-5,9,-8,5,-8,5,8,1,8,1,5)},val(c){return [c.p.model]},
  build(c,n,E){const m=MODELS.schottky[c.p.model]||MODELS.schottky["1N5819"];diodeBuild(c,n,E,m.is,m.n)},spice(c,n){const m=MODELS.schottky[c.p.model]||MODELS.schottky["1N5819"];return `D${c.label} ${n[0]} ${n[1]} D_${c.label}\n.model D_${c.label} D(IS=${m.is} N=${m.n})`}});
 def("zener",{name:"Zener diode",ar:"دايود زينر",prefix:"D",pins:[[-30,0,"A"],[30,0,"K"]],bb:[-30,-9,30,9],props:{model:"1N4733A"},fields:[fSel("model","Model",Object.keys(ZENERS))],
  draw(c){L(c,-30,0,-8,0);L(c,6,0,30,0);POLY(c,[-9,-8,-9,8,5,0],CV.part);L(c,9,-11,5,-8,5,8,1,11)},val(c){return [c.p.model,(ZENERS[c.p.model]||5.1)+"V"]},
- build(c,n,E){diodeBuild(c,n,E,1e-14,1,ZENERS[c.p.model]||5.1)},spice(c,n){return `D${c.label} ${n[0]} ${n[1]} DZ_${c.label}\n.model DZ_${c.label} D(IS=1e-14 BV=${ZENERS[c.p.model]||5.1} IBV=1m)`}});
+ build(c,n,E){const z=ZMODELS[c.p.model];if(z)diodeBuild(c,n,E,z.is,z.n,z.bv,z);else diodeBuild(c,n,E,1e-14,1,ZENERS[c.p.model]||5.1)},spice(c,n){const z=ZMODELS[c.p.model];return z?`D${c.label} ${n[0]} ${n[1]} DZ_${c.label}\n.model DZ_${c.label} D(IS=${z.is} N=${z.n} RS=${z.rs} BV=${z.bv} IBV=${z.ibv})`:`D${c.label} ${n[0]} ${n[1]} DZ_${c.label}\n.model DZ_${c.label} D(IS=1e-14 BV=${ZENERS[c.p.model]||5.1} IBV=1m)`}});
 def("led",{name:"LED",ar:"ثنائي باعث للضوء",prefix:"LED",pins:[[-30,0,"A"],[30,0,"K"]],bb:[-30,-16,30,9],props:{color:"red"},fields:[fSel("color","Color",Object.keys(LEDC))],
  draw(c,st){const col=(LEDC[c.p.color]||LEDC.red).c;const b=st&&st.i>0?clamp(st.i/0.01,0,1):0;if(b>0.02){c.save();c.globalAlpha=0.25+0.5*b;c.fillStyle=col;c.beginPath();c.arc(-1,0,16,0,2*PI);c.fill();c.restore()}L(c,-30,0,-8,0);L(c,6,0,30,0);diodeSym(c,-8,6,0,b>0.02?col:CV.bg);L(c,0,-10,6,-17);arrowHead(c,0,-10,7,-18,4);L(c,5,-8,11,-15);arrowHead(c,5,-8,12,-16,4)},
  val(c,st){return [c.p.color+(st&&st.i>1e-4?" "+si(st.i,"A",3):"")]},
@@ -383,12 +390,24 @@ def("bridge",{name:"Bridge rectifier",ar:"قنطرة توحيد",prefix:"D",pins
 
 /* ---- transistors ---- */
 function bjtDraw(c,pnp){L(c,-30,0,-8,0);L(c,-8,-11,-8,11);L(c,-8,-5,10,-18,10,-30);L(c,-8,5,10,18,10,30);CIR(c,1,0,18);if(pnp)arrowHead(c,10,18,-6,6,6);else arrowHead(c,-8,5,9,17,6)}
+/* Gummel-Poon transport model (base charge with Early voltages and knee currents, leakage diodes) */
+function gpCore(m,bf,vbe,vbc){const nf=m.nf||1,nr=m.nr||1;const If=m.is*(lexp(vbe/(nf*Vt))-1),Ir=m.is*(lexp(vbc/(nr*Vt))-1);
+ const d=1-(m.var?vbe/m.var:0)-(m.vaf?vbc/m.vaf:0);const q1=1/Math.max(d,0.05);const q2=(m.ikf?If/m.ikf:0)+(m.ikr?Ir/m.ikr:0);const qb=q1/2*(1+Math.sqrt(Math.max(0,1+4*q2)));
+ const ile=m.ise?m.ise*(lexp(vbe/((m.ne||1.5)*Vt))-1):0,ilc=m.isc?m.isc*(lexp(vbc/((m.nc||2)*Vt))-1):0;
+ return [If/bf+ile+Ir/m.br+ilc,(If-Ir)/qb-Ir/m.br-ilc]}
+function gpTerm(m,bf,vbe,vbc){const rb=m.rb||0,re=m.re||0,rc=m.rc||0;if(!(rb||re||rc))return gpCore(m,bf,vbe,vbc);
+ /* internal junction voltages behind RB, RE and RC: x = [vbe', vbc'] */
+ let x=[Math.min(vbe,0.9),Math.min(vbc,0.9)];const R=y=>{const[ib,ic]=gpCore(m,bf,y[0],y[1]);return[y[0]-(vbe-ib*rb-(ib+ic)*re),y[1]-(vbc-ib*rb+ic*rc)]};
+ for(let k=0;k<40;k++){const r=R(x);const h=1e-7;const a=R([x[0]+h,x[1]]),b=R([x[0],x[1]+h]);const J=[(a[0]-r[0])/h,(b[0]-r[0])/h,(a[1]-r[1])/h,(b[1]-r[1])/h];const det=J[0]*J[3]-J[1]*J[2];if(!det)break;
+  let d0=(r[0]*J[3]-r[1]*J[1])/det,d1=(J[0]*r[1]-J[2]*r[0])/det;const mx=Math.max(Math.abs(d0),Math.abs(d1));if(mx>0.1){d0*=0.1/mx;d1*=0.1/mx}x=[x[0]-d0,x[1]-d1];if(mx<1e-13)break}
+ return gpCore(m,bf,x[0],x[1])}
 function bjtBuild(c,n,E,pol){const m=MODELS[pol>0?"npn":"pnp"][c.p.model]||{bf:100,is:1e-14,br:1};const bf=num(c.p.hfe)||m.bf,is=m.is,br=m.br;
+ if(m.vaf||m.ikf||m.ise||m.re){const f=v=>{const vbe=pol*(v[0]-v[2]),vbc=pol*(v[0]-v[1]);const[ib0,ic0]=gpTerm(m,bf,vbe,vbc);const ib=ib0+1e-12*(vbe+vbc),ic=ic0;return [pol*ib,pol*ic,-pol*(ib+ic)]};E.NL([n[0],n[1],n[2]],f);return}
  const f=v=>{const vbe=pol*(v[0]-v[2]),vbc=pol*(v[0]-v[1]);const If=is*(lexp(vbe/Vt)-1),Ir=is*(lexp(vbc/Vt)-1);const ic=If-Ir-Ir/br+1e-12*(vbe-vbc)*0,ib=If/bf+Ir/br+1e-12*(vbe+vbc);const ie=-(ic+ib);return [pol*ib,pol*ic,pol*ie]};E.NL([n[0],n[1],n[2]],f)}
 def("npn",{name:"BJT NPN",ar:"ترانزستور NPN",prefix:"Q",pins:[[-30,0,"B"],[10,-30,"C"],[10,30,"E"]],bb:[-30,-30,20,30],props:{model:"2N2222A",hfe:""},fields:[fSel("model","Model",Object.keys(MODELS.npn)),fTxt("hfe","hFE override (blank = model)")],
- draw(c){bjtDraw(c,0)},val(c){return [c.p.model]},build(c,n,E){bjtBuild(c,n,E,1)},spice(c,n){const m=MODELS.npn[c.p.model]||{};return `Q${c.label} ${n[1]} ${n[0]} ${n[2]} Q_${c.label}\n.model Q_${c.label} NPN(BF=${num(c.p.hfe)||m.bf} IS=${m.is} BR=${m.br})`}});
+ draw(c){bjtDraw(c,0)},val(c){return [c.p.model]},build(c,n,E){bjtBuild(c,n,E,1)},spice(c,n){const m=MODELS.npn[c.p.model]||{};const x=["nf","nr","ise","ne","isc","nc","ikf","ikr","vaf","var","rb","re","rc"].filter(k=>m[k]).map(k=>" "+k.toUpperCase()+"="+m[k]).join("");return `Q${c.label} ${n[1]} ${n[0]} ${n[2]} Q_${c.label}\n.model Q_${c.label} NPN(BF=${num(c.p.hfe)||m.bf} IS=${m.is} BR=${m.br}${x})`}});
 def("pnp",{name:"BJT PNP",ar:"ترانزستور PNP",prefix:"Q",pins:[[-30,0,"B"],[10,-30,"C"],[10,30,"E"]],bb:[-30,-30,20,30],props:{model:"2N3906",hfe:""},fields:[fSel("model","Model",Object.keys(MODELS.pnp)),fTxt("hfe","hFE override (blank = model)")],
- draw(c){bjtDraw(c,1)},val(c){return [c.p.model]},build(c,n,E){bjtBuild(c,n,E,-1)},spice(c,n){const m=MODELS.pnp[c.p.model]||{};return `Q${c.label} ${n[1]} ${n[0]} ${n[2]} Q_${c.label}\n.model Q_${c.label} PNP(BF=${num(c.p.hfe)||m.bf} IS=${m.is} BR=${m.br})`}});
+ draw(c){bjtDraw(c,1)},val(c){return [c.p.model]},build(c,n,E){bjtBuild(c,n,E,-1)},spice(c,n){const m=MODELS.pnp[c.p.model]||{};const x=["nf","nr","ise","ne","isc","nc","ikf","ikr","vaf","var","rb","re","rc"].filter(k=>m[k]).map(k=>" "+k.toUpperCase()+"="+m[k]).join("");return `Q${c.label} ${n[1]} ${n[0]} ${n[2]} Q_${c.label}\n.model Q_${c.label} PNP(BF=${num(c.p.hfe)||m.bf} IS=${m.is} BR=${m.br}${x})`}});
 function mosDraw(c,p){L(c,-30,0,-10,0);L(c,-10,-12,-10,12);L(c,-5,-14,-5,-6);L(c,-5,-3,-5,3);L(c,-5,6,-5,14);L(c,-5,-10,10,-10,10,-30);L(c,-5,10,10,10,10,30);L(c,-5,0,10,0,10,10);if(p)arrowHead(c,-4,0,6,0,5);else arrowHead(c,6,0,-4,0,5)}
 function mosBuild(c,n,E,pol){const m=MODELS[pol>0?"nmos":"pmos"][c.p.model]||{vth:2,k:0.02,lam:0.01};
  const ids=(vgs,vds)=>{const ov=vgs-m.vth;const sp=0.04*Math.log1p(Math.exp(clamp(ov/0.04,-50,50)));if(vds<sp)return m.k*(sp*vds-vds*vds/2)*(1+m.lam*vds);return 0.5*m.k*sp*sp*(1+m.lam*vds)};
