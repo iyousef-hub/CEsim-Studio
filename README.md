@@ -7,7 +7,7 @@ CEsim Studio is a launcher that opens several tools, each in its own window:
 
 | Tool | What it does | Files |
 |---|---|---|
-| **Circuit** | Schematic capture with live simulation, a large parts library and instruments (multimeter, oscilloscope, function generator, probes, meters). Text notes, net labels, title block, export to PNG / JPG / WebP / SVG / PDF, BOM and node-voltage CSV. | `.cesim` · `.cir` |
+| **Circuit** | Schematic capture with live simulation, a large parts library and instruments (multimeter, oscilloscope, function generator, probes, meters). Text notes, net labels, title block, export to PNG / JPG / WebP / SVG / PDF, BOM and node-voltage CSV. Export to `.ms14` design files. | `.cesim` · `.cir` · `.ms14` |
 | **Circuit code** | Write a circuit as text (SPICE style) with a live preview and error checks. Copy the built-in prompt into any AI chat with a photo of your circuit, paste the answer back, and build it in one click. | `.cir` · text |
 | **Circuit from image** | Turns a photo or screenshot of a schematic into an editable circuit, using a vision model that runs on your own computer with [Ollama](https://ollama.com). Nothing is uploaded. | `.png` · `.jpg` · paste |
 | **Breadboard** | A real-looking breadboard with resistors, LEDs, buttons, switches, potentiometers, capacitors, diodes, transistors, 74LS logic chips, a 555 timer, a 7-segment display, batteries and meters. The circuit runs live: LEDs glow with their current, too much current burns them, and every hole shows its voltage. Opens the circuit as a schematic or as a PCB. | `.cebb` |
@@ -73,6 +73,17 @@ Q1  c 0 e BC107BP @ 600 200 rot=270 flip
 GND @ 600 500
 W 500,190 570,190
 ```
+
+## Export to .ms14
+
+**Transfer → Export design (.ms14)…** saves the open circuit as a `.ms14` design file.
+
+- The drawing is kept: every part sits where it is in CEsim, turned and mirrored the same way, with the same wires, junctions and ground symbols. Labels stay upright on turned parts.
+- Names and values are kept (R1, Q1, 10 kΩ, BC107BP), with the real SPICE model of each diode, transistor and chip.
+- Settings are kept: source amplitude, frequency and offset, transformer ratio, potentiometer position and key, and the function generator and oscilloscope settings.
+- All Workbook labs export this way, and their readings match the ones in CEsim.
+
+Basic logic gates (AND, OR, NOT, NAND, NOR, XOR, XNOR) are not exported yet. A part that cannot be exported is listed in the message after saving.
 
 ## Logic and Boolean tools
 
