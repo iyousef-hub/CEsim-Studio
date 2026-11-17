@@ -83,7 +83,7 @@ W 500,190 570,190
 - Settings are kept: source amplitude, frequency and offset, transformer ratio, potentiometer position and key, and the function generator and oscilloscope settings.
 - All Workbook labs export this way, and their readings match the ones in CEsim.
 
-Logic gates and 74xx chips export as their Multisim parts with their supply pins on the VCC and GND nets: AND, OR, NAND, NOR, XOR and NOT gates, and 7400, 7402, 7404, 7408, 7432, 7486, 7442, 7447, 7448, 7475, 7483, 7485, 7490, 74148, 74151, 74153, 74157, 74161, 74163, 74164, 74165, 74175, 74193, 74194, 74273 and 74283. For the gate packages, gate 1 is exported. Not exported yet: buffers, XNOR, the other 74xx chips, the 4000 series, JFETs, SCR, TRIAC, DIAC and optocouplers. A part that cannot be exported is listed in the message after saving.
+Every part in the library exports. Logic gates (AND, OR, NAND, NOR, XOR, XNOR, NOT, buffer) become 74xx gates, or 4000-series gates when the gate is set to the CD4000 family. All 56 chips export with their supply pins on the VCC and GND nets (74xx) or the VDD and VSS nets (4000 series), and each pin is joined to the matching pin of the Multisim part. From chips with several sections, section 1 is exported. JFETs, SCR, TRIAC, DIAC and optocouplers keep their own names and models. The message after saving lists any connected pins that were left out.
 
 ## Logic and Boolean tools
 

@@ -156,12 +156,21 @@ const MDL={
   return[`.SUBCKT NAME ${P.join(" ")}`,`RIN INP INN 2MEG`,`E1 N1 0 INP INN ${g6(m.a)}`,`RP N1 N2 1k`,`CP N2 0 ${g6(cp)}`,`E2 N3 0 N2 0 1`,`ROUT N3 OUT 75`,
    `VCP VP NHI DC ${g6(dr)}`,`DHI OUT NHI NAME_D`,`VCN NLO VN DC ${g6(dr)}`,`DLO NLO OUT NAME_D`,`RVP VP 0 1G`,`RVN VN 0 1G`,`.MODEL NAME_D D IS=1e-15 N=0.01`,".ENDS"].join(NL)},
  /* regulator: out = Vin - dropout, held between 0 and the rated voltage */
+ jfet:(pol,m)=>`.MODEL NAME ${pol}JF VTO=${g6(m.vto)} BETA=${g6(m.beta)} LAMBDA=${g6(m.lam)}`,
+ /* thyristor (pins A G K): two-transistor model; the TRIAC is two of them back to back (pins MT2 G MT1) */
+ scr:()=>[".SUBCKT NAME A G K","QP G N1 A NAME_P","QN N1 G K NAME_N","RL A K 100MEG",".MODEL NAME_P PNP BF=1 IS=1e-14",".MODEL NAME_N NPN BF=100 IS=1e-14",".ENDS"].join(NL),
+ triac:()=>[".SUBCKT NAME MT2 G MT1","QP1 G N1 MT2 NAME_P","QN1 N1 G MT1 NAME_N","QP2 G N2 MT1 NAME_P","QN2 N2 G MT2 NAME_N","RL MT2 MT1 100MEG",".MODEL NAME_P PNP BF=1 IS=1e-14",".MODEL NAME_N NPN BF=100 IS=1e-14",".ENDS"].join(NL),
+ /* DIAC (pins MT2 MT1): conducts both ways above the breakover voltage */
+ diac:m=>[".SUBCKT NAME 1 2","D1 1 3 NAME_D","D2 2 3 NAME_D","RL 1 2 1G",`.MODEL NAME_D D IS=1e-14 BV=${g6(m.vbo)} IBV=1m`,".ENDS"].join(NL),
+ /* optocoupler (pins A K C B E): LED, and CTR times its current from C to E */
+ opto:m=>[".SUBCKT NAME A K C B E","D1 A N1 NAME_L","VS N1 K DC 0","D2 C N2 NAME_S",`F1 N2 E VS ${g6(m.ctr)}`,"D3 E N2 NAME_S","RCE C E 1G","RB B E 1G",".MODEL NAME_S D IS=1e-9 N=1",`.MODEL NAME_L D IS=${g6(0.01/Math.exp(1.2/(2*0.025852)))} N=2`,".ENDS"].join(NL),
  reg:m=>{const pos=m.v>0;return[".SUBCKT NAME IN OUT GND","RQ IN GND 2k","E1 A GND IN GND 1",`VD A B DC ${g6(pos?m.drop:-m.drop)}`,"RB B M 1k",`VR R GND DC ${g6(m.v)}`,
    pos?"DR M R NAME_D":"DR R M NAME_D",pos?"DZ GND M NAME_D":"DZ M GND NAME_D","E2 C GND M GND 1","RO C OUT 0.05",".MODEL NAME_D D IS=1e-15 N=0.01",".ENDS"].join(NL)}};
 const safe=n=>String(n).replace(/[^\w.+-]+/g,"_");
 /* 74xx chips: Multisim part, and CEsim pin name -> Multisim pin name (null: that pin is not in the exported section) */
 const SEQ=(a,b)=>Object.fromEntries(a.map((x,i)=>[x,b[i]]));
 const same=n=>n;
+const sec1=n=>/^~?1/.test(n)?n:null;// only the first section of the chip is exported
 const CHIPMS={
  ic7400:["7400N",{"1A":"1A","1B":"1B","1Y":"1Y"}],ic7402:["7402N",{"1A":"1A","1B":"1B","1Y":"1Y"}],ic7408:["7408N",{"1A":"1A","1B":"1B","1Y":"1Y"}],
  ic7432:["7432N",{"1A":"1A","1B":"1B","1Y":"1Y"}],ic7486:["7486N",{"1A":"1A","1B":"1B","1Y":"1Y"}],ic7404:["7404N",{"1A":"1A","1Y":"1Y"}],
@@ -177,14 +186,29 @@ const CHIPMS={
  ic74161:["74161N",same],ic74163:["74163N",same],ic74164:["74164N",same],ic74165:["74165N",n=>n==="CLK INH"?"INH":n],
  ic74175:["74175N",same],ic74193:["74193N",same],ic74194:["74194N",same],ic74273:["74273N",same],
  ic74283:["74283N",n=>({S1:"SUM_1",S2:"SUM_2",S3:"SUM_3",S4:"SUM_4"})[n]||n],
+ ic7410:["7410N",sec1],ic7411:["74LS11N",sec1],ic7414:["7414N",sec1],ic7420:["7420N",sec1],ic7427:["7427N",sec1],ic74266:["74LS266N",sec1],
+ ic74125:["74LS125N",{"1A":"1A","~1G":"~1C","1Y":"1Y"}],ic74138:["74LS138N",same],ic74139:["74LS139N",sec1],ic74244:["74LS244N",sec1],
+ ic74373:["74LS373N",n=>({LE:"ENG","~OE":"~OC"})[n]||n],ic74374:["74LS374N",n=>n==="~OE"?"~OC":n],
+ ic4001:["4001BD_5V",sec1],ic4011:["4011BD_5V",sec1],ic4070:["4070BD_5V",sec1],ic4071:["4071BD_5V",sec1],ic4077:["4077BD_5V",sec1],ic4081:["4081BD_5V",sec1],ic4093:["4093BD_5V",sec1],
+ ic4069:["4069BD_5V",{"1A":"I1","1Y":"O1"}],ic4049:["4049BD_5V",{"1A":"I1","1Y":"O1"}],ic4050:["4050BD_5V",{"1A":"I1","1Y":"O1"}],
+ ic4013:["4013BD_5V",{"1D":"D1","1CLK":"CP1","1R":"CD1","1S":"SD1","1Q":"O1","~1Q":"~O1"}],
+ ic4027:["4027BD_5V",{"1J":"J1","1K":"K1","1CLK":"CP1","1R":"CD1","1S":"SD1","1Q":"Q1","~1Q":"~Q1"}],
+ ic4017:["4017BD_5V",n=>({CLK:"CP0","~EN":"~CP1",RST:"MR",CO:"~O5-9"})[n]||n.replace(/^Q/,"O")],
+ ic4028:["4028BD_5V",n=>({A:"A0",B:"A1",C:"A2",D:"A3"})[n]||n.replace(/^Q/,"O")],
+ ic4029:["4029BD_5V",n=>({CLK:"CP","U/~D":"UP/~DN","B/~D":"BIN/~DEC","~CO":"~TC"})[n]||(/^J\d$/.test(n)?"P"+(n[1]-1):/^Q\d$/.test(n)?"Q"+(n[1]-1):n)],
+ ic4040:["4040BD_5V",n=>({CLK:"~CP",RST:"MR"})[n]||(/^Q\d+$/.test(n)?"O"+(n.slice(1)-1):n)],
+ ic4511:["4511BD_5V",n=>({A:"DA",B:"DB",C:"DC",D:"DD",LE:"~EL"})[n]||(/^[a-g]$/.test(n)?"O"+n.toUpperCase():n)],
+ ic4518:["4518BD_5V",n=>({"1CLK":"CP1","1EN":"EN1","1RST":"MR1","1Q0":"1A","1Q1":"1B","1Q2":"1C","1Q3":"1D"})[n]||null],
 };
-const GATEMS={and:["7408N","1A","1B","1Y"],or:["7432N","1A","1B","1Y"],nand:["7400N","1A","1B","1Y"],nor:["7402N","1A","1B","1Y"],xor:["7486N","1A","1B","1Y"],not:["7404N","1A","1Y"]};
-function chipMap(t,info){const g=GATEMS[t];if(g)return{key:g[0],pins:g.slice(1),section:1};const e=CHIPMS[t];if(!e||!info.H)return null;
+const GATEMS={and:["7408N","1A","1B","1Y"],or:["7432N","1A","1B","1Y"],nand:["7400N","1A","1B","1Y"],nor:["7402N","1A","1B","1Y"],xor:["7486N","1A","1B","1Y"],not:["7404N","1A","1Y"],xnor:["74LS266N","1A","1B","1Y"],buf:["4050BD_5V","I1","O1"]};
+/* gates set to the CMOS family become 4000-series parts */
+const GATECMOS={and:["4081BD_5V","1A","1B","1Y"],or:["4071BD_5V","1A","1B","1Y"],nand:["4011BD_5V","1A","1B","1Y"],nor:["4001BD_5V","1A","1B","1Y"],xor:["4070BD_5V","1A","1B","1Y"],xnor:["4077BD_5V","1A","1B","1Y"],not:["4069BD_5V","I1","O1"],buf:["4050BD_5V","I1","O1"]};
+function chipMap(t,info,p){const g=(p&&/4000/.test(p.family||"")?GATECMOS:GATEMS)[t];if(g)return{key:g[0],pins:g.slice(1),section:1};const e=CHIPMS[t];if(!e||!info.H)return null;
  const L=info.H.LIB[t];const tr=typeof e[1]==="function"?e[1]:n=>e[1][n]??null;return{key:e[0],pins:L.pins.map(p=>tr(p[2])??null),section:1}}
 function map(c,info){const p=c.p||{},t=c.t;const two=(k,a,b)=>[k,[a,b]];
  const MD=(info.H&&info.H.MODELS)||{},ZN=(info.H&&info.H.ZENERS)||{};const own=(key,name,text)=>({key,model:{name:safe(name),text},value:name});
  const npnKey=m=>/^BC107BP$/i.test(m)?"BC107BP":/^BC547B$/i.test(m)?"BC547B":/^2N2222A?$/i.test(m)?"2N2222A":null;
- {const cm=chipMap(t,info);if(cm)return cm}
+ {const cm=chipMap(t,info,p);if(cm)return cm}
  switch(t){
   case "gnd":return{key:"GROUND",pins:["1"]};
   case "vcc":return{key:"VCC",pins:["VCC"],params:{0:[null,txt(p.voltage)]},value:txt(p.voltage)+"V"};
@@ -219,7 +243,13 @@ function map(c,info){const p=c.p||{},t=c.t;const two=(k,a,b)=>[k,[a,b]];
   case "opamp":{const sup=info.conn&&(info.conn[3]||info.conn[4]);if(!sup)return{key:"OPAMP_3T_VIRTUAL",pins:["IN+","IN-","OUT",null,null],value:"OPAMP_3T_VIRTUAL"};
    {const nm=String(p.model||"Ideal");if(/^(uA|UA|LM)741$/.test(nm))return{key:"UA741CD",pins:["IN+","IN-","OUT","VS+","VS-"]};if(nm==="Ideal")return{key:"OPAMP_5T_VIRTUAL",pins:["IN+","IN-","OUT","VS+","VS-"]};const m=(MD.opamp||{})[nm]||{a:2e5,gbw:1e6,drop:1.5};return{...own("UA741CD",nm.replace(/\s*\(.*\)/,""),MDL.amp(m,["INP","INN","VP","VN","OUT"])),pins:["IN+","IN-","OUT","VS+","VS-"]}}}
   case "comparator":{const nm=String(p.model||"LM339");if(nm==="LM339")return{key:"LM339N",pins:["1IN+","1IN-","1OUT","VS+","VS-"]};const m=(MD.comparator||{})[nm]||{a:2e5,gbw:1e9,drop:0.3};return{...own("LM339N",nm,MDL.amp(m,["INP","INN","OUT","VP","VN"])),pins:["1IN+","1IN-","1OUT","VS+","VS-"]}}
-  case "timer555":return{key:"LM555CN",pins:["VCC","RST","TRI","THR","DIS","OUT","CON","GND"]};
+  case "njfet":case "pjfet":{const P=t==="njfet"?"N":"P";const nm=String(p.model||"Generic "+P+"-JFET");const m=(MD[t]||{})[nm]||{vto:P==="N"?-2:2,beta:1e-3,lam:0.005};
+   return{...own(P==="N"?"2N3370":"2N2608",nm.replace(/^Generic /,""),MDL.jfet(P,{...m,vto:P==="N"?m.vto:-m.vto})),pins:["G","D","S"]}}
+  case "scr":{const nm=String(p.model||"2N5060");return{...own("2N1595",nm,MDL.scr((MD.scr||{})[nm]||{})),pins:["A","K","G"]}}
+  case "triac":{const nm=String(p.model||"BT136-600");return{...own("2N1595",nm,MDL.triac((MD.triac||{})[nm]||{})),pins:["A","K","G"]}}
+  case "diac":{const nm=String(p.model||"DB3");return{...own("1N5758",nm,MDL.diac((MD.diac||{})[nm]||{vbo:32})),pins:["MT2","MT1"]}}
+  case "opto":{const nm=String(p.model||"4N35");return{...own("4N25",nm,MDL.opto((MD.opto||{})[nm]||{ctr:1})),pins:["A","K","C","E"]}}
+ case "timer555":return{key:"LM555CN",pins:["VCC","RST","TRI","THR","DIS","OUT","CON","GND"]};
   case "reg":{const nm=String(p.model||"LM7805");if(nm==="LM7805")return{key:"LM7805CT",pins:["IN","OUT","GND"]};const m=(MD.reg||{})[nm]||{v:5,drop:2};return{...own("LM7805CT",nm,MDL.reg(m)),pins:["IN","OUT","GND"]}}
   case "lm317":return{key:"LM317K",pins:["IN","OUT","ADJ"]};
   case "dff":return{key:"7474N",pins:["1D","1CLK","1Q","~1Q"]};

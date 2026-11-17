@@ -1,7 +1,7 @@
 {
   "name": "cesim-studio-build",
   "private": true,
-  "version": "1.16.0",
+  "version": "1.17.0",
   "description": "Build scripts for CEsim Studio",
   "scripts": {
     "start": "electron app",

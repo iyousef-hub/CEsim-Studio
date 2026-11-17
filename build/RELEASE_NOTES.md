@@ -1,30 +1,31 @@
-CEsim Studio 1.16.0 exports logic gates and 74xx chips to .ms14.
+CEsim Studio 1.17.0 exports every part used in the labs to .ms14.
 
 ## Downloads
 
 | System | File |
 |---|---|
-| macOS (Apple Silicon) | `CEsim-Studio-1.16.0-arm64.dmg` |
-| Windows 10 and 11 (64-bit) | `CEsim-Studio-1.16.0-Windows-x64-Setup.exe` (installer) or `CEsim-Studio-1.16.0-Windows-x64-Portable.zip` |
-| Linux (64-bit) | `CEsim-Studio-1.16.0-Linux-x86_64.AppImage` or `CEsim-Studio-1.16.0-Linux-amd64.deb` |
+| macOS (Apple Silicon) | `CEsim-Studio-1.17.0-arm64.dmg` |
+| Windows 10 and 11 (64-bit) | `CEsim-Studio-1.17.0-Windows-x64-Setup.exe` (installer) or `CEsim-Studio-1.17.0-Windows-x64-Portable.zip` |
+| Linux (64-bit) | `CEsim-Studio-1.17.0-Linux-x86_64.AppImage` or `CEsim-Studio-1.17.0-Linux-amd64.deb` |
 
-## Export to .ms14: gates and 74xx chips
+## Export to .ms14: all parts
 
-- AND, OR, NAND, NOR, XOR and NOT gates export as gates of 7408, 7432, 7400, 7402, 7486 and 7404.
-- These chips export with every pin named as on the data sheet: 7442, 7447, 7448, 7475, 7483, 7485, 7490, 74148, 74151, 74153, 74157, 74161, 74163, 74164, 74165, 74175, 74193, 74194, 74273 and 74283. From the gate packages (7400, 7402, 7404, 7408, 7432, 7486), gate 1 is exported, and the message after saving says when other gates of the package were used.
-- Each chip's supply pins are joined to the VCC and GND nets, and the TTL input and output models the chips need are written into the file, so the design simulates as soon as it opens.
-- Checked with a counter (74161), a 7-segment decoder (7448) and four gates: the file opens, simulates without netlist errors, and the gates give the right outputs.
+Every part in the library now has a matching part in the exported design. Nothing is left out.
 
-Not exported yet: buffers, XNOR, the other 74xx chips, the 4000 series, JFETs, SCR, TRIAC, DIAC and optocouplers.
+- **4000 series:** 4001, 4011, 4013, 4017, 4027, 4028, 4029, 4040, 4049, 4050, 4069, 4070, 4071, 4077, 4081, 4093, 4511 and 4518. Each pin is joined to the matching pin of the Multisim part, even where the data sheet names it differently (for example Q1 to Q12 of the 4040 become O0 to O11). The supply pins are joined to the VDD and VSS nets.
+- **More 74xx chips:** 7410, 7411, 7414, 7420, 7427, 74125, 74138, 74139, 74244, 74266, 74373 and 74374.
+- **Gates:** XNOR and buffer gates now export. A gate set to the CD4000 family becomes a 4000-series gate (4081, 4071, 4011, 4001, 4070, 4077, 4069, 4050).
+- **JFET, SCR, TRIAC, DIAC and optocoupler:** each part keeps its own name and model (for example 2N5457, 2N5060, BT136-600, DB3, 4N35).
+- The CMOS and 74LS input and output models these chips need are written into the file.
 
-## VLSI
+Checked in the simulator: a 74161 counter with a 4511 decoder, a 4017, a 74LS138 and a NAND gate simulate without netlist errors. The JFET stage reads 9.87 V at the drain, a fired SCR 0.75 V, a fired TRIAC 0.75 V, a DIAC below its breakover 12 V, and the optocoupler output is pulled low. These readings match CEsim.
 
-The .MSK export was checked in the layout program itself: the NAND layout opens with its layers, labels and rails, and its simulation shows Y low only when A and B are both high.
+From chips with several sections (for example the 4013, 4518 and 74244), section 1 is exported. The message after saving lists any pins from the other sections that were connected.
 
 ## First launch
 
 - **macOS:** right-click the app, choose Open, then Open again. If macOS says the app is damaged, run `xattr -cr "/Applications/CEsim Studio.app"` once in Terminal.
 - **Windows:** if SmartScreen appears, choose More info, then Run anyway. The installer does not need administrator rights.
-- **Linux:** make the AppImage executable with `chmod +x CEsim-Studio-1.16.0-Linux-x86_64.AppImage` and run it, or install the package with `sudo apt install ./CEsim-Studio-1.16.0-Linux-amd64.deb`.
+- **Linux:** make the AppImage executable with `chmod +x CEsim-Studio-1.17.0-Linux-x86_64.AppImage` and run it, or install the package with `sudo apt install ./CEsim-Studio-1.17.0-Linux-amd64.deb`.
 
 BY. YOUSEF A.ALGHAMDI
