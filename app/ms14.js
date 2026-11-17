@@ -55,7 +55,7 @@ class Builder{
  newid(){this.id+=8;return String(this.id)}
  assign(list){const m={};for(const el of list)for(const e of [el,...el.getElementsByTagName("*")])for(const a of ["ID","CiID"]){const v=e.getAttribute(a);if(v&&/^\d+$/.test(v)&&e.tagName==="Item"&&e.getAttribute("Class")&&!(v in m))m[v]=this.newid()}
   for(const el of list)for(const e of [el,...el.getElementsByTagName("*")])for(const at of Array.from(e.attributes))if(at.value in m)e.setAttribute(at.name,m[at.value])}
- label(mod,net,g){const e=this.doc.createElement("CSchDesignNetLabel");const named=mod===1||mod===4;
+ label(mod,net,g){const e=this.doc.createElement("CSchDesignNetLabel");const named=mod===1||mod===4||mod===512;
   for(const [k,v] of [["Class","CSchDesignNetLabel"],["Modifier",String(mod)],["Value",""],["ID",g],["Priority","0"],["LastOverruleName",named?"&ASC"+net:""],["LastNetName","&ASC"+net],["LastLocalName",named?"&ASC"+net:""]])e.setAttribute(k,v);
   this.netlabels.appendChild(e)}
  localPins(key){const t=this.T.templates[key];const s=frag(this.doc,t.sym).firstElementChild;const out={};
@@ -71,6 +71,9 @@ class Builder{
    if(md){md.firstElementChild.setAttribute("LocalName","&ASC"+full);for(const e of md.getElementsByTagName("CiaCString"))e.setAttribute("String","&ASC"+own.text.replace(/NAME/g,full))}
    const cs=c2.getElementsByTagName("CiaCollString")[0];const it=cs?kids(kid(cs,"strings"),"Item"):[];
    if(it[1])it[1].setAttribute("Value","&ASC"+own.name);if(it[3])it[3].setAttribute("Value","&ASC"+own.name);if(it[5])it[5].setAttribute("Value","&ASC"+own.text.replace(/NAME/g,own.name))}
+  if(p2.some(p=>/^@/.test(p.firstElementChild.getAttribute("Model")||""))&&!this.ttlio&&this.T.extramodels){this.ttlio={};/* the TTL input and output models the chip pins use */
+   this.T.extramodels.forEach((em,i)=>{const e=frag(this.doc,em);this.assign([e]);e.firstElementChild.setAttribute("Scope",this.circ.parentNode.getAttribute("CiID")||"");const last=this.els.lastElementChild;this.els.insertBefore(e,last);this.els.insertBefore(this.doc.createTextNode("\n"),last);this.item(kid(this.circ,"Models"),{CiID:e.getAttribute("CiID")});this.ttlio[this.T.extranames[i]]=e.getAttribute("CiID")})}
+  for(const p of p2){const pm=p.firstElementChild.getAttribute("Model")||"";if(/^@/.test(pm)&&this.ttlio)p.firstElementChild.setAttribute("Model",this.ttlio[pm.slice(1)]||"")}
   if(T.model){if(md){md.firstElementChild.setAttribute("Scope",this.circ.parentNode.getAttribute("CiID")||md.firstElementChild.getAttribute("Scope"));
     const last=this.els.lastElementChild;this.els.insertBefore(md,last);this.els.insertBefore(this.doc.createTextNode("\n"),last);
     this.item(kid(this.circ,"Models"),{CiID:md.getAttribute("CiID")});this.models[mk]=md.getAttribute("CiID")}
@@ -80,7 +83,7 @@ class Builder{
   const ng=guid();c2.firstElementChild.setAttribute("InstanceID",ng);const gnd=key==="GROUND";
   const cs=s2.firstElementChild;
   if(!gnd){c2.firstElementChild.setAttribute("LocalName","&ASC"+ref);for(const it of kids(kid(cs,"Objects"),"Item"))if(it.getAttribute("Class")==="CIITSymTextCompName")it.firstElementChild.setAttribute("Output",enc(opt.display||ref))}
-  for(const it of s2.getElementsByTagName("Item")){if(it.getAttribute("Guid")){const g=guid();it.setAttribute("Guid",g);if(/GLOBAL_GROUND/.test(it.parentNode.getAttribute("NetModifier")||""))this.label(1,"0",g)}}
+  const hidden=[];for(const it of s2.getElementsByTagName("Item")){if(it.getAttribute("Guid")){const g=guid();it.setAttribute("Guid",g);const nm=it.parentNode.getAttribute("NetModifier")||"";if(/GLOBAL_GROUND/.test(nm))this.label(1,"0",g);else if(/NET_HIDDEN/.test(nm)){const net=(it.getAttribute("Value")||"").replace(/^&ASC/,"");if(net){this.label(512,net,g);hidden.push(net)}}}}
   [["Transformer-M00",M[0]],["Transformer-M01",M[1]],["Transformer-M10",M[2]],["Transformer-M11",M[3]],["Transformer-M20",x],["Transformer-M21",y]].forEach(([k,v])=>cs.setAttribute(k,String(v)));
   if(!(M[0]===1&&M[1]===0&&M[2]===0&&M[3]===1))upright(s2,M);
   const at=kid(c2.firstElementChild,"Attributes");
@@ -104,7 +107,9 @@ class Builder{
   for(const it of kids(kid(cs,"Objects"),"Item")){if(it.getAttribute("Class")!=="CIITPinSymbolComp")continue;const ps=it.firstElementChild,con=desc(ps,"CIITPinConnectorComp"),nmE=desc(ps,"CIITPinSymTextCompName");
    const nm=nmE?nmE.getAttribute("Output").replace(/^&ASC/,""):"1";const lx=+con.getAttribute("ptCenterX"),ly=+con.getAttribute("ptCenterY");
    pins[nm]={x:lx*M[0]+ly*M[2]+x,y:lx*M[1]+ly*M[3]+y,con,port:portBy[nm]||p2[0]}}
-  this.parts[ref]=pins;return pins}
+  this.parts[ref]=pins;for(const net of hidden){const port=portBy[net];if(!port)continue;const n=this.node(net);
+   this.item(kid(n.firstElementChild,"Ports"),{CiID:port.getAttribute("CiID")});this.item(kid(port.firstElementChild,"Nodes"),{CiID:n.getAttribute("CiID")})}// a chip's hidden supply pins join the VCC and GND nets
+  return pins}
  item(parent,attrs){const e=this.doc.createElement("Item");for(const k in attrs)e.setAttribute(k,attrs[k]);parent.appendChild(e);parent.appendChild(this.doc.createTextNode("\n"));return e}
  node(net){if(this.netnodes[net])return this.netnodes[net];const n=frag(this.doc,this.T.tnode);n.setAttribute("CiID",this.newid());n.firstElementChild.setAttribute("LocalName","&ASC"+net);
   clear(kid(n.firstElementChild,"Ports"));const last=this.els.lastElementChild;this.els.insertBefore(n,last);this.els.insertBefore(this.doc.createTextNode("\n"),last);
@@ -154,9 +159,32 @@ const MDL={
  reg:m=>{const pos=m.v>0;return[".SUBCKT NAME IN OUT GND","RQ IN GND 2k","E1 A GND IN GND 1",`VD A B DC ${g6(pos?m.drop:-m.drop)}`,"RB B M 1k",`VR R GND DC ${g6(m.v)}`,
    pos?"DR M R NAME_D":"DR R M NAME_D",pos?"DZ GND M NAME_D":"DZ M GND NAME_D","E2 C GND M GND 1","RO C OUT 0.05",".MODEL NAME_D D IS=1e-15 N=0.01",".ENDS"].join(NL)}};
 const safe=n=>String(n).replace(/[^\w.+-]+/g,"_");
+/* 74xx chips: Multisim part, and CEsim pin name -> Multisim pin name (null: that pin is not in the exported section) */
+const SEQ=(a,b)=>Object.fromEntries(a.map((x,i)=>[x,b[i]]));
+const same=n=>n;
+const CHIPMS={
+ ic7400:["7400N",{"1A":"1A","1B":"1B","1Y":"1Y"}],ic7402:["7402N",{"1A":"1A","1B":"1B","1Y":"1Y"}],ic7408:["7408N",{"1A":"1A","1B":"1B","1Y":"1Y"}],
+ ic7432:["7432N",{"1A":"1A","1B":"1B","1Y":"1Y"}],ic7486:["7486N",{"1A":"1A","1B":"1B","1Y":"1Y"}],ic7404:["7404N",{"1A":"1A","1Y":"1Y"}],
+ ic7442:["7442N",{A:"A",B:"B",C:"C",D:"D",...SEQ(["0","1","2","3","4","5","6","7","8","9"],["O0","O1","O2","O3","O4","O5","O6","O7","O8","O9"])}],
+ ic7447:["7447N",{A:"A",B:"B",C:"C",D:"D","~LT":"~LT","~RBI":"~RBI",...SEQ(["a","b","c","d","e","f","g"],["OA","OB","OC","OD","OE","OF","OG"])}],
+ ic7448:["7448N",{A:"A",B:"B",C:"C",D:"D","~LT":"~LT","~RBI":"~RBI",...SEQ(["a","b","c","d","e","f","g"],["OA","OB","OC","OD","OE","OF","OG"])}],
+ ic7475:["7475N",{"1D":"1D1","2D":"1D2",C12:"1EN1","1Q":"1Q1","2Q":"1Q2","~1Q":"~1Q1","~2Q":"~1Q2"}],
+ ic7483:["7483N",same],
+ ic7485:["7485N",{A0:"A0",A1:"A1",A2:"A2",A3:"A3",B0:"B0",B1:"B1",B2:"B2",B3:"B3","A<Bi":"ALTB","A=Bi":"AEQB","A>Bi":"AGTB","A<B":"OALTB","A=B":"OAEQB","A>B":"OAGTB"}],
+ ic7490:["7490N",{CKA:"INA",CKB:"INB","R0(1)":"R01","R0(2)":"R02","R9(1)":"R91","R9(2)":"R92",QA:"QA",QB:"QB",QC:"QC",QD:"QD"}],
+ ic74148:["74148N",{...SEQ(["~0","~1","~2","~3","~4","~5","~6","~7"],["D0","D1","D2","D3","D4","D5","D6","D7"]),"~EI":"EI","~A0":"A0","~A1":"A1","~A2":"A2","~GS":"GS","~EO":"EO"}],
+ ic74151:["74151N",same],ic74153:["74153N",same],ic74157:["74157N",n=>n==="S"?"~A/B":n],
+ ic74161:["74161N",same],ic74163:["74163N",same],ic74164:["74164N",same],ic74165:["74165N",n=>n==="CLK INH"?"INH":n],
+ ic74175:["74175N",same],ic74193:["74193N",same],ic74194:["74194N",same],ic74273:["74273N",same],
+ ic74283:["74283N",n=>({S1:"SUM_1",S2:"SUM_2",S3:"SUM_3",S4:"SUM_4"})[n]||n],
+};
+const GATEMS={and:["7408N","1A","1B","1Y"],or:["7432N","1A","1B","1Y"],nand:["7400N","1A","1B","1Y"],nor:["7402N","1A","1B","1Y"],xor:["7486N","1A","1B","1Y"],not:["7404N","1A","1Y"]};
+function chipMap(t,info){const g=GATEMS[t];if(g)return{key:g[0],pins:g.slice(1),section:1};const e=CHIPMS[t];if(!e||!info.H)return null;
+ const L=info.H.LIB[t];const tr=typeof e[1]==="function"?e[1]:n=>e[1][n]??null;return{key:e[0],pins:L.pins.map(p=>tr(p[2])??null),section:1}}
 function map(c,info){const p=c.p||{},t=c.t;const two=(k,a,b)=>[k,[a,b]];
  const MD=(info.H&&info.H.MODELS)||{},ZN=(info.H&&info.H.ZENERS)||{};const own=(key,name,text)=>({key,model:{name:safe(name),text},value:name});
  const npnKey=m=>/^BC107BP$/i.test(m)?"BC107BP":/^BC547B$/i.test(m)?"BC547B":/^2N2222A?$/i.test(m)?"2N2222A":null;
+ {const cm=chipMap(t,info);if(cm)return cm}
  switch(t){
   case "gnd":return{key:"GROUND",pins:["1"]};
   case "vcc":return{key:"VCC",pins:["VCC"],params:{0:[null,txt(p.voltage)]},value:txt(p.voltage)+"V"};
@@ -263,6 +291,7 @@ async function exportDoc(doc,H){const T=await templates();const B=new Builder(T)
   if(c.t!=="gnd"&&c.t!=="netlabel"){while(used.has(ref.toUpperCase()))ref=ref+"_"+(++auto);used.add(ref.toUpperCase())}
   const local=B.localPins(m.key);const idx=[],lp=[],tp=[];
   m.pins.forEach((nm,i)=>{if(nm==null)return;const nmx=nm in local?nm:Object.keys(local)[0];const pp=H.pinPos(c,i);idx.push([i,nmx]);lp.push(local[nmx]);tp.push([(pp.x-minx)*S+90,(pp.y-miny)*S+90])});
+  {const cn=H.conn.get(c.id)||[];const lost=m.pins.map((nm,i)=>nm==null&&cn[i]?L.pins[i][2]:null).filter(Boolean);if(lost.length)warn.push((c.label||c.t)+": pins "+lost.join(", ")+" are left out (only gate 1 of the chip is exported)")}
   const o=orient(lp,tp);const x=sn(o.off[0]),y=sn(o.off[1]);
   const pins=B.add(m.key,ref,x,y,o.M,{params:m.params,strings:m.strings,value:m.value,model:m.model,edit:m.edit,edit2:m.edit2,instEdit:m.instEdit,display:c.t==="netlabel"?ref:undefined});
   refOf[c.id]={ref,m,idx};
