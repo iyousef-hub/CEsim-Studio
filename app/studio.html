@@ -86,7 +86,7 @@ h2{font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--dim)
 <body>
 <div id="app">
  <nav id="rail" aria-label="Categories">
-  <div class="brand"><div class="lg">CE</div><div><b>CEsim Studio</b><span>Version 1.18.0</span></div></div>
+  <div class="brand"><div class="lg">CE</div><div><b>CEsim Studio</b><span>Version 1.19.0</span></div></div>
   <div id="navs"></div>
   <div class="railfoot">Opens .cesim · .cebb · .cepcb · .cevlsi · .msk · .cir · .cedig · .circ · .cediag · .drawio · .mmd · .ce3d · .stl · .obj · .3mf · .asm · .ino · .v · .vcd · .s<br><b>BY. YOUSEF</b><button class="btn" id="aboutBtn">About</button><button class="btn" id="themeBtn" aria-haspopup="dialog"><i></i>Theme and colors</button></div>
  </nav>
@@ -100,7 +100,7 @@ h2{font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--dim)
 <div id="drop">Drop a file to open it in the right tool</div>
 <div id="splash" role="dialog" aria-label="CEsim Studio"><div class="sp-box"><canvas id="sp-cv"></canvas><div class="sp-in">
  <div class="sp-row"><div class="sp-logo">CE</div><div><div class="sp-name">CE<span>sim</span><small>Studio</small></div><div class="sp-sub">Circuit Design &amp; Simulation Suite</div></div></div>
- <div class="sp-ver">Version 1.18.0</div><div class="sp-bar"><i id="sp-bar"></i></div><div class="sp-foot"><span id="sp-msg">Loading tools…</span><span class="sp-by">BY. YOUSEF</span></div>
+ <div class="sp-ver">Version 1.19.0</div><div class="sp-bar"><i id="sp-bar"></i></div><div class="sp-foot"><span id="sp-msg">Loading tools…</span><span class="sp-by">BY. YOUSEF</span></div>
 </div></div></div>
 <script>
 const $=s=>document.querySelector(s);
@@ -125,7 +125,7 @@ const TOOLS=[
  {id:'d3',cat:'Drawing and 3D',name:'3D',desc:'Millimetre-accurate modelling with board library and STL export.',fmt:'.ce3d · .stl · .obj · .3mf',ready:1,isNew:1},
  {id:'vlsi',cat:'Hardware and PCB',name:'VLSI',desc:'Draw CMOS transistors on a λ grid, check the design rules, see the truth table and the cross-section.',fmt:'.cevlsi · .MSK · .sch · GDSII · CIF',ready:1,isNew:1}];
 const CATS=['All tools','Circuits','Digital and architecture','Programming','Drawing and 3D','Hardware and PCB'];
-let cat='All tools';const VERSION='1.18.0';
+let cat='All tools';const VERSION='1.19.0';
 const N=window.cesimNative;
 function svg(n){return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${IC[n]}</svg>`}
 function toast(m){const d=document.createElement('div');d.className='toast';d.textContent=m;document.body.appendChild(d);setTimeout(()=>d.remove(),2600)}

@@ -366,6 +366,13 @@ async function exportDoc(doc,H){const T=await templates();const B=new Builder(T)
    B.connect(R.ref,"COM","0");B.connect(g,"1","0");B.wire([[P.COM.x,P.COM.y],[gp.x,gp.y]],{ref:R.ref,pin:"COM"},{ref:g,pin:"1"},"0")}
   if(R.m.extra==="counter"&&P.QA&&P.INB){const a=P.QA,b=P.INB;const top=Math.min(...Object.values(P).map(q=>q.y))-18,r=a.x+9,l=b.x-9;const net=netName(nodes[2]);
    B.wire([[a.x,a.y],[r,a.y],[r,top],[l,top],[l,b.y],[b.x,b.y]],{ref:R.ref,pin:"QA"},{ref:R.ref,pin:"INB"},net);B.connect(R.ref,"INB",net)}}
+ /* the sheet grows to hold the whole design (Multisim keeps the sheet size in the circuit preferences and draws the border to it) */
+ {let mx=0,my=0;for(const r in B.parts)for(const q of Object.values(B.parts[r])){mx=Math.max(mx,q.x);my=Math.max(my,q.y)}
+  for(const w of doc.wires)for(const q of w.pts){mx=Math.max(mx,X(q.x));my=Math.max(my,Y(q.y))}
+  const sw=Math.max(1000,Math.ceil((mx+150)/100)*100),sh=Math.max(1000,Math.ceil((my+150)/100)*100);
+  if(sw>1000||sh>1000){const set=(k,v)=>{for(const el of B.doc.getElementsByTagName("Element")){if(el.getAttribute("Key")==="&ASC"+k){const it=el.getElementsByTagName("Item")[0];if(it)it.setAttribute("Value","&ASC"+v)}}};
+   set("Sheet Width",sw);set("Sheet Height",sh);set("Sheet Width In Inch",+(sw/96).toFixed(4));set("Sheet Height In Inch",+(sh/96).toFixed(4));set("Sheet Size","Custom");
+   const bc=B.doc.getElementsByTagName("CIITBorderComposite")[0];const rc=bc&&bc.getElementsByTagName("CODRectComp")[0];if(rc){rc.setAttribute("pt1X",String(sw));rc.setAttribute("pt1Y",String(sh))}}}
  return{bytes:pack(B.bytes()),warn}}
 
 root.MS14={exportDoc,implode,pack,templates,map,num,eng,MDL};

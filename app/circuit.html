@@ -198,7 +198,7 @@ kbd{font:11px var(--font-mono);border:1px solid var(--ui-border);border-bottom-w
 </div>
 <div id="splash" role="dialog" aria-label="CEsim"><div class="sp-box"><canvas id="sp-cv"></canvas><div class="sp-in">
  <div class="sp-row"><div class="sp-logo">CE</div><div><div class="sp-name">CE<span>sim</span></div><div class="sp-sub">Circuit Design &amp; Simulation Suite</div></div></div>
- <div class="sp-ver">Version 1.18.0</div><div class="sp-bar"><i id="sp-bar"></i></div><div class="sp-foot"><span id="sp-msg">Loading component database…</span><span class="sp-by">BY. YOUSEF</span></div>
+ <div class="sp-ver">Version 1.19.0</div><div class="sp-bar"><i id="sp-bar"></i></div><div class="sp-foot"><span id="sp-msg">Loading component database…</span><span class="sp-by">BY. YOUSEF</span></div>
 </div></div></div>
 <script src="lib/canvas2svg.js"></script>
 <script src="ms14.js"></script>
@@ -760,13 +760,15 @@ class Sim{
   for(let i=0;i<m;i++){const r=ns[i];if(r<=0)continue;let rhs=I0[i];for(let j=0;j<m;j++){if(!J[j])continue;const d=J[j][i];A[(r-1)*N+ns[j]-1]+=d;rhs-=d*V[j]}b[r-1]-=rhs}}
  solve(){const N=this.N,A=this.A,b=this.b,x=this.xn;for(let c=0;c<N;c++){let p=c,mx=Math.abs(A[c*N+c]);for(let r=c+1;r<N;r++){const v=Math.abs(A[r*N+c]);if(v>mx){mx=v;p=r}}if(mx<1e-18)return false;if(p!==c){for(let k=c;k<N;k++){const t=A[c*N+k];A[c*N+k]=A[p*N+k];A[p*N+k]=t}const t=b[c];b[c]=b[p];b[p]=t}const d=A[c*N+c];for(let r=c+1;r<N;r++){const f=A[r*N+c]/d;if(f===0)continue;for(let k=c;k<N;k++)A[r*N+k]-=f*A[c*N+k];b[r]-=f*b[c]}}
   for(let r=N-1;r>=0;r--){let s=b[r];for(let k=r+1;k<N;k++)s-=A[r*N+k]*x[k];x[r]=s/A[r*N+r]}return true}
- step(dt){this.dt=dt;this.tn=this.t+dt;for(const f of this.pres)f();const N=this.N,n1=this.n-1,x=this.xg;x.set(this.x);const hasNL=this.nlin.length>0;const maxIt=hasNL?(this.t===0?200:80):1;let ok=false;
+ step(dt,depth){depth=depth||0;this.dt=dt;this.tn=this.t+dt;for(const f of this.pres)f();const N=this.N,n1=this.n-1,x=this.xg;x.set(this.x);const hasNL=this.nlin.length>0;const maxIt=hasNL?(this.t===0?200:80):1;let ok=false;
   for(let it=0;it<maxIt;it++){this.A.fill(0);this.b.fill(0);for(let i=0;i<n1;i++)this.A[i*N+i]+=1e-9;for(const f of this.lin)f();for(const e of this.nlin)this.stampNL(e,x);
    if(!this.solve()){this.err="The circuit matrix is singular. Check for a loop of voltage sources, a short across a source, or an inductor across a voltage source.";return false}
    const xn=this.xn;if(!hasNL){x.set(xn);ok=true;break}let conv=true;
    for(let i=0;i<N;i++){let d=xn[i]-x[i];if(!isFinite(d)){this.err="The simulation diverged (values became infinite). Check component values and connections.";return false}
     if(it>12)d*=it>40?0.25:0.5;if(i<n1){if(d>3)d=3;else if(d<-3)d=-3;if(Math.abs(d)>1e-6+1e-6*Math.abs(x[i]))conv=false}else if(Math.abs(d)>1e-9+1e-5*Math.abs(x[i]))conv=false;x[i]+=d}
    if(conv){ok=true;break}}
+  /* no convergence (for example a sharp edge into a saturating op-amp): retry the interval as ten shorter steps */
+  if(!ok&&hasNL&&depth<3){for(let k=0;k<10;k++)if(!this.step(dt/10,depth+1))return false;this.dt=dt;return true}
   if(!ok)this.warn++;this.x.set(x);this.t=this.tn;for(const f of this.posts)f();return true}
 }
 
@@ -1176,7 +1178,8 @@ function autoWire(d){// join the pins of each node with right-angle wires, neare
  for(const nm in nets){const pts=nets[nm];if(pts.length<2)continue;const inT=[pts[0]];const rest=pts.slice(1);while(rest.length){let best=null;for(const a of inT)for(const b of rest){const dd=Math.abs(a.x-b.x)+Math.abs(a.y-b.y);if(!best||dd<best.d)best={a,b,d:dd}}rest.splice(rest.indexOf(best.b),1);inT.push(best.b);const {a,b}=best;
    let pts2;if(a.x===b.x||a.y===b.y)pts2=[a,b];else{const m1={x:b.x,y:a.y},m2={x:a.x,y:b.y};pts2=!hits(a,b,m1)?[a,m1,b]:!hits(a,b,m2)?[a,m2,b]:[a,{x:a.x,y:Math.min(a.y,b.y)-30},{x:b.x,y:Math.min(a.y,b.y)-30},b]}
    const w={id:uid(),pts:pts2.map(q=>({x:q.x,y:q.y}))};if(cleanWire(w))d.wires.push(w)}}}
-function buildPlaced(d,parts,xw,xg,xn){const warn=[];
+function buildPlaced(d,parts,xw,xg,xn,xt){const warn=[];
+ for(const q of xt||[]){const c=mkComp(d,"text",q.lay.x,q.lay.y,q.p);c.r=q.lay.r||0;c.f=q.lay.f||0;d.comps.push(c)}
  for(const q of parts){const c=mkComp(d,q.t,q.lay.x,q.lay.y,q.p);c.label=q.lab||q.label;c.r=q.lay.r||0;c.f=q.lay.f||0;c._nodes=q.nodes;d.comps.push(c)}
  for(const g of xg){const c=mkComp(d,"gnd",g.x,g.y);c.r=g.r||0;c.f=g.f||0;d.comps.push(c)}
  for(const n of xn){const c=mkComp(d,"netlabel",n.lay.x,n.lay.y,{name:n.name});c.r=n.lay.r||0;c.f=n.lay.f||0;d.comps.push(c)}
@@ -1193,10 +1196,11 @@ function buildPlaced(d,parts,xw,xg,xn){const warn=[];
 function stripSubckt(t){let inS=false;return String(t).split(/\r?\n/).map(l=>{if(/^\s*\.subckt\b/i.test(l)){inS=true;return "*"}if(inS){if(/^\s*\.ends\b/i.test(l))inS=false;return "*"}return l}).join("\n")}
 function importCir(text,name){text=stripSubckt(text);const d=newDoc(name);const lines=text.split(/\r?\n/);const joined=[];for(const l of lines){if(/^\s*\+/.test(l)&&joined.length)joined[joined.length-1]+=" "+l.replace(/^\s*\+/,"");else joined.push(l)}
  const models={};for(const l0 of joined){const l=l0.replace(/\s[;$].*$/,"");const m=l.match(/^\s*\.model\s+(\S+)\s+(\w+)/i);if(m)models[m[1].toLowerCase()]=m[2].toUpperCase()}
- const parts=[];const xw=[],xg=[],xn=[];for(const raw of joined){const l0=raw.replace(/\s[;$].*$/,"").replace(/^[;$].*$/,"").trim();if(!l0||/^[*.;]/.test(l0))continue;
+ const parts=[];const xw=[],xg=[],xn=[],xt=[];for(const raw of joined){const l0=raw.replace(/\s[;$].*$/,"").replace(/^[;$].*$/,"").trim();if(!l0||/^[*.;]/.test(l0))continue;
   if(/^W\s/i.test(l0)){const pts=[...l0.slice(2).matchAll(/(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)/g)].map(m=>({x:Math.round(+m[1]),y:Math.round(+m[2])}));if(pts.length<2)throw new Error("A wire line needs two or more points, like W 100,40 100,200");xw.push(pts);continue}
   const LY=takeLayout(l0);const l=LY.s;
   if(/^GND\b/i.test(l)){if(!LY.lay||LY.lay.partial)throw new Error("GND needs a position, like GND @ 300 400");xg.push(LY.lay);continue}
+  if(/^TEXT\s/i.test(l)){if(!LY.lay||LY.lay.partial)throw new Error("TEXT needs a position, like TEXT \"Note\" @ 300 100");const tk=codeTokens(l);const tp={text:String(tk[1]||"").replace(/\\n/g,"\n")};for(const q of tk.slice(2)){const m=String(q).match(/^(size|bold|color|frame)=(.*)$/i);if(m)tp[m[1].toLowerCase()]=m[2]}xt.push({p:tp,lay:LY.lay});continue}
   if(/^NET\s/i.test(l)){const nm=codeTokens(l)[1];if(!LY.lay||LY.lay.partial)throw new Error("NET needs a name and a position, like NET out @ 300 100");xn.push({name:nm,lay:LY.lay});continue}
   const tok=codeTokens(l);const id=tok[0],ty=id[0].toUpperCase();let t=null,nodes=[],p={};
   if(/^PART$/i.test(id)){const t2=tok[1];if(!LIB[t2])throw new Error(`PART: there is no part type "${t2}"`);const np=LIB[t2].pins.length;const props={};tok.slice(3+np).forEach(kv=>{const m=kv.match(/^(\w+)=([\s\S]*)$/);if(m)props[m[1]]=m[2]});if(tok.length<3+np)throw new Error(`PART ${t2} ${tok[2]||""}: it needs ${np} node${np===1?"":"s"}`);parts.push({t:t2,nodes:tok.slice(3,3+np).map(x=>/^(0|gnd)$/i.test(x)?"0":x),p:props,label:tok[2]||"",lay:LY.lay,lab:LY.lab});continue}
@@ -1214,8 +1218,8 @@ function importCir(text,name){text=stripSubckt(text);const d=newDoc(name);const 
   else if(ty==="E"){t="vcvs";nodes=[tok[3],tok[4],tok[1],tok[2]];p.gain=tok[5]}else if(ty==="G"){t="vccs";nodes=[tok[3],tok[4],tok[2],tok[1]];p.gm=tok[5]}
   if(t)for(const k in kv)if(LIB[t].props&&k in LIB[t].props)p[k]=kv[k];
   if(t)parts.push({t,nodes:nodes.map(x=>/^(0|gnd)$/i.test(x)?"0":x),p,label:id,lay:LY.lay,lab:LY.lab})}
- parts.forEach(q=>q.nodes=q.nodes.map((x,i)=>x===""||/^(nc|-)$/i.test(x)?"__NC_"+q.label+"_"+i:x));if(!parts.length)throw new Error("No supported elements (R, C, L, V, I, D, Q, M, E, G, X op-amp, AM, VM, POT or PART) were found.");
- {const placed=parts.filter(q=>q.lay&&!q.lay.partial);if(placed.length){if(placed.length<parts.length)throw new Error("Give every part a position with @ x y, or none of them. Missing: "+parts.filter(q=>!q.lay||q.lay.partial).map(q=>q.label).slice(0,6).join(", "));return buildPlaced(d,parts,xw,xg,xn)}
+ parts.forEach(q=>q.nodes=q.nodes.map((x,i)=>x===""||/^(nc|-)$/i.test(x)?"__NC_"+q.label+"_"+i:x));if(!parts.length&&!xn.length&&!xt.length)throw new Error("No supported elements (R, C, L, V, I, D, Q, M, E, G, X op-amp, AM, VM, POT or PART) were found.");
+ {const placed=parts.filter(q=>q.lay&&!q.lay.partial);if(placed.length||!parts.length){if(placed.length<parts.length)throw new Error("Give every part a position with @ x y, or none of them. Missing: "+parts.filter(q=>!q.lay||q.lay.partial).map(q=>q.label).slice(0,6).join(", "));return buildPlaced(d,parts,xw,xg,xn,xt)}
   if(xw.length||xg.length||xn.length)throw new Error("W, GND and NET lines need every part to have a position (@ x y).")}
  /* layout: parts ordered along the signal path, one row (two-terminal parts vertical); nets run on horizontal lanes above, sharing a lane when they do not overlap */
  {const isSrc=q=>/^(dcv|acv|clock|idc|vcc)$/.test(q.t);const byNet={};parts.forEach((q,k)=>q.nodes.forEach(n=>{if(n!=="0")(byNet[n]=byNet[n]||[]).push(k)}));
@@ -1377,6 +1381,7 @@ function circuitToCode(doc,opt){opt=opt||{};const LAY=!!opt.layout;const keep=D;
   const at=c=>LAY?` @ ${c.x} ${c.y}${c.r?` rot=${(c.r&3)*90}`:""}${c.f?" flip":""}`:"";const q_=v=>/[\s"]/.test(String(v))?`"${String(v).replace(/"/g,"'")}"`:String(v);
   if(LAY)out.push("* Each part has its place: @ x y, rot= and flip. W lines are the wires, point by point.");
   for(const c of doc.comps){
+   if(c.t==="text"){if(LAY){const P0=c.p||{};out.push(`TEXT ${q_(String(P0.text||"").replace(/\n/g,"\\n"))} size=${P0.size||14} bold=${P0.bold||"no"} color=${P0.color||"#1b2230"} frame=${P0.frame||"no"}${at(c)}`)}continue}
    if(c.t!=="text"){const n0=(net.pinNodes.get(c.id)||[]).map(nm);const P0=c.p||{};
     if(c.t==="gnd"){if(LAY)out.push(`GND${at(c)}`);continue}
     if(c.t==="netlabel"){if(LAY)out.push(`NET ${q_(P0.name||"net")}${at(c)}`);continue}
