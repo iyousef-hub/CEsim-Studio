@@ -7,7 +7,7 @@ CEsim Studio is a launcher that opens several tools, each in its own window:
 
 | Tool | What it does | Files |
 |---|---|---|
-| **Circuit** | Schematic capture with live simulation, a large parts library (diodes, zeners, LEDs, BJTs, MOSFETs, JFETs, SCR, TRIAC, DIAC, optocouplers, op-amps, regulators, logic and more) and instruments (multimeter, oscilloscope, function generator, probes, meters). Text notes, net labels, title block, export to PNG / JPG / WebP / SVG / PDF, BOM and node-voltage CSV. Export to `.ms14` design files. | `.cesim` · `.cir` · `.ms14` |
+| **Circuit** | Schematic capture with live simulation, a large parts library (diodes, zeners, LEDs, BJTs, MOSFETs, JFETs, SCR, TRIAC, DIAC, optocouplers, op-amps, regulators, 56 74xx and 4000 logic chips, and more) and instruments (multimeter, oscilloscope, function generator, probes, meters). Text notes, net labels, title block, export to PNG / JPG / WebP / SVG / PDF, BOM and node-voltage CSV. Export to `.ms14` design files. | `.cesim` · `.cir` · `.ms14` |
 | **Circuit code** | Write a circuit as text (SPICE style) with a live preview and error checks. Copy the built-in prompt into any AI chat with a photo of your circuit, paste the answer back, and build it in one click. | `.cir` · text |
 | **Circuit from image** | Turns a photo or screenshot of a schematic into an editable circuit, using a vision model that runs on your own computer with [Ollama](https://ollama.com). Nothing is uploaded. | `.png` · `.jpg` · paste |
 | **Breadboard** | A real-looking breadboard with resistors, LEDs, buttons, switches, potentiometers, capacitors, diodes, transistors, 74LS logic chips, a 555 timer, a 7-segment display, batteries and meters. The circuit runs live: LEDs glow with their current, too much current burns them, and every hole shows its voltage. Opens the circuit as a schematic or as a PCB. | `.cebb` |
@@ -83,7 +83,7 @@ W 500,190 570,190
 - Settings are kept: source amplitude, frequency and offset, transformer ratio, potentiometer position and key, and the function generator and oscilloscope settings.
 - All Workbook labs export this way, and their readings match the ones in CEsim.
 
-Not exported yet: the basic logic gates (AND, OR, NOT, NAND, NOR, XOR, XNOR), JFETs, SCR, TRIAC, DIAC and optocouplers. A part that cannot be exported is listed in the message after saving.
+Not exported yet: the basic logic gates, the 74xx and 4000 chips, JFETs, SCR, TRIAC, DIAC and optocouplers. A part that cannot be exported is listed in the message after saving.
 
 ## Logic and Boolean tools
 
@@ -120,7 +120,7 @@ Not exported yet: the basic logic gates (AND, OR, NOT, NAND, NOR, XOR, XNOR), JF
 - The Check list shows the design rules that are broken, and **Cross-section** (**K**) shows the chip cut along a row.
 - Exports GDSII and CIF layouts and a SPICE netlist of the extracted transistors.
 - **Export layout (.MSK)** writes the layout with its inputs set as clocks (each one twice as slow as the one before, so the run goes through the whole truth table), its outputs ready to watch, and VDD and VSS set.
-- **Export transistor schematic (.sch)** writes every nMOS and pMOS with its W and L, a VDD and a VSS symbol, a button on each input and a lamp on each output, each net on its own wire.
+- **Export transistor schematic (.sch)** writes every nMOS and pMOS with its W and L, a VDD and a VSS symbol, a button on each input and a lamp on each output, each net on its own wire. Every transistor is turned so the signal flows from source to drain (from the rails and inputs toward the outputs), which the switch-level simulation of the schematic needs.
 - **Open** reads `.MSK` layouts, with their inputs and outputs.
 
 ## Diagram

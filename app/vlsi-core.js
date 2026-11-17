@@ -161,10 +161,20 @@ function toSCH(lay,ex,name,lambda){ex=ex||extract(lay);lambda=lambda||0.06;const
  const used=new Set();for(const T of tr){used.add(T.gateName);used.add(T.aName);used.add(T.bName)}
  const ins=ex.inputs.filter(n=>used.has(n)),outs=ex.outputs.filter(n=>used.has(n));
  const order=[];const addN=n=>{if(n!=null&&used.has(n)&&!order.includes(n))order.push(n)};addN(vddN);ins.forEach(addN);[...used].filter(n=>n!==vddN&&n!==gndN&&!ins.includes(n)&&!outs.includes(n)).sort().forEach(addN);outs.forEach(addN);addN(gndN);
+ /* path length through transistor channels from the driven wires (rails, inputs) and from the outputs */
+ const adjOf=type=>{const a={};for(const T of tr)if(!type||T.type===type){(a[T.aName]=a[T.aName]||[]).push(T.bName);(a[T.bName]=a[T.bName]||[]).push(T.aName)}return a};
+ const bfs=(start,adj,stop)=>{const d={};const q=[];for(const n of start)if(n!=null&&d[n]==null){d[n]=0;q.push(n)}while(q.length){const n=q.shift();if(stop&&d[n]>0&&stop.has(n))continue;for(const m of adj[n]||[])if(d[m]==null){d[m]=d[n]+1;q.push(m)}}return d};
+ const rails=new Set([vddN,gndN,...ins,...outs].filter(n=>n!=null));
+ const stageOut=[...new Set([...tr.map(T=>T.gateName),...outs])].filter(n=>n!==vddN&&n!==gndN);// wires that drive gates, and the outputs
+ const dSN=bfs(stageOut,adjOf('n'),rails),dSP=bfs(stageOut,adjOf('p'),rails);
+ const dN=bfs([gndN],adjOf('n'),rails),dP=bfs([vddN],adjOf('p'),rails),dIn=bfs([vddN,gndN,...ins],adjOf()),dOut=bfs(outs,adjOf());
+ const orientOf=T=>{const pick=d=>{const x=d[T.aName],y=d[T.bName];if(x==null&&y==null||x===y)return 0;if(y==null)return -1;if(x==null)return 1;return x<y?-1:1};// -1: a is the source
+  return pick(T.type==='n'?dN:dP)||-pick(T.type==='n'?dSN:dSP)||pick(dIn)||-pick(dOut)||-1};
  const TY={};order.forEach((n,k)=>TY[n]=30+10*k);const taps={};order.forEach(n=>taps[n]=[]);
  const D=50;tr.forEach((T,i)=>{const gx=i*D,gy=0;const isN=T.type==='n';
-  let top=T.aName,bot=T.bName;// nMOS: source (bottom) toward GND; pMOS: source (top) toward VDD
-  if(isN){if(top===gndN||(bot!==gndN&&top===vddN))[top,bot]=[bot,top]}else{if(bot===vddN||(top!==vddN&&bot===gndN))[top,bot]=[bot,top]}
+  // the schematic switch passes a value from source to drain: the source is the side nearer a rail or an input, the drain the side nearer an output
+  let src=T.aName,drn=T.bName;if(orientOf(T)>0)[src,drn]=[drn,src];
+  const top=isN?drn:src,bot=isN?src:drn;// nMOS: drain on top, source below; pMOS: source on top, drain below
   place(isN?'nmos':'pmos',gx,gy,isN?'nmos':'pmos',`${um(T.w)} ${um(T.l)} ${T.name}`);
   seg(gx,0,gx,TY[T.gateName]);taps[T.gateName].push(gx);
   seg(gx+20,10,gx+20,TY[bot]);taps[bot].push(gx+20);

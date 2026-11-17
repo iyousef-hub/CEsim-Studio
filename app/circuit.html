@@ -198,7 +198,7 @@ kbd{font:11px var(--font-mono);border:1px solid var(--ui-border);border-bottom-w
 </div>
 <div id="splash" role="dialog" aria-label="CEsim"><div class="sp-box"><canvas id="sp-cv"></canvas><div class="sp-in">
  <div class="sp-row"><div class="sp-logo">CE</div><div><div class="sp-name">CE<span>sim</span></div><div class="sp-sub">Circuit Design &amp; Simulation Suite</div></div></div>
- <div class="sp-ver">Version 1.14.0</div><div class="sp-bar"><i id="sp-bar"></i></div><div class="sp-foot"><span id="sp-msg">Loading component database…</span><span class="sp-by">BY. YOUSEF</span></div>
+ <div class="sp-ver">Version 1.15.0</div><div class="sp-bar"><i id="sp-bar"></i></div><div class="sp-foot"><span id="sp-msg">Loading component database…</span><span class="sp-by">BY. YOUSEF</span></div>
 </div></div></div>
 <script src="lib/canvas2svg.js"></script>
 <script src="ms14.js"></script>
@@ -486,6 +486,83 @@ gateDef("nor","NOR gate","بوابة NOR","or",1,b=>!(b[0]||b[1]),2);
 gateDef("xor","XOR gate","بوابة XOR","xor",0,b=>b[0]!==b[1],2);
 gateDef("xnor","XNOR gate","بوابة XNOR","xor",1,b=>b[0]===b[1],2);
 function boxPins(c,tx,L_,R_){for(const[nm,y]of L_){L(c,-40,y,-30,y);tx(nm,-27,y+3,7,"pin","left")}for(const[nm,y]of R_){L(c,30,y,40,y);tx(nm,27,y+3,7,"pin","right")}}
+/* ================= 74xx and 4000 chips: one table, one engine ================= */
+// in: input pins, out: output pins; f(I,S,up,dn) -> outputs {name:0|1, or null for off (high impedance)}
+const BB=v=>v?1:0;
+const quad=(fn,n,ins)=>({in:[...Array(n)].flatMap((_,k)=>ins.map(p=>(k+1)+p)),out:[...Array(n)].map((_,k)=>(k+1)+"Y"),f:I=>{const o={};for(let k=1;k<=n;k++)o[k+"Y"]=BB(fn(...ins.map(p=>I[k+p])));return o}});
+const nb=(I,ns)=>ns.reduce((a,p,i)=>a|(I[p]?1<<i:0),0);
+const outBits=(v,ns,o={})=>{ns.forEach((p,i)=>o[p]=(v>>i)&1);return o};
+const SEG=[0x3f,0x06,0x5b,0x4f,0x66,0x6d,0x7d,0x07,0x7f,0x6f];// a..g bits
+const CHIPS={
+ "7400":{d:"Quad 2-input NAND",...quad((a,b)=>!(a&&b),4,["A","B"])},
+ "7402":{d:"Quad 2-input NOR",...quad((a,b)=>!(a||b),4,["A","B"])},
+ "7404":{d:"Hex inverter",...quad(a=>!a,6,["A"])},
+ "7408":{d:"Quad 2-input AND",...quad((a,b)=>a&&b,4,["A","B"])},
+ "7410":{d:"Triple 3-input NAND",...quad((a,b,c)=>!(a&&b&&c),3,["A","B","C"])},
+ "7411":{d:"Triple 3-input AND",...quad((a,b,c)=>a&&b&&c,3,["A","B","C"])},
+ "7414":{d:"Hex Schmitt-trigger inverter",...quad(a=>!a,6,["A"])},
+ "7420":{d:"Dual 4-input NAND",...quad((a,b,c,d)=>!(a&&b&&c&&d),2,["A","B","C","D"])},
+ "7427":{d:"Triple 3-input NOR",...quad((a,b,c)=>!(a||b||c),3,["A","B","C"])},
+ "7432":{d:"Quad 2-input OR",...quad((a,b)=>a||b,4,["A","B"])},
+ "7486":{d:"Quad 2-input XOR",...quad((a,b)=>!!a!==!!b,4,["A","B"])},
+ "74266":{d:"Quad 2-input XNOR",...quad((a,b)=>!!a===!!b,4,["A","B"])},
+ "7442":{d:"BCD to decimal decoder",in:["A","B","C","D"],out:["0","1","2","3","4","5","6","7","8","9"],f:I=>{const v=nb(I,["A","B","C","D"]);const o={};for(let k=0;k<10;k++)o[k]=BB(k!==v);return o}},
+ "7447":{d:"BCD to 7-segment decoder (active low)",in:["A","B","C","D","~LT","~RBI"],out:["a","b","c","d","e","f","g"],f:I=>{const v=nb(I,["A","B","C","D"]);let s=!I["~LT"]?0x7f:(v===0&&!I["~RBI"]?0:(SEG[v]||0));return outBits(~s,["a","b","c","d","e","f","g"])}},
+ "7448":{d:"BCD to 7-segment decoder (active high)",in:["A","B","C","D","~LT","~RBI"],out:["a","b","c","d","e","f","g"],f:I=>{const v=nb(I,["A","B","C","D"]);let s=!I["~LT"]?0x7f:(v===0&&!I["~RBI"]?0:(SEG[v]||0));return outBits(s,["a","b","c","d","e","f","g"])}},
+ "7475":{d:"Quad bistable latch",in:["1D","2D","3D","4D","C12","C34"],out:["1Q","2Q","3Q","4Q","~1Q","~2Q","~3Q","~4Q"],f:(I,S)=>{S.q=S.q||[0,0,0,0];for(let k=0;k<4;k++)if(I[k<2?"C12":"C34"])S.q[k]=BB(I[(k+1)+"D"]);const o={};S.q.forEach((q,k)=>{o[(k+1)+"Q"]=q;o["~"+(k+1)+"Q"]=1-q});return o}},
+ "7483":{d:"4-bit binary full adder",in:["A1","A2","A3","A4","B1","B2","B3","B4","C0"],out:["S1","S2","S3","S4","C4"],f:I=>{const s=nb(I,["A1","A2","A3","A4"])+nb(I,["B1","B2","B3","B4"])+BB(I.C0);return outBits(s,["S1","S2","S3","S4","C4"])}},
+ "7485":{d:"4-bit magnitude comparator",in:["A0","A1","A2","A3","B0","B1","B2","B3","A<Bi","A=Bi","A>Bi"],out:["A<B","A=B","A>B"],f:I=>{const a=nb(I,["A0","A1","A2","A3"]),b=nb(I,["B0","B1","B2","B3"]);if(a!==b)return{"A<B":BB(a<b),"A=B":0,"A>B":BB(a>b)};return{"A<B":BB(I["A<Bi"]),"A=B":BB(I["A=Bi"]),"A>B":BB(I["A>Bi"])}}},
+ "7490":{d:"Decade counter",in:["CKA","CKB","R0(1)","R0(2)","R9(1)","R9(2)"],out:["QA","QB","QC","QD"],f:(I,S,up,dn)=>{S.a=S.a||0;S.b=S.b||0;if(I["R0(1)"]&&I["R0(2)"]){S.a=0;S.b=0}else if(I["R9(1)"]&&I["R9(2)"]){S.a=1;S.b=4}else{if(dn("CKA"))S.a^=1;if(dn("CKB"))S.b=(S.b+1)%5}return{QA:S.a,...outBits(S.b,["QB","QC","QD"])}}},
+ "74125":{d:"Quad tri-state buffer (enable low)",in:["1A","2A","3A","4A","~1G","~2G","~3G","~4G"],out:["1Y","2Y","3Y","4Y"],f:I=>{const o={};for(let k=1;k<=4;k++)o[k+"Y"]=I["~"+k+"G"]?null:BB(I[k+"A"]);return o}},
+ "74138":{d:"3-to-8 decoder (outputs active low)",in:["A","B","C","G1","~G2A","~G2B"],out:["Y0","Y1","Y2","Y3","Y4","Y5","Y6","Y7"],f:I=>{const en=I.G1&&!I["~G2A"]&&!I["~G2B"];const v=nb(I,["A","B","C"]);const o={};for(let k=0;k<8;k++)o["Y"+k]=BB(!(en&&v===k));return o}},
+ "74139":{d:"Dual 2-to-4 decoder (outputs active low)",in:["1A","1B","~1G","2A","2B","~2G"],out:["1Y0","1Y1","1Y2","1Y3","2Y0","2Y1","2Y2","2Y3"],f:I=>{const o={};for(const h of[1,2]){const v=nb(I,[h+"A",h+"B"]);for(let k=0;k<4;k++)o[h+"Y"+k]=BB(!(!I["~"+h+"G"]&&v===k))}return o}},
+ "74148":{d:"8-to-3 priority encoder (active low)",in:["~0","~1","~2","~3","~4","~5","~6","~7","~EI"],out:["~A0","~A1","~A2","~GS","~EO"],f:I=>{if(I["~EI"])return{"~A0":1,"~A1":1,"~A2":1,"~GS":1,"~EO":1};let k=-1;for(let i=7;i>=0;i--)if(!I["~"+i]){k=i;break}if(k<0)return{"~A0":1,"~A1":1,"~A2":1,"~GS":1,"~EO":0};return{...outBits(~k,["~A0","~A1","~A2"]),"~GS":0,"~EO":1}}},
+ "74151":{d:"8-to-1 multiplexer",in:["D0","D1","D2","D3","D4","D5","D6","D7","A","B","C","~G"],out:["Y","~W"],f:I=>{const y=I["~G"]?0:BB(I["D"+nb(I,["A","B","C"])]);return{Y:y,"~W":1-y}}},
+ "74153":{d:"Dual 4-to-1 multiplexer",in:["1C0","1C1","1C2","1C3","2C0","2C1","2C2","2C3","A","B","~1G","~2G"],out:["1Y","2Y"],f:I=>{const s=nb(I,["A","B"]);return{"1Y":I["~1G"]?0:BB(I["1C"+s]),"2Y":I["~2G"]?0:BB(I["2C"+s])}}},
+ "74157":{d:"Quad 2-to-1 multiplexer",in:["1A","1B","2A","2B","3A","3B","4A","4B","S","~G"],out:["1Y","2Y","3Y","4Y"],f:I=>{const o={};for(let k=1;k<=4;k++)o[k+"Y"]=I["~G"]?0:BB(I[k+(I.S?"B":"A")]);return o}},
+ "74161":{d:"Synchronous 4-bit counter, asynchronous clear",in:["CLK","~CLR","~LOAD","ENP","ENT","A","B","C","D"],out:["QA","QB","QC","QD","RCO"],f:(I,S,up)=>{S.v=S.v||0;if(!I["~CLR"])S.v=0;else if(up("CLK")){if(!I["~LOAD"])S.v=nb(I,["A","B","C","D"]);else if(I.ENP&&I.ENT)S.v=(S.v+1)&15}return{...outBits(S.v,["QA","QB","QC","QD"]),RCO:BB(I.ENT&&S.v===15)}}},
+ "74163":{d:"Synchronous 4-bit counter, synchronous clear",in:["CLK","~CLR","~LOAD","ENP","ENT","A","B","C","D"],out:["QA","QB","QC","QD","RCO"],f:(I,S,up)=>{S.v=S.v||0;if(up("CLK")){if(!I["~CLR"])S.v=0;else if(!I["~LOAD"])S.v=nb(I,["A","B","C","D"]);else if(I.ENP&&I.ENT)S.v=(S.v+1)&15}return{...outBits(S.v,["QA","QB","QC","QD"]),RCO:BB(I.ENT&&S.v===15)}}},
+ "74164":{d:"8-bit serial-in, parallel-out shift register",in:["A","B","CLK","~CLR"],out:["QA","QB","QC","QD","QE","QF","QG","QH"],f:(I,S,up)=>{S.v=S.v||0;if(!I["~CLR"])S.v=0;else if(up("CLK"))S.v=((S.v<<1)|BB(I.A&&I.B))&255;return outBits(S.v,["QA","QB","QC","QD","QE","QF","QG","QH"])}},
+ "74165":{d:"8-bit parallel-in, serial-out shift register",in:["SH/~LD","CLK","CLK INH","SER","A","B","C","D","E","F","G","H"],out:["QH","~QH"],f:(I,S,up)=>{S.v=S.v||0;if(!I["SH/~LD"])S.v=nb(I,["A","B","C","D","E","F","G","H"]);else if(up("CLK")&&!I["CLK INH"])S.v=((S.v<<1)|BB(I.SER))&255;const q=(S.v>>7)&1;return{QH:q,"~QH":1-q}}},
+ "74175":{d:"Quad D flip-flop with clear",in:["1D","2D","3D","4D","CLK","~CLR"],out:["1Q","2Q","3Q","4Q","~1Q","~2Q","~3Q","~4Q"],f:(I,S,up)=>{S.v=S.v||0;if(!I["~CLR"])S.v=0;else if(up("CLK"))S.v=nb(I,["1D","2D","3D","4D"]);const o=outBits(S.v,["1Q","2Q","3Q","4Q"]);for(let k=1;k<=4;k++)o["~"+k+"Q"]=1-o[k+"Q"];return o}},
+ "74193":{d:"Synchronous 4-bit up/down counter",in:["UP","DOWN","CLR","~LOAD","A","B","C","D"],out:["QA","QB","QC","QD","~CO","~BO"],f:(I,S,up)=>{S.v=S.v||0;if(I.CLR)S.v=0;else if(!I["~LOAD"])S.v=nb(I,["A","B","C","D"]);else{if(up("UP"))S.v=(S.v+1)&15;if(up("DOWN"))S.v=(S.v+15)&15}return{...outBits(S.v,["QA","QB","QC","QD"]),"~CO":BB(!(S.v===15&&!I.UP)),"~BO":BB(!(S.v===0&&!I.DOWN))}}},
+ "74194":{d:"4-bit bidirectional universal shift register",in:["CLK","~CLR","S0","S1","SR","SL","A","B","C","D"],out:["QA","QB","QC","QD"],f:(I,S,up)=>{S.v=S.v||0;if(!I["~CLR"])S.v=0;else if(up("CLK")){const m=BB(I.S0)|(BB(I.S1)<<1);if(m===3)S.v=nb(I,["A","B","C","D"]);else if(m===1)S.v=((S.v<<1)|BB(I.SR))&15;else if(m===2)S.v=(S.v>>1)|(BB(I.SL)<<3)}return outBits(S.v,["QA","QB","QC","QD"])}},
+ "74244":{d:"Octal tri-state buffer",in:["1A1","1A2","1A3","1A4","2A1","2A2","2A3","2A4","~1G","~2G"],out:["1Y1","1Y2","1Y3","1Y4","2Y1","2Y2","2Y3","2Y4"],f:I=>{const o={};for(const h of[1,2])for(let k=1;k<=4;k++)o[h+"Y"+k]=I["~"+h+"G"]?null:BB(I[h+"A"+k]);return o}},
+ "74273":{d:"Octal D flip-flop with clear",in:["1D","2D","3D","4D","5D","6D","7D","8D","CLK","~CLR"],out:["1Q","2Q","3Q","4Q","5Q","6Q","7Q","8Q"],f:(I,S,up)=>{S.v=S.v||0;if(!I["~CLR"])S.v=0;else if(up("CLK"))S.v=nb(I,["1D","2D","3D","4D","5D","6D","7D","8D"]);return outBits(S.v,["1Q","2Q","3Q","4Q","5Q","6Q","7Q","8Q"])}},
+ "74373":{d:"Octal transparent latch, tri-state",in:["1D","2D","3D","4D","5D","6D","7D","8D","LE","~OE"],out:["1Q","2Q","3Q","4Q","5Q","6Q","7Q","8Q"],f:(I,S)=>{S.v=S.v||0;if(I.LE)S.v=nb(I,["1D","2D","3D","4D","5D","6D","7D","8D"]);const o=outBits(S.v,["1Q","2Q","3Q","4Q","5Q","6Q","7Q","8Q"]);if(I["~OE"])for(const k in o)o[k]=null;return o}},
+ "74374":{d:"Octal D flip-flop, tri-state",in:["1D","2D","3D","4D","5D","6D","7D","8D","CLK","~OE"],out:["1Q","2Q","3Q","4Q","5Q","6Q","7Q","8Q"],f:(I,S,up)=>{S.v=S.v||0;if(up("CLK"))S.v=nb(I,["1D","2D","3D","4D","5D","6D","7D","8D"]);const o=outBits(S.v,["1Q","2Q","3Q","4Q","5Q","6Q","7Q","8Q"]);if(I["~OE"])for(const k in o)o[k]=null;return o}},
+ "74283":{d:"4-bit binary full adder, fast carry",in:["A1","A2","A3","A4","B1","B2","B3","B4","C0"],out:["S1","S2","S3","S4","C4"],f:I=>{const s=nb(I,["A1","A2","A3","A4"])+nb(I,["B1","B2","B3","B4"])+BB(I.C0);return outBits(s,["S1","S2","S3","S4","C4"])}},
+ "4001":{d:"Quad 2-input NOR",cmos:1,...quad((a,b)=>!(a||b),4,["A","B"])},
+ "4011":{d:"Quad 2-input NAND",cmos:1,...quad((a,b)=>!(a&&b),4,["A","B"])},
+ "4069":{d:"Hex inverter",cmos:1,...quad(a=>!a,6,["A"])},
+ "4049":{d:"Hex inverting buffer",cmos:1,...quad(a=>!a,6,["A"])},
+ "4050":{d:"Hex buffer",cmos:1,...quad(a=>!!a,6,["A"])},
+ "4070":{d:"Quad 2-input XOR",cmos:1,...quad((a,b)=>!!a!==!!b,4,["A","B"])},
+ "4071":{d:"Quad 2-input OR",cmos:1,...quad((a,b)=>a||b,4,["A","B"])},
+ "4077":{d:"Quad 2-input XNOR",cmos:1,...quad((a,b)=>!!a===!!b,4,["A","B"])},
+ "4081":{d:"Quad 2-input AND",cmos:1,...quad((a,b)=>a&&b,4,["A","B"])},
+ "4093":{d:"Quad 2-input Schmitt-trigger NAND",cmos:1,...quad((a,b)=>!(a&&b),4,["A","B"])},
+ "4013":{d:"Dual D flip-flop with set and reset",cmos:1,in:["1D","1CLK","1R","1S","2D","2CLK","2R","2S"],out:["1Q","~1Q","2Q","~2Q"],f:(I,S,up)=>{S.q=S.q||[0,0];const o={};for(const h of[1,2]){const i=h-1;if(I[h+"R"]||I[h+"S"])S.q[i]=BB(I[h+"S"]);else if(up(h+"CLK"))S.q[i]=BB(I[h+"D"]);o[h+"Q"]=I[h+"R"]&&I[h+"S"]?1:S.q[i];o["~"+h+"Q"]=I[h+"R"]&&I[h+"S"]?1:1-S.q[i]}return o}},
+ "4027":{d:"Dual JK flip-flop with set and reset",cmos:1,in:["1J","1K","1CLK","1R","1S","2J","2K","2CLK","2R","2S"],out:["1Q","~1Q","2Q","~2Q"],f:(I,S,up)=>{S.q=S.q||[0,0];const o={};for(const h of[1,2]){const i=h-1;if(I[h+"R"]||I[h+"S"])S.q[i]=BB(I[h+"S"]);else if(up(h+"CLK")){const j=I[h+"J"],k=I[h+"K"];S.q[i]=j&&k?1-S.q[i]:j?1:k?0:S.q[i]}o[h+"Q"]=S.q[i];o["~"+h+"Q"]=1-S.q[i]}return o}},
+ "4017":{d:"Decade counter with 10 decoded outputs",cmos:1,in:["CLK","~EN","RST"],out:["Q0","Q1","Q2","Q3","Q4","Q5","Q6","Q7","Q8","Q9","CO"],f:(I,S,up)=>{S.v=S.v||0;if(I.RST)S.v=0;else if(up("CLK")&&!I["~EN"])S.v=(S.v+1)%10;const o={};for(let k=0;k<10;k++)o["Q"+k]=BB(S.v===k);o.CO=BB(S.v<5);return o}},
+ "4028":{d:"BCD to decimal decoder",cmos:1,in:["A","B","C","D"],out:["Q0","Q1","Q2","Q3","Q4","Q5","Q6","Q7","Q8","Q9"],f:I=>{const v=nb(I,["A","B","C","D"]);const o={};for(let k=0;k<10;k++)o["Q"+k]=BB(v===k);return o}},
+ "4029":{d:"Presettable up/down counter, binary or BCD",cmos:1,in:["CLK","U/~D","B/~D","PE","~CI","J1","J2","J3","J4"],out:["Q1","Q2","Q3","Q4","~CO"],f:(I,S,up)=>{S.v=S.v||0;const m=I["B/~D"]?16:10;if(I.PE)S.v=nb(I,["J1","J2","J3","J4"])%m;else if(up("CLK")&&!I["~CI"])S.v=I["U/~D"]?(S.v+1)%m:(S.v+m-1)%m;const end=I["U/~D"]?S.v===m-1:S.v===0;return{...outBits(S.v,["Q1","Q2","Q3","Q4"]),"~CO":BB(!(end&&!I["~CI"]))}}},
+ "4040":{d:"12-stage binary ripple counter",cmos:1,in:["CLK","RST"],out:["Q1","Q2","Q3","Q4","Q5","Q6","Q7","Q8","Q9","Q10","Q11","Q12"],f:(I,S,up,dn)=>{S.v=S.v||0;if(I.RST)S.v=0;else if(dn("CLK"))S.v=(S.v+1)&4095;return outBits(S.v,["Q1","Q2","Q3","Q4","Q5","Q6","Q7","Q8","Q9","Q10","Q11","Q12"])}},
+ "4511":{d:"BCD to 7-segment latch, decoder, driver",cmos:1,in:["A","B","C","D","~LT","~BI","LE"],out:["a","b","c","d","e","f","g"],f:(I,S)=>{if(!I.LE||S.v==null)S.v=nb(I,["A","B","C","D"]);let s=!I["~LT"]?0x7f:!I["~BI"]?0:(SEG[S.v]||0);return outBits(s,["a","b","c","d","e","f","g"])}},
+ "4518":{d:"Dual BCD up counter",cmos:1,in:["1CLK","1EN","1RST","2CLK","2EN","2RST"],out:["1Q0","1Q1","1Q2","1Q3","2Q0","2Q1","2Q2","2Q3"],f:(I,S,up,dn)=>{S.v=S.v||[0,0];const o={};for(const h of[1,2]){const i=h-1;if(I[h+"RST"])S.v[i]=0;else if((up(h+"CLK")&&I[h+"EN"])||(dn(h+"EN")&&!I[h+"CLK"]))S.v[i]=(S.v[i]+1)%10;outBits(S.v[i],[h+"Q0",h+"Q1",h+"Q2",h+"Q3"],o)}return o}},
+};
+function chipDef(num,spec){const t="ic"+num;const ins=spec.in,outs=spec.out;const n=Math.max(ins.length,outs.length);const h=n*10+10;
+ const pins=[...ins.map((p,i)=>[-50,(i-(ins.length-1)/2)*20,p]),...outs.map((p,i)=>[50,(i-(outs.length-1)/2)*20,p])].map(([x,y,p])=>[x,Math.round(y/10)*10,p]);
+ const fams=spec.cmos?["CD4000","HEF4000"]:["74LS","74HC","74HCT","74F"];
+ def(t,{name:(spec.cmos?"CD":"74")+(spec.cmos?num:num.slice(2))+" "+spec.d,ar:spec.cmos?"دائرة CMOS متكاملة":"دائرة منطقية متكاملة",prefix:"U",pins,bb:[-50,-h,50,h],props:{family:fams[0]},fields:[fSel("family","Logic family",fams)],
+  draw(c,st,tx){RECT(c,-34,-h,34,h,CV.bg);pins.forEach(([x,y,p])=>{L(c,x,y,x<0?-34:34,y);const lab=p.replace(/^~/,"");tx(lab,x<0?-31:31,y+3,7,"part",x<0?"left":"right");if(p[0]==="~")L(c,x<0?-31:31-lab.length*4.2,y-5,x<0?-31+lab.length*4.2:31,y-5)});tx(this.val(c)[0],0,-h+10,8,"part","center")},
+  val(c){const f=c.p.family||fams[0];return [spec.cmos?(f==="HEF4000"?"HEF":"CD")+num+"B":f.replace(/^74/,"74")+num.slice(2)]},
+  build(c,nd,E){const st=E.st;st.O={};st.prev={};const I={};const ni=ins.length;
+   ins.forEach((p,i)=>E.R(nd[i],0,1e6));
+   E.pre(()=>{ins.forEach((p,i)=>I[p]=digIn(E,nd[i]));const cur={...I};const up=p=>cur[p]&&!st.prev[p],dn=p=>!cur[p]&&st.prev[p];st.O=spec.f(I,st,up,dn)||{};st.prev=cur});
+   outs.forEach((p,i)=>E.Th(nd[ni+i],0,()=>{const v=st.O[p];return v==null?[0,1e9]:[v?VH:0,10]}))},
+  spice(c,n){return `* ${c.label}: ${this.val(c)[0]} (${spec.d}) is a digital part`}})}
+for(const[k,v]of Object.entries(CHIPS))chipDef(k,v);
 def("dff",{name:"D flip-flop",ar:"قلاب D",prefix:"U",pins:[[-40,-10,"D"],[-40,10,"CLK"],[40,-10,"Q"],[40,10,"~Q"]],bb:[-40,-30,40,30],props:{},
  draw(c,st,tx){RECT(c,-30,-30,30,30,CV.bg);boxPins(c,tx,[["D",-10],["",10]],[["Q",-10],["Q̅",10]]);L(c,-30,6,-24,10,-30,14);tx("74HC74",0,-21,7,"part","center")},
  build(c,n,E){const st=E.st;st.q=0;st.pc=0;E.R(n[0],0,1e6);E.R(n[1],0,1e6);E.pre(()=>{const ck=digIn(E,n[1]);if(ck&&!st.pc)st.q=digIn(E,n[0])?1:0;st.pc=ck});E.Th(n[2],0,()=>[st.q?VH:0,10]);E.Th(n[3],0,()=>[st.q?0:VH,10])}});
@@ -582,7 +659,7 @@ const DB=[
  {g:"Diodes",icon:"dio",fams:[["DIODE","diode",()=>Object.keys(MODELS.diode).map(m=>({n:m,p:{model:m}}))],["SCHOTTKY_DIODE","schottky",()=>Object.keys(MODELS.schottky).map(m=>({n:m,p:{model:m}}))],["ZENER","zener",()=>Object.keys(ZENERS).map(m=>({n:m+" ("+ZENERS[m]+"V)",p:{model:m}}))],["LED","led",()=>Object.keys(LEDC).map(m=>({n:"LED_"+m,p:{color:m}}))],["FWB (bridge)","bridge",()=>["1N4001","1N4007","1N5408"].map(m=>({n:"FWB_"+m,p:{model:m}}))],["SCR","scr",()=>Object.keys(MODELS.scr).map(m=>({n:m,p:{model:m}}))],["TRIAC","triac",()=>Object.keys(MODELS.triac).map(m=>({n:m,p:{model:m}}))],["DIAC","diac",()=>Object.keys(MODELS.diac).map(m=>({n:m,p:{model:m}}))],["OPTOCOUPLER","opto",()=>Object.keys(MODELS.opto).map(m=>({n:m,p:{model:m}}))]]},
  {g:"Transistors",icon:"bjt",fams:[["BJT_NPN","npn",()=>Object.keys(MODELS.npn).map(m=>({n:m,p:{model:m}}))],["BJT_PNP","pnp",()=>Object.keys(MODELS.pnp).map(m=>({n:m,p:{model:m}}))],["MOS_N","nmos",()=>Object.keys(MODELS.nmos).map(m=>({n:m,p:{model:m}}))],["MOS_P","pmos",()=>Object.keys(MODELS.pmos).map(m=>({n:m,p:{model:m}}))],["JFET_N","njfet",()=>Object.keys(MODELS.njfet).map(m=>({n:m,p:{model:m}}))],["JFET_P","pjfet",()=>Object.keys(MODELS.pjfet).map(m=>({n:m,p:{model:m}}))]]},
  {g:"Analog",icon:"opa",fams:[["OPAMP","opamp",()=>Object.keys(MODELS.opamp).map(m=>({n:m,p:{model:m}}))],["COMPARATOR","comparator",()=>Object.keys(MODELS.comparator).map(m=>({n:m,p:{model:m}}))]]},
- {g:"TTL / CMOS",icon:"gate",fams:["and","or","not","buf","nand","nor","xor","xnor"].map(t=>[t.toUpperCase()+"_GATES",t,()=>["74HC","74LS","74HCT","CD4000"].map(f=>({n:LIB[t].val({p:{family:f}})[0],p:{family:f}}))]).concat([["FLIP_FLOPS","dff",()=>[{n:"74HC74 (D)"}]],["FLIP_FLOPS ","jkff",()=>[{n:"74HC107 (JK)"}]],["COUNTERS","counter",()=>[{n:"74HC161 (4-bit)"}]]])},
+ {g:"TTL / CMOS",icon:"gate",fams:["and","or","not","buf","nand","nor","xor","xnor"].map(t=>[t.toUpperCase()+"_GATES",t,()=>["74HC","74LS","74HCT","CD4000"].map(f=>({n:LIB[t].val({p:{family:f}})[0],p:{family:f}}))]).concat([["FLIP_FLOPS","dff",()=>[{n:"74HC74 (D)"}]],["FLIP_FLOPS ","jkff",()=>[{n:"74HC107 (JK)"}]],["COUNTERS","counter",()=>[{n:"74HC161 (4-bit)"}]]]).concat([["74STD","ic7400",()=>Object.keys(CHIPS).filter(k=>!CHIPS[k].cmos).map(k=>({t:"ic"+k,n:"74LS"+k.slice(2)+" "+CHIPS[k].d,p:{family:"74LS"}}))],["74HC","ic7400",()=>Object.keys(CHIPS).filter(k=>!CHIPS[k].cmos).map(k=>({t:"ic"+k,n:"74HC"+k.slice(2)+" "+CHIPS[k].d,p:{family:"74HC"}}))],["CMOS_4000","ic4001",()=>Object.keys(CHIPS).filter(k=>CHIPS[k].cmos).map(k=>({t:"ic"+k,n:"CD"+k+"B "+CHIPS[k].d,p:{family:"CD4000"}}))]])},
  {g:"Mixed",icon:"chip",fams:[["TIMER","timer555",()=>["NE555","LM555","TLC555 (CMOS)","ICM7555"].map(m=>({n:m,p:{model:m}}))]]},
  {g:"Indicators",icon:"ind",fams:[["VOLTMETER","voltmeter",()=>[{n:"VOLTMETER_DC",p:{mode:"DC"}},{n:"VOLTMETER_AC",p:{mode:"AC"}}]],["AMMETER","ammeter",()=>[{n:"AMMETER_DC",p:{mode:"DC"}},{n:"AMMETER_AC",p:{mode:"AC"}}]],["PROBE","probe",()=>[{n:"VOLTAGE_PROBE"}]],["LOGIC_PROBE","lprobe",()=>Object.keys(LEDC).slice(0,6).map(m=>({n:"PROBE_DIG_"+m.toUpperCase(),p:{color:m}}))],
    ["LAMP","lamp",()=>[[6,1],[12,5],[12,10],[24,10],[120,40],[230,60]].map(([v,w])=>({n:"LAMP "+v+"V "+w+"W",p:{voltage:String(v),power:String(w)}}))],["BUZZER","buzzer",()=>[{n:"BUZZER 5V"},{n:"BUZZER 12V",p:{voltage:"12",res:"300"}}]],["HEX_DISPLAY","hexdisp",()=>["red","green","blue","yellow"].map(m=>({n:"DCD_HEX_"+m.toUpperCase(),p:{color:m}}))],["SEVEN_SEG","seg7",()=>["red","green","blue"].map(m=>({n:"SEVEN_SEG_COM_K_"+m.toUpperCase(),p:{color:m}}))]]},
@@ -920,7 +997,7 @@ function openBrowser(group,famName){if(group){cbState.g=group;cbState.f=0;cbStat
  const w=makeWin("Select a Component",body,{modal:true,foot});
  const gl=body.querySelector("#cb-g"),fl=body.querySelector("#cb-f"),il=body.querySelector("#cb-i"),pv=body.querySelector("#cb-prev"),info=body.querySelector("#cb-info"),q=body.querySelector("#cb-q");
  let results=null;
- const cur=()=>{if(results){return results[cbState.i]||null}const g=DB.find(x=>x.g===cbState.g)||DB[0];const f=g.fams[cbState.f]||g.fams[0];const it=famItems(f)[cbState.i]||famItems(f)[0];return it?{t:f[1],it,fam:f[0],g:g.g}:null};
+ const cur=()=>{if(results){return results[cbState.i]||null}const g=DB.find(x=>x.g===cbState.g)||DB[0];const f=g.fams[cbState.f]||g.fams[0];const it=famItems(f)[cbState.i]||famItems(f)[0];return it?{t:it.t||f[1],it,fam:f[0],g:g.g}:null};
  function draw(){gl.innerHTML=DB.map(g=>`<div class="${g.g===cbState.g&&!results?"on":""}" data-g="${esc(g.g)}">${esc(g.g)}</div>`).join("");
   const g=DB.find(x=>x.g===cbState.g)||DB[0];fl.innerHTML=results?'<div class="on">Search results</div>':g.fams.map((f,i)=>`<div class="${i===cbState.f?"on":""}" data-f="${i}">${esc(f[0].trim())}<span class="ar">${esc(LIB[f[1]].ar||"")}</span></div>`).join("");
   const items=results?results:famItems(g.fams[cbState.f]||g.fams[0]).map(it=>({it}));body.querySelector("#cb-n").textContent="("+items.length+")";
@@ -930,7 +1007,7 @@ function openBrowser(group,famName){if(group){cbState.g=group;cbState.f=0;cbStat
   const L_=LIB[c_.t];const comp={id:"pv",t:c_.t,x:0,y:0,r:0,f:0,label:L_.prefix?L_.prefix+"?":"",p:Object.assign({},L_.props,c_.it.p||{})};const b=L_.bb;const s=Math.min(2.4,Math.min((r.width-40)/(b[2]-b[0]+20),(r.height-40)/(b[3]-b[1]+20)));g.translate(r.width/2-(b[0]+b[2])/2*s,r.height/2-(b[1]+b[3])/2*s+6);g.scale(s,s);drawComp(comp,null,g);drawLabels(comp,null,g);
   const fl_=L_.fields.map(f=>f[1]+": "+(comp.p[f[0]]??"")).join("\n");const pins=L_.pins.map(p=>p[2]).join(", ");
   info.innerHTML=`<b>${esc(c_.it.n)}</b><br>${esc(L_.name)} · <span dir="rtl">${esc(L_.ar||"")}</span><br><span style="color:var(--ui-dim)">Family:</span> ${esc(c_.fam.trim())}<br><span style="color:var(--ui-dim)">Pins:</span> ${esc(pins)}<div class="mono" style="margin-top:6px">${esc(fl_)}</div>`}
- function doSearch(){const s=q.value.trim().toLowerCase();cbState.q=q.value;if(!s){results=null;cbState.i=0;draw();return}results=[];for(const g of DB)for(const f of g.fams){const fam=f[0].toLowerCase(),nm=LIB[f[1]].name.toLowerCase(),ar=LIB[f[1]].ar||"";for(const it of famItems(f)){if(it.n.toLowerCase().includes(s)||fam.includes(s)||nm.includes(s)||ar.includes(s))results.push({t:f[1],it,fam:f[0],g:g.g});if(results.length>3000)break}}cbState.i=0;draw()}
+ function doSearch(){const s=q.value.trim().toLowerCase();cbState.q=q.value;if(!s){results=null;cbState.i=0;draw();return}results=[];for(const g of DB)for(const f of g.fams){const fam=f[0].toLowerCase(),nm=LIB[f[1]].name.toLowerCase(),ar=LIB[f[1]].ar||"";for(const it of famItems(f)){if(it.n.toLowerCase().includes(s)||fam.includes(s)||nm.includes(s)||ar.includes(s))results.push({t:it.t||f[1],it,fam:f[0],g:g.g});if(results.length>3000)break}}cbState.i=0;draw()}
  gl.onclick=e=>{const d=e.target.closest("[data-g]");if(!d)return;cbState.g=d.dataset.g;cbState.f=0;cbState.i=0;results=null;q.value="";cbState.q="";draw()};
  fl.onclick=e=>{const d=e.target.closest("[data-f]");if(!d)return;cbState.f=+d.dataset.f;cbState.i=0;draw()};
  il.onclick=e=>{const d=e.target.closest("[data-i]");if(!d)return;cbState.i=+d.dataset.i;il.querySelectorAll(".on").forEach(x=>x.classList.remove("on"));d.classList.add("on");preview()};
@@ -1127,17 +1204,25 @@ function importCir(text,name){text=stripSubckt(text);const d=newDoc(name);const 
   parts.forEach((q,k)=>{if(isSrc(q)&&!seen.has(k)&&!/^(VCC|VEE|VDD|VSS|VSUP)/i.test(q.label))visit(k)});parts.forEach((q,k)=>{if(!seen.has(k)&&!isSrc(q))visit(k)});parts.forEach((q,k)=>{if(!seen.has(k))visit(k)});
   const sorted=ord.map(k=>parts[k]);parts.length=0;parts.push(...sorted)}
  const rowY=320,dx=110;const netPins={};const order=[];
- parts.forEach((pt,i)=>{const L_=LIB[pt.t];const c=mkComp(d,pt.t,140+i*dx,rowY,pt.p);c.label=pt.lab||pt.label;if(L_.pins.length===2&&L_.pins[0][1]===0)c.r=1;d.comps.push(c);
-  pt.nodes.forEach((nn,j)=>{if(j>=L_.pins.length)return;const pp=pinPos(c,j);const side=pp.y<c.y-1?"top":pp.y>c.y+1?"bottom":"side";(netPins[nn]=netPins[nn]||[]).push({p:pp,side,c});if(!order.includes(nn))order.push(nn)})});
+ /* room for each part: its body plus, for chips, the fan of wires off each side */
+ let cx=140,prevR=0;const xAt=parts.map((pt,i)=>{const L_=LIB[pt.t];const many=L_.pins.length>=6;const nL=many?L_.pins.filter(p=>p[0]<=-40).length:0,nR=many?L_.pins.filter(p=>p[0]>=40).length:0;
+  const left=many?Math.max(30,-L_.bb[0])+10+10*nL:dx/2,right=many?Math.max(30,L_.bb[2])+10+10*nR:dx/2;if(i)cx+=Math.max(dx,prevR+left+20);prevR=right;return cx});
+ parts.forEach((pt,i)=>{const L_=LIB[pt.t];const c=mkComp(d,pt.t,xAt[i],rowY,pt.p);c.label=pt.lab||pt.label;if(L_.pins.length===2&&L_.pins[0][1]===0)c.r=1;d.comps.push(c);
+  pt.nodes.forEach((nn,j)=>{if(j>=L_.pins.length)return;const pp=pinPos(c,j);const edge=L_.pins.length>=6&&Math.abs(pp.x-c.x)>=40;// chips: pins down the left and right edges
+   const side=edge?"side":pp.y<c.y-1?"top":pp.y>c.y+1?"bottom":"side";(netPins[nn]=netPins[nn]||[]).push({p:pp,side,c});if(!order.includes(nn))order.push(nn)})});
  const W=(...q)=>{const pts=[];for(let i=0;i<q.length;i+=2)pts.push({x:q[i],y:q[i+1]});const w={id:uid(),pts};if(cleanWire(w))d.wires.push(w)};
  const gut={};const plan=[];
+ /* pins down one side of a part: the lower the pin, the further out its wire turns up, so no wire runs over another pin */
+ const sideRank={};for(const nn of order)for(const q of netPins[nn])if(q.side==="side"){const k=q.c.id+(q.p.x<q.c.x?"L":"R");(sideRank[k]=sideRank[k]||[]).push(q.p.y)}
+ for(const k in sideRank)sideRank[k]=[...new Set(sideRank[k])].sort((a,b)=>a-b);
  for(const nn of order){const ps=netPins[nn];
   if(nn==="0"){const rest=[];for(const q of ps){if(q.side==="bottom"){const g=mkComp(d,"gnd",q.p.x,q.p.y+20);d.comps.push(g);W(q.p.x,q.p.y,q.p.x,q.p.y+20)}else rest.push(q)}if(!rest.length)continue;ps.length=0;ps.push(...rest)}
   if(ps.length<2&&nn!=="0")continue;
-  const att=ps.map(q=>{const {p,side,c}=q;if(side==="top")return{x:p.x,q};if(side==="side")return{x:p.x+(p.x<c.x?-10:10),q};const k=(gut[c.id]=(gut[c.id]||0)+1);return{x:c.x+40+k*8,by:p.y+20+k*8,q}});
+  const att=ps.map(q=>{const {p,side,c}=q;if(side==="top")return{x:p.x,q};if(side==="side"){const lft=p.x<c.x;const rk=(sideRank[c.id+(lft?"L":"R")]||[]).indexOf(p.y);return{x:p.x+(lft?-1:1)*(10+10*Math.max(0,rk)),q}}const k=(gut[c.id]=(gut[c.id]||0)+1);return{x:c.x+40+k*8,by:p.y+20+k*8,q}});
   const xs=att.map(a=>a.x);let gx0=null;if(nn==="0"){gx0=Math.min(...xs)-30;xs.push(gx0)}plan.push({nn,att,lo:Math.min(...xs),hi:Math.max(...xs),gx0})}
  const laneEnd=[];plan.slice().sort((a,b)=>a.lo-b.lo||b.hi-a.hi).forEach(pl=>{let li=laneEnd.findIndex(e=>e<pl.lo-20);if(li<0){li=laneEnd.length;laneEnd.push(0)}laneEnd[li]=pl.hi;pl.lane=li});
- for(const pl of plan){const ly=rowY-90-pl.lane*20;
+ const topY=Math.min(rowY-50,...d.comps.map(c=>{const b=LIB[c.t].bb;return c.y+(b?Math.min(b[1],-b[3]):-30)}));// lanes run above the tallest part
+ for(const pl of plan){const ly=Math.min(rowY-90,topY-40)-pl.lane*20;
   for(const a of pl.att){const {p,side}=a.q;if(side==="top")W(p.x,p.y,p.x,ly);else if(side==="side")W(p.x,p.y,a.x,p.y,a.x,ly);else W(p.x,p.y,p.x,a.by,a.x,a.by,a.x,ly)}
   if(pl.gx0!=null){const g=mkComp(d,"gnd",pl.gx0,ly);d.comps.push(g)}
   W(pl.lo,ly,pl.hi,ly)}
