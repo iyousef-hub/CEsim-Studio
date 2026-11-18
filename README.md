@@ -31,6 +31,7 @@ Get the latest build from the **Releases** page:
 | System | File |
 |---|---|
 | macOS (Apple Silicon) | `CEsim-Studio-<version>-arm64.dmg` |
+| macOS (Intel) | `CEsim-Studio-<version>-Intel-x64.dmg` |
 | Windows 10/11 (64-bit) | `CEsim-Studio-<version>-Windows-x64-Setup.exe` (installer) or `…-Portable.zip` |
 | Linux (64-bit) | `CEsim-Studio-<version>-Linux-x86_64.AppImage` or `…-Linux-amd64.deb` |
 

@@ -24,6 +24,10 @@ jobs:
         include:
           - os: macos-latest
             target: mac
+            arch: arm64
+          - os: macos-latest
+            target: mac-intel
+            arch: x64
           - os: windows-latest
             target: win
           - os: ubuntu-22.04
@@ -40,15 +44,15 @@ jobs:
         run: echo "VER=$(node -p "require('./app/package.json').version")" >> "$GITHUB_ENV"
 
       - name: macOS app and disk image
-        if: matrix.target == 'mac'
+        if: startsWith(matrix.target, 'mac')
         run: |
-          npm run pack:mac
-          APP="out/CEsim Studio-darwin-arm64/CEsim Studio.app"
+          node build/pack.js darwin ${{ matrix.arch }}
+          APP="out/CEsim Studio-darwin-${{ matrix.arch }}/CEsim Studio.app"
           codesign --force --deep -s - "$APP"
           mkdir -p dist stage
           cp -R "$APP" stage/
           ln -s /Applications stage/Applications
-          hdiutil create -volname "CEsim Studio" -srcfolder stage -ov -format UDZO "dist/CEsim-Studio-${VER}-arm64.dmg"
+          hdiutil create -volname "CEsim Studio" -srcfolder stage -ov -format UDZO "dist/CEsim-Studio-${VER}-${{ matrix.arch == 'x64' && 'Intel-x64' || 'arm64' }}.dmg"
 
       - name: Windows installer and portable zip
         if: matrix.target == 'win'
