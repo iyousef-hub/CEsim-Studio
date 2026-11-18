@@ -231,5 +231,5 @@ function init(host, h) {
   say('CEsim DOS version 1.0'); say('');
   const ae = disk.k['AUTOEXEC.BAT']; if (ae && ae.t === 'f') runProgram({ node: ae, n: 'AUTOEXEC.BAT' }, ''); else render();
 }
-root.CEDOS = { init, exec: (l) => { say(prompt() + l); exec(l); render(); }, screen: () => screen, running: () => !!prog, cwd: () => pathStr(cwd), disk: () => disk, reset: () => { disk = newDisk(); cwd = []; saveDisk(); } };
+root.CEDOS = { init, exec: (l) => { say(prompt() + l); exec(l); render(); }, screen: () => screen, running: () => !!prog, cwd: () => pathStr(cwd), disk: () => disk || loadDisk(), reset: () => { disk = newDisk(); cwd = []; saveDisk(); } };
 })(typeof window !== 'undefined' ? window : globalThis);

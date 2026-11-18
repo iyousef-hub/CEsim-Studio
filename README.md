@@ -88,6 +88,18 @@ The Circuit tool has three analyses under **Simulate → Analyses**. Each one pl
 - **Word generator (XWG):** drives eight outputs D0 to D7 with a list of hex words at a set frequency, in Cycle or Burst mode. Ready patterns: up and down counter, shift left and right, 55/AA, Gray code and BCD.
 - **Logic analyzer (XLA):** records eight logic inputs as a timing diagram, with a threshold, Hold, two cursors that read the time, the frequency and the word in hex and binary, and CSV export.
 
+## Export to other schematic formats
+
+**Transfer → Export .asc schematic** writes a schematic with every resistor, capacitor, inductor, source, diode, LED, BJT and MOSFET as a symbol joined by net labels; op-amps and other parts go in as netlist lines with their subcircuits and models, together with the analysis. **Transfer → Export .kicad_sch schematic** writes the drawing with the same part positions, pins, wires, junctions, ground symbols, net labels and notes.
+
+## Uno board on the breadboard
+
+The Breadboard tool has an **Arduino Uno board**. Wire its header pins (D0–D13, A0–A5, 5V, 3.3V, GND) to the breadboard, select the board, write or pick a sketch and press **Upload**. While the simulation runs, outputs drive the circuit at 5 V through 25 Ω, analogWrite gives the PWM average, INPUT_PULLUP adds 20 kΩ to 5 V, digitalRead and analogRead read the real node voltage, and the Serial Monitor shows the sketch output. Examples: blink, traffic light, fade, button, pot on A0 and a night light, and two ready boards under Examples.
+
+## DOS machine
+
+The **DOS machine** tab of the 8086 tool boots a full emulated PC with DOS. Drive C has the files of the DOS tab, and **Run editor program** assembles the program in the editor and copies it to drive C as a .COM file. Click the screen and type.
+
 ## Lab reports, faults and quizzes
 
 - **Lab report (Reports → Lab report…):** fill in the student name, ID, course, lab number and the text sections (objective, theory, procedure, discussion, conclusion). The report adds the components list, the circuit diagram, a table of every meter reading, the oscilloscope screens, the last Bode plot and DC sweep, and an empty Implementation section for photos of the built circuit. It saves as Word (.docx) or PDF, and the student details are remembered for the next report.
@@ -252,11 +264,13 @@ assets/         App icons
 
 Electron, three.js, three-bvh-csg and three-mesh-bvh (MIT), canvas2svg (MIT, see `app/lib/canvas2svg-LICENSE.txt`), IBM Plex fonts (SIL OFL 1.1).
 
+The DOS machine uses the js-dos emulators package (DOSBox compiled to WebAssembly), GPL-2.0, in `app/lib/emu` with its license in `app/lib/emu/LICENSE`. Source: https://github.com/js-dos/emulators and https://www.dosbox.com.
+
 ---
 
 ### بالعربي
 
-**CEsim Studio** برنامج سطح مكتب فيه محاكي دوائر، ولوحة تجارب Breadboard تشتغل مباشرة، وتصميم لوحات PCB مع تصدير ملفات التصنيع، وتصميم شرائح VLSI بترانزستورات CMOS، ومحاكي دوائر رقمية وأدوات الجبر البولياني، ومحاكي Verilog مع عارض الإشارات، ومحاكي معمارية MIPS وRISC-V مع مسار البيانات والـ Pipeline، ومحاكي 8086 بلغة التجميع، ومحاكي Arduino بقطع افتراضية، وأداة رسم مخططات، وتصميم ثلاثي الأبعاد بقياسات حقيقية، وأداة تحول صورة الدائرة إلى دائرة قابلة للمحاكاة عن طريق ذكاء اصطناعي يشتغل على جهازك (Ollama). ويقدر يسجّل فيديو للدائرة وهي تشتغل، وفيه Bode Plotter وIV Analyzer وDC Sweep مع رسم النتائج وجداولها، وMonte Carlo، ومولد كلمات ومحلل منطقي، وحاسبات تصميم تبني الدائرة لك، ومولد تقارير معامل Word وPDF، ووضع الأعطال للمعلم، واختبارات، وتقدر تبني قطعك الخاصة من دائرة صغيرة ويتأكد منها البرنامج ويكتب جنبها Verified.
+**CEsim Studio** برنامج سطح مكتب فيه محاكي دوائر، ولوحة تجارب Breadboard تشتغل مباشرة، وتصميم لوحات PCB مع تصدير ملفات التصنيع، وتصميم شرائح VLSI بترانزستورات CMOS، ومحاكي دوائر رقمية وأدوات الجبر البولياني، ومحاكي Verilog مع عارض الإشارات، ومحاكي معمارية MIPS وRISC-V مع مسار البيانات والـ Pipeline، ومحاكي 8086 بلغة التجميع، ومحاكي Arduino بقطع افتراضية، وأداة رسم مخططات، وتصميم ثلاثي الأبعاد بقياسات حقيقية، وأداة تحول صورة الدائرة إلى دائرة قابلة للمحاكاة عن طريق ذكاء اصطناعي يشتغل على جهازك (Ollama). ويقدر يسجّل فيديو للدائرة وهي تشتغل، وفيه Bode Plotter وIV Analyzer وDC Sweep مع رسم النتائج وجداولها، وMonte Carlo، ومولد كلمات ومحلل منطقي، وحاسبات تصميم تبني الدائرة لك، ومولد تقارير معامل Word وPDF، ووضع الأعطال للمعلم، واختبارات، ولوحة Arduino Uno على البريدبورد، وجهاز DOS كامل، وتصدير المخطط إلى .asc و.kicad_sch، وتقدر تبني قطعك الخاصة من دائرة صغيرة ويتأكد منها البرنامج ويكتب جنبها Verified.
 النسخ متوفرة للماك (Apple Silicon) والويندوز واللينكس من صفحة **Releases**.
 
 BY. YOUSEF A.ALGHAMDI
