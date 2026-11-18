@@ -4,6 +4,7 @@ contextBridge.exposeInMainWorld('cesimNative', {
   write: (path, text) => ipcRenderer.invoke('cesim-write', { path, text }),
   saveBinary: (name, b64) => ipcRenderer.invoke('cesim-save-bin', { name, b64 }),
   pdf: (name, svg) => ipcRenderer.invoke('cesim-pdf', { name, svg }),
+  pdfHtml: (name, html) => ipcRenderer.invoke('cesim-pdf-html', { name, html }),
   capture: (name) => ipcRenderer.invoke('cesim-capture', { name }),
   ollama: (req) => ipcRenderer.invoke('cesim-ollama', req),
   onOllamaProgress: (fn) => { const h = (e, d) => fn(d); ipcRenderer.on('cesim-ollama-progress', h); return () => ipcRenderer.removeListener('cesim-ollama-progress', h); },

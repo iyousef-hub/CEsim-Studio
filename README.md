@@ -88,6 +88,12 @@ The Circuit tool has three analyses under **Simulate → Analyses**. Each one pl
 - **Word generator (XWG):** drives eight outputs D0 to D7 with a list of hex words at a set frequency, in Cycle or Burst mode. Ready patterns: up and down counter, shift left and right, 55/AA, Gray code and BCD.
 - **Logic analyzer (XLA):** records eight logic inputs as a timing diagram, with a threshold, Hold, two cursors that read the time, the frequency and the word in hex and binary, and CSV export.
 
+## Lab reports, faults and quizzes
+
+- **Lab report (Reports → Lab report…):** fill in the student name, ID, course, lab number and the text sections (objective, theory, procedure, discussion, conclusion). The report adds the components list, the circuit diagram, a table of every meter reading, the oscilloscope screens, the last Bode plot and DC sweep, and an empty Implementation section for photos of the built circuit. It saves as Word (.docx) or PDF, and the student details are remembered for the next report.
+- **Faults (Simulate → Faults…):** a teacher hides faults in parts: open, shorted, or a value 10 times too high or too low, or a random fault. Faults do not show on the drawing, are hidden in the saved file and can be locked with a password. Students measure the circuit and say which part is faulty and how; the app tells them if they are right and counts their tries.
+- **Quiz (Tools → Quiz…):** practice problems with new values every time (Ohm's law, dividers, parallel resistors, RC time constant and cut-off, LED resistor, 555 frequency, op-amp gain, power and LC resonance), marked within 3 % with the formula shown, and a button that builds the circuit so the answer can be checked in the simulation. **Predict this circuit** asks for the reading of every meter in the open design and marks the answers against the simulation.
+
 ## Design calculators
 
 **Tools → Design calculators** works out the values, rounds them to standard E12 or E24 parts, shows the result those parts give, and builds the circuit in a new tab:
@@ -250,7 +256,7 @@ Electron, three.js, three-bvh-csg and three-mesh-bvh (MIT), canvas2svg (MIT, see
 
 ### بالعربي
 
-**CEsim Studio** برنامج سطح مكتب فيه محاكي دوائر، ولوحة تجارب Breadboard تشتغل مباشرة، وتصميم لوحات PCB مع تصدير ملفات التصنيع، وتصميم شرائح VLSI بترانزستورات CMOS، ومحاكي دوائر رقمية وأدوات الجبر البولياني، ومحاكي Verilog مع عارض الإشارات، ومحاكي معمارية MIPS وRISC-V مع مسار البيانات والـ Pipeline، ومحاكي 8086 بلغة التجميع، ومحاكي Arduino بقطع افتراضية، وأداة رسم مخططات، وتصميم ثلاثي الأبعاد بقياسات حقيقية، وأداة تحول صورة الدائرة إلى دائرة قابلة للمحاكاة عن طريق ذكاء اصطناعي يشتغل على جهازك (Ollama). ويقدر يسجّل فيديو للدائرة وهي تشتغل، وفيه Bode Plotter وIV Analyzer وDC Sweep مع رسم النتائج وجداولها، وMonte Carlo، ومولد كلمات ومحلل منطقي، وحاسبات تصميم تبني الدائرة لك، وتقدر تبني قطعك الخاصة من دائرة صغيرة ويتأكد منها البرنامج ويكتب جنبها Verified.
+**CEsim Studio** برنامج سطح مكتب فيه محاكي دوائر، ولوحة تجارب Breadboard تشتغل مباشرة، وتصميم لوحات PCB مع تصدير ملفات التصنيع، وتصميم شرائح VLSI بترانزستورات CMOS، ومحاكي دوائر رقمية وأدوات الجبر البولياني، ومحاكي Verilog مع عارض الإشارات، ومحاكي معمارية MIPS وRISC-V مع مسار البيانات والـ Pipeline، ومحاكي 8086 بلغة التجميع، ومحاكي Arduino بقطع افتراضية، وأداة رسم مخططات، وتصميم ثلاثي الأبعاد بقياسات حقيقية، وأداة تحول صورة الدائرة إلى دائرة قابلة للمحاكاة عن طريق ذكاء اصطناعي يشتغل على جهازك (Ollama). ويقدر يسجّل فيديو للدائرة وهي تشتغل، وفيه Bode Plotter وIV Analyzer وDC Sweep مع رسم النتائج وجداولها، وMonte Carlo، ومولد كلمات ومحلل منطقي، وحاسبات تصميم تبني الدائرة لك، ومولد تقارير معامل Word وPDF، ووضع الأعطال للمعلم، واختبارات، وتقدر تبني قطعك الخاصة من دائرة صغيرة ويتأكد منها البرنامج ويكتب جنبها Verified.
 النسخ متوفرة للماك (Apple Silicon) والويندوز واللينكس من صفحة **Releases**.
 
 BY. YOUSEF A.ALGHAMDI

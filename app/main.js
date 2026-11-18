@@ -93,6 +93,15 @@ ipcMain.handle('cesim-pdf', async (e, { name, svg }) => {
   hidden.destroy();
   const r = await dialog.showSaveDialog(w, { defaultPath: name }); if (!r.canceled && r.filePath) { fs.writeFileSync(r.filePath, pdf); return r.filePath; } return null;
 });
+ipcMain.handle('cesim-pdf-html', async (e, { name, html }) => {
+  const w = BrowserWindow.fromWebContents(e.sender);
+  const tmp = path.join(app.getPath('temp'), 'cesim-report-' + Date.now() + '.html'); fs.writeFileSync(tmp, html);
+  const hidden = new BrowserWindow({ show: false, width: 900, height: 1200, webPreferences: { offscreen: true } });
+  try { await hidden.loadFile(tmp); const pdf = await hidden.webContents.printToPDF({ printBackground: true, pageSize: 'A4', margins: { marginType: 'default' } });
+    if (process.env.CESIM_SELFTEST) { const fp = path.join(process.env.CESIM_SELFTEST, name); fs.writeFileSync(fp, pdf); return fp; }
+    const r = await dialog.showSaveDialog(w, { defaultPath: name }); if (!r.canceled && r.filePath) { fs.writeFileSync(r.filePath, pdf); return r.filePath; } return null;
+  } finally { hidden.destroy(); try { fs.unlinkSync(tmp); } catch (_) {} }
+});
 app.on('open-file', (e, p) => { e.preventDefault(); if (app.isReady()) openPath(p); else pendingPaths.push(p); });
 /* Windows / Linux: files arrive as command-line arguments; keep a single instance */
 const OPENABLE = /\.(cebb|cepcb|cevlsi|msk|s|v|vcd|asm|ino|cesim|cir|net|sp|cedig|circ|cediag|drawio|dio|mmd|mermaid|ce3d|stl|obj|3mf|ms\d+|msm)$/i;
@@ -111,8 +120,8 @@ const template = [
   { label: 'View', submenu: [{ role: 'reload' }, { role: 'togglefullscreen' }, { type: 'separator' }, { role: 'resetZoom' }, { role: 'zoomIn' }, { role: 'zoomOut' }, { type: 'separator' }, { role: 'toggleDevTools' }] },
   { role: 'windowMenu' }
 ];
-if (!isMac) template.push({ label: 'Help', submenu: [{ label: 'About CEsim Studio', click: () => dialog.showMessageBox({ type: 'info', title: 'CEsim Studio', message: 'CEsim Studio', detail: 'Version 1.23.0\nBY. YOUSEF A.ALGHAMDI' }) }] });
-app.setAboutPanelOptions({ applicationName: 'CEsim Studio', applicationVersion: '1.23.0', credits: 'BY. YOUSEF A.ALGHAMDI' });
+if (!isMac) template.push({ label: 'Help', submenu: [{ label: 'About CEsim Studio', click: () => dialog.showMessageBox({ type: 'info', title: 'CEsim Studio', message: 'CEsim Studio', detail: 'Version 1.24.0\nBY. YOUSEF A.ALGHAMDI' }) }] });
+app.setAboutPanelOptions({ applicationName: 'CEsim Studio', applicationVersion: '1.24.0', credits: 'BY. YOUSEF A.ALGHAMDI' });
 app.whenReady().then(() => { Menu.setApplicationMenu(Menu.buildFromTemplate(template)); createStudio(); pendingPaths.splice(0).forEach(openPath); app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createStudio(); }); });
 app.on('window-all-closed', () => { if (!isMac) app.quit(); });
 /* self-test hook (only runs when CESIM_SELFTEST is set) */
