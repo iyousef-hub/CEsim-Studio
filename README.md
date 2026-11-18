@@ -81,6 +81,22 @@ The Circuit tool has three analyses under **Simulate → Analyses**. Each one pl
 - **Bode plotter (XBP):** place it from Instruments, wire IN + to the circuit input and OUT + to its output (both − to ground) and press **Run sweep**. It finds the DC operating point first, then sweeps the AC source or function generator from Start to Stop and measures the gain in dB and the phase in degrees at each frequency, with the peak and the −3 dB frequency. An RC low-pass of 1 kΩ and 100 nF gives −3 dB at 1.585 kHz (theory 1.592 kHz). In the SPICE export it becomes a `.ac` analysis.
 - **IV analyzer:** current-voltage curves of a diode, Zener, LED, Schottky diode, BJT (Ic against Vce for steps of Ib), MOSFET or JFET (Id against Vds for steps of Vgs), taken from the design or from the library with any model. A current limit stops a curve as a real curve tracer does.
 - **DC sweep and Grapher:** steps a DC source, a current source, a resistor, a pot or the light on an LDR from one value to another and records every voltmeter, ammeter, multimeter and probe. The results are drawn as a graph and listed in a table that can be copied into Excel or Word, which fills the tables of a lab sheet in one run.
+- **Monte Carlo:** runs the circuit many times with every resistor, capacitor and inductor moved within its tolerance (uniform or Gaussian; a part's own `tol=` setting wins) and shows a histogram of a meter reading with the mean, standard deviation, lowest and highest values.
+
+## Digital instruments
+
+- **Word generator (XWG):** drives eight outputs D0 to D7 with a list of hex words at a set frequency, in Cycle or Burst mode. Ready patterns: up and down counter, shift left and right, 55/AA, Gray code and BCD.
+- **Logic analyzer (XLA):** records eight logic inputs as a timing diagram, with a threshold, Hold, two cursors that read the time, the frequency and the word in hex and binary, and CSV export.
+
+## Design calculators
+
+**Tools → Design calculators** works out the values, rounds them to standard E12 or E24 parts, shows the result those parts give, and builds the circuit in a new tab:
+
+- **555 timer:** astable from a frequency and duty cycle, or monostable from a pulse width.
+- **Op-amp gain:** inverting or non-inverting, with a warning when the output would clip.
+- **Active filter:** 2nd order Butterworth Sallen-Key or 1st order RC, low-pass or high-pass, built with a Bode plotter.
+- **LED resistor:** for one or more LEDs in series, with the resistor power.
+- **Resistor colors:** 4 or 5 bands to a value, or a value to its bands.
 
 ## Video of a running circuit
 
@@ -234,7 +250,7 @@ Electron, three.js, three-bvh-csg and three-mesh-bvh (MIT), canvas2svg (MIT, see
 
 ### بالعربي
 
-**CEsim Studio** برنامج سطح مكتب فيه محاكي دوائر، ولوحة تجارب Breadboard تشتغل مباشرة، وتصميم لوحات PCB مع تصدير ملفات التصنيع، وتصميم شرائح VLSI بترانزستورات CMOS، ومحاكي دوائر رقمية وأدوات الجبر البولياني، ومحاكي Verilog مع عارض الإشارات، ومحاكي معمارية MIPS وRISC-V مع مسار البيانات والـ Pipeline، ومحاكي 8086 بلغة التجميع، ومحاكي Arduino بقطع افتراضية، وأداة رسم مخططات، وتصميم ثلاثي الأبعاد بقياسات حقيقية، وأداة تحول صورة الدائرة إلى دائرة قابلة للمحاكاة عن طريق ذكاء اصطناعي يشتغل على جهازك (Ollama). ويقدر يسجّل فيديو للدائرة وهي تشتغل، وفيه Bode Plotter وIV Analyzer وDC Sweep مع رسم النتائج وجداولها، وتقدر تبني قطعك الخاصة من دائرة صغيرة ويتأكد منها البرنامج ويكتب جنبها Verified.
+**CEsim Studio** برنامج سطح مكتب فيه محاكي دوائر، ولوحة تجارب Breadboard تشتغل مباشرة، وتصميم لوحات PCB مع تصدير ملفات التصنيع، وتصميم شرائح VLSI بترانزستورات CMOS، ومحاكي دوائر رقمية وأدوات الجبر البولياني، ومحاكي Verilog مع عارض الإشارات، ومحاكي معمارية MIPS وRISC-V مع مسار البيانات والـ Pipeline، ومحاكي 8086 بلغة التجميع، ومحاكي Arduino بقطع افتراضية، وأداة رسم مخططات، وتصميم ثلاثي الأبعاد بقياسات حقيقية، وأداة تحول صورة الدائرة إلى دائرة قابلة للمحاكاة عن طريق ذكاء اصطناعي يشتغل على جهازك (Ollama). ويقدر يسجّل فيديو للدائرة وهي تشتغل، وفيه Bode Plotter وIV Analyzer وDC Sweep مع رسم النتائج وجداولها، وMonte Carlo، ومولد كلمات ومحلل منطقي، وحاسبات تصميم تبني الدائرة لك، وتقدر تبني قطعك الخاصة من دائرة صغيرة ويتأكد منها البرنامج ويكتب جنبها Verified.
 النسخ متوفرة للماك (Apple Silicon) والويندوز واللينكس من صفحة **Releases**.
 
 BY. YOUSEF A.ALGHAMDI
