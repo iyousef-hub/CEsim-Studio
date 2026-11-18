@@ -26,6 +26,14 @@ const EX={
   note:'An astable 555: the capacitor charges through 1 kΩ + 47 kΩ and discharges through 47 kΩ. f = 1.44 / ((R1 + 2·R2)·C) ≈ 1.5 Hz. Change the capacitor to blink faster or slower.'}),
  'RC charging':()=>({parts:[bat(9),part('switch','c8'),part('resistor',['a10','a20'],{ohms:10000}),part('ecap',['b20','tn20'],{farads:100e-6}),part('voltmeter',['d20','bn20'])],wires:[...power(),W('tp5','a9','red')],note:'Slide the switch to the right: the capacitor charges through 10 kΩ. After one time constant τ = R·C = 1 s it reaches 63% of 9 V. Slide it back to stop charging.'}),
  '7-segment display':()=>({parts:[sup(5),part('seg7','d20'),part('resistor',['a24','a30'],{ohms:330}),part('resistor',['j23','j30'],{ohms:330})],wires:[W([-90,10],'tp1','red'),W([-70,10],'tn1','black'),W('tp50','bp50','red'),W('tn50','bn50','black'),W('a22','tn18','black'),W('tp27','b30','red'),W('bp27','i30','red')],note:'A common-cathode display: the com pins go to −, and each segment lights through its own resistor. Here segments b and c show the digit 1. Add resistors to light more segments.'}),
+ 'Night warning light (LDR + 555)':()=>({parts:[bat(9),
+  part('ldr',['tp5','a6'],{light:0.8}),part('resistor',['j6','bn5'],{ohms:10000}),part('resistor',['h6','h11'],{ohms:10000}),part('npn','f10'),
+  part('resistor',['bp10','j12'],{ohms:10000}),part('resistor',['bp11','j14'],{ohms:470}),part('led',['h14','h12'],{color:'blue'}),
+  part('ne555','e20'),part('resistor',['tp17','a21'],{ohms:1000}),part('resistor',['b21','b22'],{ohms:10000}),part('ecap',['c22','tn21'],{farads:47e-6}),
+  part('resistor',['g22','g27'],{ohms:220}),part('led',['h27','h28'],{color:'red'}),
+  part('resistor',['i22','i33'],{ohms:1000}),part('npn','f32'),part('resistor',['bp31','j38'],{ohms:150}),part('pled',['i38','i36'],{color:'white'})],
+  wires:[...power(),W('e6','f6','green'),W('j10','bn8','black'),W('i12','j23','orange'),W('a20','tp16','red'),W('j20','bn16','black'),W('d22','g21','yellow'),W('j28','bn23','black'),W('j32','bn26','black'),W('j34','j36','blue')],
+  note:'Light: the LDR is low (about 4 kΩ), Q1 conducts and holds RESET (pin 4) low, so the 555 stops and the BLUE LED is on: all is well. Dark: the LDR rises to hundreds of kΩ, Q1 turns off, RESET goes high and the 555 blinks (about 1.5 Hz with 1 kΩ, 10 kΩ and 47 µF). The RED LED and the 1 W power LED (driven by Q2) flash together. Turn the mouse wheel over the LDR, or press L / Shift+L while it runs, to change the light.'}),
 };
 const api={EX,part,W};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;else root.BB_EXAMPLES=api;

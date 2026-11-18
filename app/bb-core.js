@@ -28,6 +28,8 @@ const LIB={
  button:{name:'Push button',legs:[[0,0],[2,0]],props:{},pins:['1','2']},
  switch:{name:'Slide switch',legs:[[0,0],[1,0],[2,0]],props:{on:false},pins:['1','common','3']},
  pot:{name:'Potentiometer',legs:[[0,0],[1,0],[2,0]],props:{ohms:10000,pos:0.5},pins:['end 1','wiper','end 2']},
+ ldr:{name:'LDR (light sensor)',flex:true,legs:2,span:2,props:{light:0.8,dark:1e6,bright:1e3},pins:['1','2']},
+ pled:{name:'Power LED (1 W)',flex:true,legs:2,span:2,props:{color:'white'},pins:['anode +','cathode −']},
  npn:{name:'NPN transistor (2N2222)',legs:[[0,0],[1,0],[2,0]],props:{},pins:['E','B','C']},
  ic7400:{name:'74LS00 · 4 NAND',legs:DIP(14),props:{},ic:'7400'},
  ic7402:{name:'74LS02 · 4 NOR',legs:DIP(14),props:{},ic:'7402'},
@@ -46,6 +48,7 @@ const GATES={7400:{f:(a,b)=>!(a&&b),n:4},7402:{f:(a,b)=>!(a||b),n:4,nor:true},74
 // pin numbers (1-based) of each gate: [in1,in2,out]
 function gatePins(ic){if(ic==='7404')return[[1,2],[3,4],[5,6],[9,8],[11,10],[13,12]].map(([i,o])=>[i,null,o]);if(ic==='7402')return[[2,3,1],[5,6,4],[8,9,10],[11,12,13]];return[[1,2,3],[4,5,6],[9,10,8],[12,13,11]]}
 const LED_VF={red:1.85,yellow:2.0,green:2.1,orange:1.95,blue:2.9,white:3.0};
+function ldrOhms(p){const d=Math.max(1,+p.props.dark||1e6),b=Math.max(1e-3,+p.props.bright||1e3),a=Math.max(0,Math.min(1,+p.props.light));return d*Math.pow(b/d,a)}
 const LED_RGB={red:'#ff3b30',yellow:'#ffd60a',green:'#34c759',orange:'#ff9500',blue:'#2f8bff',white:'#f4f7ff'};
 function legsOf(p){const L=LIB[p.type];if(L.flex)return p.legs.map(l=>l.slice());const r=((p.rot||0)%360+360)%360;return L.legs.map(([dx,dy])=>{let x=dx*P,y=dy*P;for(let k=0;k<r/90;k++){const t=x;x=-y;y=t}return[p.pos[0]+x,p.pos[1]+y]})}
 function newPart(type,at){const L=LIB[type];const p={id:'p'+Math.random().toString(36).slice(2,8),type,props:JSON.parse(JSON.stringify(L.props||{}))};if(L.flex){const span=L.span||1;p.legs=[[at[0],at[1]],[at[0]+span*P,at[1]]];if(L.probes)p.pos=[at[0]+span*P/2,at[1]-60]}else{p.pos=[at[0],at[1]];p.rot=0}return p}
@@ -69,7 +72,7 @@ class Sim{
    if(!L.offboard){pts.forEach((pt,i)=>{if(!con.inHole(pt[0],pt[1])){const k='pt:'+key(pt[0],pt[1]);const r=con.find(k);let used=0;for(const w of doc.wires)if(key(w.a[0],w.a[1])===key(pt[0],pt[1])||key(w.b[0],w.b[1])===key(pt[0],pt[1]))used++;if(!used)this.floating.push({part:p.id,leg:i})}})}
    const e={p,nodes,type:p.type};
    if(p.type==='battery'||p.type==='supply'){e.rint=internal();if(this.refNode==null)this.refNode=nodes[1]}
-   if(p.type==='led'||p.type==='diode')e.mid=internal();
+   if(p.type==='led'||p.type==='pled'||p.type==='diode')e.mid=internal();
    if(p.type==='ne555')e.n1=internal();
    if(p.type==='seg7')e.mids=Array.from({length:8},internal);
    this.els.push(e)}
@@ -94,6 +97,8 @@ class Sim{
     case'switch':{const on=!!p.props.on;cond(nd[1],on?nd[2]:nd[0],100);cond(nd[1],on?nd[0]:nd[2],1e-12);break}
     case'capacitor':case'ecap':{if(this.dcMode){cond(nd[0],nd[1],1e-10);break}const g=(+p.props.farads||1e-9)/dt;cond(nd[0],nd[1],g);const vp=this.xprev[nd[0]]-this.xprev[nd[1]];cur(nd[1],nd[0],g*vp);break}
     case'led':{if(st.burned){cond(nd[0],nd[1],1e-10);break}const vf=LED_VF[p.props.color]||1.9;const nf=2.0;const Is=0.01/(Math.exp(vf/(nf*VT))-1);diode(nd[0],e.mid,e,Is,nf,'vd');cond(e.mid,nd[1],1/8);break}
+    case'pled':{if(st.burned){cond(nd[0],nd[1],1e-10);break}const vf=(LED_VF[p.props.color]||2.9)+0.25;const nf=2.0;const Is=0.35/(Math.exp(vf/(nf*VT))-1);diode(nd[0],e.mid,e,Is,nf,'vd');cond(e.mid,nd[1],1/1);break}
+    case'ldr':cond(nd[0],nd[1],1/ldrOhms(p));break;
     case'diode':{diode(nd[0],e.mid,e,1e-9,1.8,'vd');cond(e.mid,nd[1],1/0.05);break}
     case'npn':{const[E,B,C]=nd;const Is=1e-14,bf=150,br=4;const vt=VT,vcrit=vt*Math.log(vt/(Math.SQRT2*Is));let vbe=x[B]-x[E],vbc=x[B]-x[C];vbe=pnjlim(vbe,st.vbe||0,vt,vcrit);vbc=pnjlim(vbc,st.vbc||0,vt,vcrit);st.vbe=vbe;st.vbc=vbc;
      const ef=Math.exp(Math.min(vbe/vt,80)),er=Math.exp(Math.min(vbc/vt,80));const ict=Is*(ef-er),ibe=Is/bf*(ef-1),ibc=Is/br*(er-1);const gmf=Is*ef/vt,gmr=Is*er/vt,gbe=Is/bf*ef/vt+1e-12,gbc=Is/br*er/vt+1e-12;
@@ -114,6 +119,8 @@ class Sim{
    if(e.type==='ne555'){const[GND,TRIG,OUT,RST,CTRL,THRES,DISCH,VCC]=nd;const v=i=>x[i]-x[GND];st.powered=v(VCC)>4.5;if(!st.powered){st.q=0;continue}if(v(RST)<0.7)st.q=0;else if(v(TRIG)<x[e.n1]-x[GND])st.q=1;else if(v(THRES)>v(CTRL))st.q=0}}}
  afterStep(){const x=this.x,dt=this.dt;for(const e of this.els){const p=e.p,st=this.state[p.id],nd=e.nodes;
    if(e.type==='led'){const i=(x[e.mid]-x[nd[1]])/8;st.i=st.burned?0:i;if(i>0.045){st.over=(st.over||0)+dt;if(st.over>0.15){st.burned=true;this.addWarn(p.id,'burn',`An LED burned out: ${(i*1000).toFixed(0)} mA is far above its 20 mA limit. Put a resistor (220 Ω to 1 kΩ) in series with it`)}}else st.over=0}
+   if(e.type==='pled'){const i=x[e.mid]-x[nd[1]];st.i=st.burned?0:i;if(i>0.5){st.over=(st.over||0)+dt;if(st.over>0.3){st.burned=true;this.addWarn(p.id,'burn',`The power LED burned out: ${(i*1000).toFixed(0)} mA is above its 350 mA limit. Use a bigger series resistor`)}}else st.over=0}
+   if(e.type==='ldr'){const v=x[nd[0]]-x[nd[1]],R=ldrOhms(p);st.i=v/R;st.r=R}
    if(e.type==='diode')st.i=(x[e.mid]-x[nd[1]])*20;
    if(e.type==='seg7'){st.seg=e.mids.map(m=>Math.max(0,(x[m]-x[nd[2]])/15))}
    if(e.type==='resistor'){const v=x[nd[0]]-x[nd[1]],R=+p.props.ohms||1;st.i=v/R;st.p=v*v/R;if(st.p>0.25)this.addWarn(p.id,'hot',`A ${fmtOhm(R)} resistor dissipates ${st.p.toFixed(2)} W, more than its 0.25 W rating. It gets very hot`);}
@@ -145,7 +152,8 @@ function toNetlist(doc,title){const con=connectivity(doc);const names=new Map();
  for(const p of doc.parts){const n=con.partLegs.get(p.id).map(nm);switch(p.type){
   case'resistor':L.push(`${id('R')} ${n[0]} ${n[1]} ${engNum(p.props.ohms)}`);break;
   case'pot':{const R=+p.props.ohms,a=Math.max(0.01,Math.min(0.99,+p.props.pos));L.push(`${id('R')} ${n[0]} ${n[1]} ${engNum(R*a)}  ; potentiometer, part 1`);L.push(`${id('R')} ${n[1]} ${n[2]} ${engNum(R*(1-a))}  ; potentiometer, part 2`);break}
-  case'led':L.push(`${id('D')} ${n[0]} ${n[1]} LED`);break;
+  case'led':case'pled':L.push(`${id('D')} ${n[0]} ${n[1]} LED`);break;
+  case'ldr':L.push(`${id('R')} ${n[0]} ${n[1]} ${engNum(ldrOhms(p))}  ; LDR at ${Math.round(100*(+p.props.light))}% light`);break;
   case'diode':L.push(`${id('D')} ${n[0]} ${n[1]} 1N4007`);break;
   case'capacitor':case'ecap':L.push(`${id('C')} ${n[0]} ${n[1]} ${engNum(p.props.farads)}`);break;
   case'npn':L.push(`${id('Q')} ${n[2]} ${n[1]} ${n[0]} 2N2222`);break;
@@ -159,8 +167,8 @@ function toNetlist(doc,title){const con=connectivity(doc);const names=new Map();
  L.push('.end');return L.join('\n')}
 function engNum(v){v=+v;const a=Math.abs(v);if(a>=1e6)return+(v/1e6).toPrecision(4)+'meg';if(a>=1e3)return+(v/1e3).toPrecision(4)+'k';if(a>=1||a===0)return String(+v.toPrecision(4));if(a>=1e-3)return+(v*1e3).toPrecision(4)+'m';if(a>=1e-6)return+(v*1e6).toPrecision(4)+'u';if(a>=1e-9)return+(v*1e9).toPrecision(4)+'n';return+(v*1e12).toPrecision(4)+'p'}
 /* export to the PCB tool: footprints with their pins on named nets */
-const PCB_FP={resistor:['R_Axial',['1','2']],led:['LED_5mm',['A','K']],diode:['D_DO41',['A','K']],capacitor:['C_Disc',['1','2']],ecap:['CP_Radial',['+','-']],button:['SW_Push_6mm',['1','2']],switch:['Header_1x3',['1','2','3']],pot:['Pot_Trim',['1','2','3']],npn:['TO-92',['E','B','C']],battery:['Terminal_2',['1','2']],supply:['Terminal_2',['1','2']],ne555:['DIP-8',null],seg7:['Seg7',null],ic7400:['DIP-14',null],ic7402:['DIP-14',null],ic7404:['DIP-14',null],ic7408:['DIP-14',null],ic7432:['DIP-14',null],ic7486:['DIP-14',null]};
-const PCB_PFX={resistor:'R',led:'D',diode:'D',capacitor:'C',ecap:'C',button:'SW',switch:'SW',pot:'RV',npn:'Q',battery:'J',supply:'J',ne555:'U',seg7:'DS',ic7400:'U',ic7402:'U',ic7404:'U',ic7408:'U',ic7432:'U',ic7486:'U'};
+const PCB_FP={resistor:['R_Axial',['1','2']],ldr:['R_Axial',['1','2']],led:['LED_5mm',['A','K']],pled:['LED_5mm',['A','K']],diode:['D_DO41',['A','K']],capacitor:['C_Disc',['1','2']],ecap:['CP_Radial',['+','-']],button:['SW_Push_6mm',['1','2']],switch:['Header_1x3',['1','2','3']],pot:['Pot_Trim',['1','2','3']],npn:['TO-92',['E','B','C']],battery:['Terminal_2',['1','2']],supply:['Terminal_2',['1','2']],ne555:['DIP-8',null],seg7:['Seg7',null],ic7400:['DIP-14',null],ic7402:['DIP-14',null],ic7404:['DIP-14',null],ic7408:['DIP-14',null],ic7432:['DIP-14',null],ic7486:['DIP-14',null]};
+const PCB_PFX={resistor:'R',ldr:'R',led:'D',pled:'D',diode:'D',capacitor:'C',ecap:'C',button:'SW',switch:'SW',pot:'RV',npn:'Q',battery:'J',supply:'J',ne555:'U',seg7:'DS',ic7400:'U',ic7402:'U',ic7404:'U',ic7408:'U',ic7432:'U',ic7486:'U'};
 function toPcb(doc){const con=connectivity(doc);const par=new Map();const f=k=>{while(par.has(k)&&par.get(k)!==k)k=par.get(k);return k};const root=leg=>f(con.find(leg));
  for(const p of doc.parts)if(p.type==='ammeter'){const l=con.partLegs.get(p.id);const a=root(l[0]),b=root(l[1]);if(a!==b)par.set(a,b)}
  const names=new Map();const src=doc.parts.find(p=>p.type==='battery'||p.type==='supply');if(src){const l=con.partLegs.get(src.id);names.set(root(l[1]),'GND');names.set(root(l[0]),'VCC')}
@@ -169,9 +177,9 @@ function toPcb(doc){const con=connectivity(doc);const par=new Map();const f=k=>{
  const use=new Map();for(const p of doc.parts){if(!PCB_FP[p.type])continue;for(const l of con.partLegs.get(p.id)){const r=root(l);use.set(r,(use.get(r)||0)+1)}}
  const comps=[],nets={},cnt={};const skipped=[];
  for(const p of doc.parts){const m=PCB_FP[p.type];if(!m){if(p.type!=='voltmeter'&&p.type!=='ammeter')skipped.push(LIB[p.type].name);continue}const pf=PCB_PFX[p.type];cnt[pf]=(cnt[pf]||0)+1;const ref=pf+cnt[pf];
-  let value='';if(p.type==='resistor')value=fmtOhm(p.props.ohms).replace(' ','');else if(p.type==='capacitor'||p.type==='ecap')value=fmtF(p.props.farads).replace(' ','');else if(p.type==='led')value='LED '+p.props.color;else if(p.type==='pot')value=fmtOhm(p.props.ohms).replace(' ','');else if(p.type==='battery'||p.type==='supply')value=p.props.volts+'V in';else if(LIB[p.type].ic)value='74LS'+LIB[p.type].ic.slice(2);else if(p.type==='ne555')value='NE555';else if(p.type==='npn')value='2N2222';else if(p.type==='switch')value='slide switch';else if(p.type==='seg7')value='7-seg CC';else if(p.type==='diode')value='1N4007';
+  let value='';if(p.type==='resistor')value=fmtOhm(p.props.ohms).replace(' ','');else if(p.type==='capacitor'||p.type==='ecap')value=fmtF(p.props.farads).replace(' ','');else if(p.type==='led')value='LED '+p.props.color;else if(p.type==='pled')value='Power LED '+p.props.color;else if(p.type==='ldr')value='LDR';else if(p.type==='pot')value=fmtOhm(p.props.ohms).replace(' ','');else if(p.type==='battery'||p.type==='supply')value=p.props.volts+'V in';else if(LIB[p.type].ic)value='74LS'+LIB[p.type].ic.slice(2);else if(p.type==='ne555')value='NE555';else if(p.type==='npn')value='2N2222';else if(p.type==='switch')value='slide switch';else if(p.type==='seg7')value='7-seg CC';else if(p.type==='diode')value='1N4007';
   comps.push({ref,fp:m[0],value,x:0,y:0,rot:0});const legs=con.partLegs.get(p.id);legs.forEach((l,i)=>{if((use.get(root(l))||0)<2)return;nets[ref+'.'+(m[1]?m[1][i]:String(i+1))]=nm(l)})}
  return{comps,nets,skipped}}
-const api={P,COLS,ROWS,ROWY,RAILS,RAIL_N,colX,railX,HOLES,holeXY,key,LIB,GATES,gatePins,LED_RGB,LED_VF,legsOf,newPart,connectivity,Sim,fmtOhm,fmtF,parseValue,bands,toNetlist,toPcb,stripLabel,engNum};
+const api={P,COLS,ROWS,ROWY,RAILS,RAIL_N,colX,railX,HOLES,holeXY,key,LIB,GATES,gatePins,LED_RGB,LED_VF,legsOf,newPart,connectivity,Sim,fmtOhm,fmtF,parseValue,bands,toNetlist,toPcb,stripLabel,engNum,ldrOhms};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;else root.BB=api;
 })(typeof window!=='undefined'?window:globalThis);

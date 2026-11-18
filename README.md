@@ -7,10 +7,10 @@ CEsim Studio is a launcher that opens several tools, each in its own window:
 
 | Tool | What it does | Files |
 |---|---|---|
-| **Circuit** | Schematic capture with live simulation, a large parts library (diodes, zeners, LEDs, BJTs, MOSFETs, JFETs, SCR, TRIAC, DIAC, optocouplers, op-amps, regulators, 56 74xx and 4000 logic chips, and more) and instruments (multimeter, oscilloscope, function generator, probes, meters). Text notes, net labels, title block, export to PNG / JPG / WebP / SVG / PDF, BOM and node-voltage CSV. Export to `.ms14` design files. | `.cesim` · `.cir` · `.ms14` |
+| **Circuit** | Schematic capture with live simulation, a large parts library (diodes, zeners, LEDs, BJTs, MOSFETs, JFETs, SCR, TRIAC, DIAC, optocouplers, op-amps, regulators, 56 74xx and 4000 logic chips, and more) and instruments (multimeter, oscilloscope, function generator, probes, meters). Text notes, net labels, title block, export to PNG / JPG / WebP / SVG / PDF, BOM and node-voltage CSV. Export to `.ms14` design files. Records a video of the running circuit, and builds your own parts from a small circuit (My parts, each checked and marked Verified). | `.cesim` · `.cir` · `.ms14` · `.mp4` |
 | **Circuit code** | Write a circuit as text (SPICE style) with a live preview and error checks. Copy the built-in prompt into any AI chat with a photo of your circuit, paste the answer back, and build it in one click. | `.cir` · text |
 | **Circuit from image** | Turns a photo or screenshot of a schematic into an editable circuit, using a vision model that runs on your own computer with [Ollama](https://ollama.com). Nothing is uploaded. | `.png` · `.jpg` · paste |
-| **Breadboard** | A real-looking breadboard with resistors, LEDs, buttons, switches, potentiometers, capacitors, diodes, transistors, 74LS logic chips, a 555 timer, a 7-segment display, batteries and meters. The circuit runs live: LEDs glow with their current, too much current burns them, and every hole shows its voltage. Opens the circuit as a schematic or as a PCB. | `.cebb` |
+| **Breadboard** | A real-looking breadboard with resistors, LEDs, a 1 W power LED, an LDR light sensor, buttons, switches, potentiometers, capacitors, diodes, transistors, 74LS logic chips, a 555 timer, a 7-segment display, batteries and meters. The circuit runs live: LEDs glow with their current, too much current burns them, and every hole shows its voltage. Records a video of the running board. Opens the circuit as a schematic or as a PCB. | `.cebb` · `.mp4` |
 | **PCB** | Two-layer board layout from a netlist: footprints, ratsnest, tracks at 90° and 45°, vias, an autorouter, a design-rule check, and a finished-board view. Exports Gerber RS-274X and Excellon drill files in one .zip for board makers. | `.cepcb` · Gerber · Excellon |
 | **VLSI** | CMOS layout on a λ grid: n-well, diffusion, poly, three metals, contacts and vias. Design-rule check, transistor and wire extraction, a truth table that names the gate, logic values on the wires, and a cross-section. Exports GDSII, CIF, a SPICE netlist, a `.MSK` layout and a `.sch` transistor schematic; opens `.MSK`. | `.cevlsi` · `.MSK` · `.sch` · GDSII · CIF |
 | **Logic** | Digital circuits with gates, multiplexers, decoders, adders, flip-flops, registers, counters and displays, on single wires or multi-bit buses. Live simulation, clock, timing diagram and truth table. Opens `.circ` files. | `.cedig` · `.circ` |
@@ -74,6 +74,25 @@ GND @ 600 500
 W 500,190 570,190
 ```
 
+## Video of a running circuit
+
+In the Circuit tool press the red record button next to Stop (or **F8**). The simulation starts if it is not running, a REC timer appears, and pressing the button again saves the video. Open instrument screens, such as the oscilloscope, are recorded where they sit over the drawing. In the Breadboard tool the **Record** button (F8) records the board the same way. Videos are saved as MP4 (H.264), or as WebM where MP4 is not available, and stop by themselves after 10 minutes.
+
+## My parts
+
+**Place → Create a part…** (or **New part…** in the component browser) builds a new part from a small circuit:
+
+1. Give it a name, a label letter and its pins, for example `IN, OUT`.
+2. Write the circuit inside in circuit code, using the pin names as node names. Node `0` is the circuit ground.
+3. Press **Check**. The part is marked **Verified** when its definition is complete and it gives exactly the same pin voltages as its own circuit drawn out flat, in a DC test and a 1 kHz sine test.
+
+```
+R1 IN OUT 1k
+C1 OUT 0 100n
+```
+
+Saved parts are in the **My parts** group of the component browser, show Verified or Not verified next to their name on the drawing, and work in circuit code as `PART my_name U1 nodes…`. A design file carries the parts it uses, so it opens on another computer, where the parts are checked again.
+
 ## Device models
 
 Transistor models can carry the Gummel-Poon parameters (Early voltages, knee currents, leakage diodes, RB, RE, RC) and diode models a series resistance and breakdown voltage. The BC107BP, 1N4007 and 1N4735A use the same parameters as in Multisim, so the lab circuits give the same meter readings (for example Ie = 8.84 mA, Vbe = 0.701 V in the common base circuit). For the same readings as Multisim, set voltmeters to 10 MOhm (`rin=10M` in circuit code).
@@ -109,6 +128,8 @@ Every part in the library exports. Logic gates (AND, OR, NAND, NOR, XOR, XNOR, N
 - Press **W** to draw wires, **R** to rotate, and **F5** to run. While it runs you can press buttons, slide switches and turn knobs with the mouse wheel.
 - Problems explain what went wrong: an LED without a resistor, a short circuit, a chip without power, or a leg that is not in a hole.
 - **Open in Circuit** turns the board into a schematic, and **Open in PCB** turns it into a printed circuit board.
+- The **LDR** light sensor changes from about 1 kOhm in bright light to 1 MOhm in the dark: set the light with the mouse wheel over it, the slider, or **L** and **Shift+L** while it runs. The **Night warning light (LDR + 555)** example uses it with a 1 W power LED.
+- **Record** (F8) saves a video of the running board.
 
 ## PCB
 
@@ -204,7 +225,7 @@ Electron, three.js, three-bvh-csg and three-mesh-bvh (MIT), canvas2svg (MIT, see
 
 ### بالعربي
 
-**CEsim Studio** برنامج سطح مكتب فيه محاكي دوائر، ولوحة تجارب Breadboard تشتغل مباشرة، وتصميم لوحات PCB مع تصدير ملفات التصنيع، وتصميم شرائح VLSI بترانزستورات CMOS، ومحاكي دوائر رقمية وأدوات الجبر البولياني، ومحاكي Verilog مع عارض الإشارات، ومحاكي معمارية MIPS وRISC-V مع مسار البيانات والـ Pipeline، ومحاكي 8086 بلغة التجميع، ومحاكي Arduino بقطع افتراضية، وأداة رسم مخططات، وتصميم ثلاثي الأبعاد بقياسات حقيقية، وأداة تحول صورة الدائرة إلى دائرة قابلة للمحاكاة عن طريق ذكاء اصطناعي يشتغل على جهازك (Ollama).
+**CEsim Studio** برنامج سطح مكتب فيه محاكي دوائر، ولوحة تجارب Breadboard تشتغل مباشرة، وتصميم لوحات PCB مع تصدير ملفات التصنيع، وتصميم شرائح VLSI بترانزستورات CMOS، ومحاكي دوائر رقمية وأدوات الجبر البولياني، ومحاكي Verilog مع عارض الإشارات، ومحاكي معمارية MIPS وRISC-V مع مسار البيانات والـ Pipeline، ومحاكي 8086 بلغة التجميع، ومحاكي Arduino بقطع افتراضية، وأداة رسم مخططات، وتصميم ثلاثي الأبعاد بقياسات حقيقية، وأداة تحول صورة الدائرة إلى دائرة قابلة للمحاكاة عن طريق ذكاء اصطناعي يشتغل على جهازك (Ollama). ويقدر يسجّل فيديو للدائرة وهي تشتغل، وتقدر تبني قطعك الخاصة من دائرة صغيرة ويتأكد منها البرنامج ويكتب جنبها Verified.
 النسخ متوفرة للماك (Apple Silicon) والويندوز واللينكس من صفحة **Releases**.
 
 BY. YOUSEF A.ALGHAMDI
