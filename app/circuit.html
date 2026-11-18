@@ -198,7 +198,7 @@ kbd{font:11px var(--font-mono);border:1px solid var(--ui-border);border-bottom-w
 </div>
 <div id="splash" role="dialog" aria-label="CEsim"><div class="sp-box"><canvas id="sp-cv"></canvas><div class="sp-in">
  <div class="sp-row"><div class="sp-logo">CE</div><div><div class="sp-name">CE<span>sim</span></div><div class="sp-sub">Circuit Design &amp; Simulation Suite</div></div></div>
- <div class="sp-ver">Version 1.21.0</div><div class="sp-bar"><i id="sp-bar"></i></div><div class="sp-foot"><span id="sp-msg">Loading component database…</span><span class="sp-by">BY. YOUSEF</span></div>
+ <div class="sp-ver">Version 1.22.0</div><div class="sp-bar"><i id="sp-bar"></i></div><div class="sp-foot"><span id="sp-msg">Loading component database…</span><span class="sp-by">BY. YOUSEF</span></div>
 </div></div></div>
 <script src="lib/canvas2svg.js"></script>
 <script src="ms14.js"></script>
@@ -291,10 +291,12 @@ def("dcv",{name:"DC Voltage source",ar:"مصدر جهد مستمر",prefix:"V",p
  draw(c,st,tx){if(c.p.symbol==="circle"){L(c,0,-30,0,-15);L(c,0,15,0,30);CIR(c,0,0,15);L(c,-4,-7,4,-7);L(c,0,-11,0,-3);L(c,-4,7,4,7);return}L(c,0,-30,0,-5);L(c,-14,-5,14,-5);L(c,-7,3,7,3);L(c,0,3,0,30);tx("+",-11,-13,9,"part")},
  val(c){return [si(PV(c,"voltage"),"V")]},
  build(c,n,E){E.V(n[0],n[1],()=>P(c).voltage)},spice(c,n){return `V${c.label} ${n[0]} ${n[1]} DC ${num(c.p.voltage)}`}});
+/* the phase of a sine source is added up step by step, so changing its frequency while it runs (the generator window, the Bode plotter) does not make the wave jump */
+function phAcc(c,E){const s={t:0,ph:0};return()=>{const t=E.t();if(t!==s.t){s.ph+=(t-s.t)*P(c).freq;s.t=t}return s.ph}}
 def("acv",{name:"AC Voltage source",ar:"مصدر جهد متردد",prefix:"V",pins:[[0,-30,"+"],[0,30,"-"]],bb:[-15,-30,15,30],props:{amp:"1",freq:"1k",phase:"0",offset:"0"},fields:[fSI("amp","Peak voltage (Vpk)","V"),fSI("freq","Frequency","Hz"),fSI("phase","Phase","°"),fSI("offset","DC offset","V")],
  draw(c){L(c,0,-30,0,-15);L(c,0,15,0,30);CIR(c,0,0,15);c.beginPath();for(let i=0;i<=20;i++){const x=-9+i*0.9,y=-5*Math.sin(i/20*2*PI);i?c.lineTo(x,y):c.moveTo(x,y)}c.stroke()},
  val(c){const p=P(c);return [si(p.amp,"Vpk"),si(p.freq,"Hz"),(+p.phase||0)+"°"]},
- build(c,n,E){E.V(n[0],n[1],()=>{const p=P(c);return p.offset+p.amp*Math.sin(2*PI*p.freq*E.t()+p.phase*PI/180)})},
+ build(c,n,E){const ph=phAcc(c,E);E.V(n[0],n[1],()=>{const p=P(c);return p.offset+p.amp*Math.sin(2*PI*ph()+p.phase*PI/180)})},
  spice(c,n){const p=P(c);return `V${c.label} ${n[0]} ${n[1]} SIN(${p.offset} ${p.amp} ${p.freq} 0 0 ${p.phase})`},fmax(c){return P(c).freq}});
 def("idc",{name:"DC Current source",ar:"مصدر تيار مستمر",prefix:"I",pins:[[0,-30,"+"],[0,30,"-"]],bb:[-15,-30,15,30],props:{current:"1m"},fields:[fSI("current","Current","A")],
  draw(c){L(c,0,-30,0,-15);L(c,0,15,0,30);CIR(c,0,0,15);L(c,0,9,0,-7);arrowHead(c,0,9,0,-9,6)},
@@ -619,10 +621,10 @@ function meterDraw(c,st,tx,u,comp){RECT(c,-26,-16,26,16,CV.bg);L(c,-30,0,-26,0);
  else{tx("+",-31,-9,8,"part");tx("−",27,-9,8,"part");const t=num+" "+unit;const fs=t.length>8?7.2:8.2;tx(t,0,1.5,fs,"lcd","center")}}
 def("voltmeter",{name:"Voltmeter",ar:"فولتميتر",prefix:"U",pins:[[-30,0,"+"],[30,0,"-"]],bb:[-30,-16,30,16],props:{mode:"DC",rin:"1G"},fields:[fSel("mode","Mode",["DC","AC"]),fSI("rin","Input resistance","Ω")],
  draw(c,st,tx,comp){meterDraw(c,st,tx,"V",comp)},val(c){return [c.p.mode]},
- build(c,n,E){const st=E.st;st.m=0;st.s=0;E.Rf(n[0],n[1],()=>P(c).rin||1e9);E.post(()=>{const v=E.v(n[0])-E.v(n[1]);const a=(st._n=(st._n||0)+1)>1?Math.min(1,E.dt()/0.05):1;st.m+=(v-st.m)*a;st.s+=(v*v-st.s)*a;st.r=c.p.mode==="AC"?rd(Math.sqrt(Math.max(0,st.s-st.m*st.m)),"V"):rd(st.m,"V")})}});
+ build(c,n,E){const st=E.st;st.m=0;st.s=0;E.Rf(n[0],n[1],()=>P(c).rin||1e9);E.post(()=>{const v=E.v(n[0])-E.v(n[1]);st.v=v;const a=(st._n=(st._n||0)+1)>1?Math.min(1,E.dt()/0.05):1;st.m+=(v-st.m)*a;st.s+=(v*v-st.s)*a;st.r=c.p.mode==="AC"?rd(Math.sqrt(Math.max(0,st.s-st.m*st.m)),"V"):rd(st.m,"V")})}});
 def("ammeter",{name:"Ammeter",ar:"أميتر",prefix:"U",pins:[[-30,0,"+"],[30,0,"-"]],bb:[-30,-16,30,16],props:{mode:"DC"},fields:[fSel("mode","Mode",["DC","AC"])],
  draw(c,st,tx,comp){meterDraw(c,st,tx,"A",comp)},val(c){return [c.p.mode]},
- build(c,n,E){const st=E.st;st.m=0;st.s=0;const k=E.V(n[0],n[1],()=>0);E.post(()=>{const i=E.x(k);const a=(st._n=(st._n||0)+1)>1?Math.min(1,E.dt()/0.05):1;st.m+=(i-st.m)*a;st.s+=(i*i-st.s)*a;st.r=c.p.mode==="AC"?rd(Math.sqrt(Math.max(0,st.s-st.m*st.m)),"A"):rd(st.m,"A")})}});
+ build(c,n,E){const st=E.st;st.m=0;st.s=0;const k=E.V(n[0],n[1],()=>0);E.post(()=>{const i=E.x(k);st.i=i;const a=(st._n=(st._n||0)+1)>1?Math.min(1,E.dt()/0.05):1;st.m+=(i-st.m)*a;st.s+=(i*i-st.s)*a;st.r=c.p.mode==="AC"?rd(Math.sqrt(Math.max(0,st.s-st.m*st.m)),"A"):rd(st.m,"A")})}});
 def("lamp",{name:"Lamp",ar:"لمبة",prefix:"X",pins:[[-30,0,"1"],[30,0,"2"]],bb:[-30,-13,30,13],props:{voltage:"12",power:"10"},fields:[fSI("voltage","Rated voltage","V"),fSI("power","Rated power","W")],
  draw(c,st){const b=st&&st.b||0;if(b>0.03){c.save();c.globalAlpha=0.2+0.6*b;c.fillStyle="#ffd34d";c.beginPath();c.arc(0,0,12+8*b,0,2*PI);c.fill();c.restore()}L(c,-30,0,-12,0);L(c,12,0,30,0);CIR(c,0,0,12,b>0.03?"#fff3b0":CV.bg);L(c,-8,-8,8,8);L(c,-8,8,8,-8)},
  val(c){const p=P(c);return [si(p.voltage,"V")+" "+si(p.power,"W")]},
@@ -649,13 +651,13 @@ def("netlabel",{name:"Net label",ar:"اسم توصيلة",prefix:"",noLabel:1,pi
 def("xmm",{name:"Multimeter",ar:"ملتيميتر",prefix:"XMM",instrument:1,pins:[[-10,30,"+"],[10,30,"-"]],bb:[-20,-26,20,30],props:{mode:"V",ac:"DC"},
  draw(c,st,tx){RECT(c,-20,-26,20,20,CV.bg);RECT(c,-15,-21,15,-9,"#0d1b14");tx(st&&st.r?st.r.replace(/ /,""):"0.000",0,-12,6,"lcd","center");CIR(c,-10,12,3);CIR(c,10,12,3);L(c,-10,20,-10,30);L(c,10,20,10,30);tx("+",-10,-1,7,"part","center");tx("−",10,-1,7,"part","center")},
  build(c,n,E){const st=E.st;st.m=0;st.s=0;const mode=c.p.mode;let k=-1;if(mode==="A")k=E.V(n[0],n[1],()=>0);else if(mode==="Ω")E.I(n[0],n[1],()=>1e-3);else E.R(n[0],n[1],1e9);
-  E.post(()=>{const a=(st._n=(st._n||0)+1)>1?Math.min(1,E.dt()/0.05):1;let x;if(mode==="A")x=E.x(k);else x=E.v(n[0])-E.v(n[1]);st.m+=(x-st.m)*a;st.s+=(x*x-st.s)*a;const ac=c.p.ac==="AC";const val=ac?Math.sqrt(Math.max(0,st.s-st.m*st.m)):st.m;
+  E.post(()=>{const a=(st._n=(st._n||0)+1)>1?Math.min(1,E.dt()/0.05):1;let x;if(mode==="A")x=E.x(k);else x=E.v(n[0])-E.v(n[1]);st.x=x;st.m+=(x-st.m)*a;st.s+=(x*x-st.s)*a;const ac=c.p.ac==="AC";const val=ac?Math.sqrt(Math.max(0,st.s-st.m*st.m)):st.m;
    if(mode==="Ω"){const R=st.m/1e-3;st.r=R>2e8||R<0?"OL":rd(R,"Ω")}else st.r=rd(val,mode)})}});
 def("xfg",{name:"Function generator",ar:"مولد إشارات",prefix:"XFG",instrument:1,pins:[[-20,30,"+"],[0,30,"COM"],[20,30,"-"]],bb:[-28,-26,28,30],props:{wave:"sine",freq:"1k",amp:"1",offset:"0",duty:"50"},
  fields:[fSel("wave","Waveform",["sine","triangle","square"]),fSI("freq","Frequency","Hz"),fSI("amp","Amplitude (Vp)","V"),fSI("offset","Offset","V"),fSI("duty","Duty cycle","%")],
  draw(c,st,tx){RECT(c,-28,-26,28,20,CV.bg);RECT(c,-22,-21,22,-5,"#0b1620");c.save();c.strokeStyle="#7CFFB2";c.beginPath();for(let i=0;i<=30;i++){const x=-19+i*38/30,y=-13-5*Math.sin(i/30*4*PI);i?c.lineTo(x,y):c.moveTo(x,y)}c.stroke();c.restore();[-20,0,20].forEach(x=>{CIR(c,x,12,3);L(c,x,15,x,30)});tx("+",-20,3,7,"part","center");tx("C",0,3,7,"part","center");tx("−",20,3,7,"part","center")},
  val(c){const p=P(c);return [c.p.wave+" "+si(p.freq,"Hz")]},
- build(c,n,E){const w=()=>{const p=P(c);const ph=(E.t()*p.freq)%1;let s;if(c.p.wave==="square")s=ph<p.duty/100?1:-1;else if(c.p.wave==="triangle")s=ph<0.5?4*ph-1:3-4*ph;else s=Math.sin(2*PI*ph);return p.amp*s};
+ build(c,n,E){const acc=phAcc(c,E);const w=()=>{const p=P(c);const ph=((acc()%1)+1)%1;let s;if(c.p.wave==="square")s=ph<p.duty/100?1:-1;else if(c.p.wave==="triangle")s=ph<0.5?4*ph-1:3-4*ph;else s=Math.sin(2*PI*ph);return p.amp*s};
   E.V(n[0],n[1],()=>w()+P(c).offset);E.V(n[1],n[2],()=>w()-P(c).offset);E.R(n[1],0,1e7)},fmax(c){return P(c).freq*(c.p.wave==="sine"?1:4)}});
 def("xsc",{name:"Oscilloscope (2-channel)",ar:"راسم إشارة",prefix:"XSC",instrument:1,pins:[[-20,30,"A"],[0,30,"B"],[20,30,"Ext/−"]],bb:[-30,-26,30,30],props:{tb:"1m",va:"1",vb:"1",pa:"0",pb:"0",trig:"0",tmode:"Auto",tsrc:"A"},
  draw(c,st,tx){RECT(c,-30,-26,30,20,CV.bg);RECT(c,-25,-22,25,-2,"#081018");c.save();c.strokeStyle="#ffcc3d";c.beginPath();for(let i=0;i<=40;i++){const x=-22+i*44/40,y=-12-6*Math.sin(i/40*4*PI);i?c.lineTo(x,y):c.moveTo(x,y)}c.stroke();c.strokeStyle="#4cc9ff";c.beginPath();for(let i=0;i<=40;i++){const x=-22+i*44/40,y=-12+4*Math.cos(i/40*4*PI);i?c.lineTo(x,y):c.moveTo(x,y)}c.stroke();c.restore();[-20,0,20].forEach(x=>{CIR(c,x,12,3);L(c,x,15,x,30)});tx("A",-20,5,7,"part","center");tx("B",0,5,7,"part","center");tx("G",20,5,7,"part","center")},
@@ -664,6 +666,10 @@ def("xsc",{name:"Oscilloscope (2-channel)",ar:"راسم إشارة",prefix:"XSC"
 def("xwm",{name:"Wattmeter",ar:"واطميتر",prefix:"XWM",instrument:1,pins:[[-30,30,"V+"],[-10,30,"V−"],[10,30,"I+"],[30,30,"I−"]],bb:[-38,-26,38,30],props:{},
  draw(c,st,tx){RECT(c,-38,-26,38,20,CV.bg);RECT(c,-32,-21,32,-7,"#0d1b14");tx(st&&st.r?st.r:"0 W",0,-11,7,"lcd","center");[-30,-10,10,30].forEach(x=>{CIR(c,x,12,3);L(c,x,15,x,30)});tx("V",-20,3,7,"part","center");tx("I",20,3,7,"part","center")},
  build(c,n,E){const st=E.st;st.p=0;const k=E.V(n[2],n[3],()=>0);E.R(n[0],n[1],1e9);E.post(()=>{const v=E.v(n[0])-E.v(n[1]),i=E.x(k);const a=(st._n=(st._n||0)+1)>1?Math.min(1,E.dt()/0.1):1;st.p+=(v*i-st.p)*a;st.r=rd(st.p,"W")})}});
+def("xbp",{name:"Bode plotter",ar:"راسم بودي",prefix:"XBP",instrument:1,pins:[[-30,30,"IN+"],[-10,30,"IN−"],[10,30,"OUT+"],[30,30,"OUT−"]],bb:[-38,-26,38,30],props:{fmin:"10",fmax:"100k",ppd:"10",mode:"Magnitude"},
+ draw(c,st,tx){RECT(c,-38,-26,38,20,CV.bg);RECT(c,-32,-21,32,-5,"#0b1620");c.save();c.strokeStyle="#ffcc3d";c.lineWidth=1.2;c.beginPath();c.moveTo(-29,-16);c.lineTo(0,-16);c.quadraticCurveTo(8,-16,14,-12);c.lineTo(29,-7);c.stroke();c.restore();[-30,-10,10,30].forEach(x=>{CIR(c,x,12,3);L(c,x,15,x,30)});tx("IN",-20,3,7,"part","center");tx("OUT",20,3,7,"part","center")},
+ val(c){return [si(num(c.p.fmin),"Hz")+" – "+si(num(c.p.fmax),"Hz")]},
+ build(c,n,E){E.R(n[0],n[1],1e9);E.R(n[2],n[3],1e9)}});
 
 /* ---- component database (Group → Family → Component) ---- */
 const DB=[
@@ -697,14 +703,14 @@ const DB=[
  {g:"Electromechanical",icon:"mot",fams:[["MOTOR","motor",()=>[[5,5],[6,4],[12,10],[24,20]].map(([v,r])=>({n:"DC_MOTOR "+v+"V",p:{voltage:String(v),res:String(r)}}))],["RELAY","relay",()=>[5,12,24].map(v=>({n:"RELAY_"+v+"V",p:{coilV:String(v),coilR:String(v*v/0.36|0)}}))]]},
  {g:"Annotation",icon:"txt",fams:[["TEXT","text",()=>[{n:"Text / note"},{n:"Heading",p:{text:"Title",size:"24",bold:"yes"}},{n:"Framed note",p:{text:"Note",frame:"yes"}}]],["NET_LABEL","netlabel",()=>["VIN","VOUT","SIG1","CLK","DATA","GND"].map(n=>({n:"Net label "+n,p:{name:n}}))]]},
  {g:"My parts",icon:"chip",fams:[["MY_PARTS","res",()=>Object.values(MYP).map(r=>({n:r.name,t:"my_"+r.id,mine:r.id,v:!!r.verified}))]]},
- {g:"Instruments",icon:"xsc",fams:[["MULTIMETER","xmm",()=>[{n:"XMM (Multimeter)"}]],["FUNCTION_GENERATOR","xfg",()=>[{n:"XFG (Function generator)"}]],["WATTMETER","xwm",()=>[{n:"XWM (Wattmeter)"}]],["OSCILLOSCOPE","xsc",()=>[{n:"XSC (2-channel)"}]]]}
+ {g:"Instruments",icon:"xsc",fams:[["MULTIMETER","xmm",()=>[{n:"XMM (Multimeter)"}]],["FUNCTION_GENERATOR","xfg",()=>[{n:"XFG (Function generator)"}]],["WATTMETER","xwm",()=>[{n:"XWM (Wattmeter)"}]],["OSCILLOSCOPE","xsc",()=>[{n:"XSC (2-channel)"}]],["BODE_PLOTTER","xbp",()=>[{n:"XBP (Bode plotter)"}]]]}
 ];
 let DBCOUNT=0;DB.forEach(g=>g.fams.forEach(f=>{f.items=null}));
 function famItems(f){if(!f.items)f.items=f[2]();return f.items}
 function countDB(){let n=0;DB.forEach(g=>g.fams.forEach(f=>n+=famItems(f).length));return n}
 /* ================= My parts: new parts built from a small circuit ================= */
 const MYP_KEY="cesim.myparts";const MYP={};
-const MYP_NOINNER=/^(xsc|xfg|xmm|xwm|probe|lprobe|text|netlabel|gnd)$/;
+const MYP_NOINNER=/^(xsc|xfg|xmm|xwm|xbp|probe|lprobe|text|netlabel|gnd)$/;
 function mypPins(s){return String(s||"").split(/[,\s]+/).map(x=>x.trim()).filter(Boolean)}
 function mypSlug(name){return String(name||"").toLowerCase().replace(/[^a-z0-9]+/g,"_").replace(/^_+|_+$/g,"").slice(0,24)||"part"}
 function mypHash(r){let h=2166136261;const t=r.name+"|"+r.pins.join(",")+"|"+r.code;for(let i=0;i<t.length;i++){h^=t.charCodeAt(i);h=Math.imul(h,16777619)}return (h>>>0).toString(36)}
@@ -1025,7 +1031,7 @@ const IC={
  chip:'<rect x="6" y="5" width="12" height="14"/><path d="M3 8h3M3 12h3M3 16h3M18 8h3M18 12h3M18 16h3"/>',ind:'<circle cx="12" cy="10" r="6"/><path d="M9 16v4h6v-4M8 7l8 6M16 7l-8 6"/>',pwr:'<path d="M13 2 5 14h6l-1 8 8-12h-6z"/>',
  mot:'<circle cx="12" cy="12" r="8"/><path d="M8 15V9l4 4 4-4v6"/>',sw:'<circle cx="5" cy="15" r="1.5"/><circle cx="19" cy="15" r="1.5"/><path d="M2 15h1.5M20.5 15H22M6 14l11-7"/>',
  xmm:'<rect x="5" y="2" width="14" height="20" rx="2"/><rect x="8" y="5" width="8" height="5"/><circle cx="12" cy="15" r="2.5"/>',xfg:'<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M5 12c2-5 4-5 5 0s3 5 5 0M17 9h3M17 12h3"/>',
- xsc:'<rect x="2" y="4" width="20" height="16" rx="2"/><path d="M5 14c2-7 3-7 5 0s3 7 5 0 2-5 4-3"/>',xwm:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 15l3-6 2 4 2-4 3 6"/>',probe:'<path d="M4 20l6-6M10 14l3 3 8-8-3-3z"/>',amm:'<circle cx="12" cy="12" r="8"/><path d="M9 16l3-8 3 8M10 13.5h4"/>',vm:'<circle cx="12" cy="12" r="8"/><path d="M8.5 8l3.5 8 3.5-8"/>',
+ xsc:'<rect x="2" y="4" width="20" height="16" rx="2"/><path d="M5 14c2-7 3-7 5 0s3 7 5 0 2-5 4-3"/>',xbp:'<rect x="2" y="4" width="20" height="16" rx="2"/><path d="M5 8h7c3 0 5 3 7 8"/>',xwm:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 15l3-6 2 4 2-4 3 6"/>',probe:'<path d="M4 20l6-6M10 14l3 3 8-8-3-3z"/>',amm:'<circle cx="12" cy="12" r="8"/><path d="M9 16l3-8 3 8M10 13.5h4"/>',vm:'<circle cx="12" cy="12" r="8"/><path d="M8.5 8l3.5 8 3.5-8"/>',
  design:'<path d="M5 3h9l5 5v13H5z"/><path d="M8 13h3l1.5-3 2 6 1-3H17"/>',txt:'<path d="M5 6h14M12 6v13M9 19h6"/>',net:'<path d="M3 12h4l3-4h11v8H10l-3-4"/>',code:'<path d="M8 7l-5 5 5 5M16 7l5 5-5 5M13.5 5l-3 14"/>',cam:'<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',exp:'<path d="M12 3v12M7 10l5 5 5-5M5 21h14"/>'
 };
 function svg(n){return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">'+(IC[n]||"")+"</svg>"}
@@ -1036,7 +1042,7 @@ const MENUS=[
  ["Edit",[["Undo","Ctrl+Z",undo],["Redo","Ctrl+Y",redo],"-",["Cut","Ctrl+X",()=>{if(copySel())deleteSel()}],["Copy","Ctrl+C",copySel],["Paste","Ctrl+V",paste],["Delete","Del",deleteSel],["Select all","Ctrl+A",selectAll],"-",["Rotate 90° clockwise","Ctrl+R",()=>rotateSel(1)],["Rotate 90° counter-clockwise","Ctrl+Shift+R",()=>rotateSel(-1)],["Flip vertically","Alt+Y",()=>flipSel(false)],["Flip horizontally","Alt+X",()=>flipSel(true)],"-",["Properties","Ctrl+M",()=>{const c=[...sel].find(x=>x.t);if(c)openProps(c);else toast("Select a component first.")}]]],
  ["View",[["Zoom in","+",()=>zoomBy(1.25)],["Zoom out","−",()=>zoomBy(0.8)],["Zoom to fit","F7",zoomFit],"-",["Show grid","",()=>{showGrid=!showGrid;dirty=1},()=>showGrid],["Show sheet border","",()=>{showBorder=!showBorder;dirty=1},()=>showBorder]]],
  ["Place",[["Component…","Ctrl+W",()=>openBrowser()],["Create a part…","",()=>openPartMaker()],["Wire","Ctrl+Q",()=>toast("Drag from any pin to draw a wire. Ctrl+click a wire to branch from it.")],"-",["Ground","",()=>startPlace("gnd")],["VCC rail","",()=>startPlace("vcc")],["Voltage probe","",()=>startPlace("probe")],"-",["Text / note","Ctrl+T",()=>startPlace("text")],["Net label","Ctrl+L",()=>startPlace("netlabel")],["Title block…","",editTitleBlock]]],
- ["Simulate",[["Run","F5",runSim],["Pause","F6",pauseSim],["Stop","",stopSim],["Record video","F8",()=>toggleRec()],"-",["Instruments",null,null,()=>[["Multimeter","",()=>startPlace("xmm")],["Function generator","",()=>startPlace("xfg")],["Wattmeter","",()=>startPlace("xwm")],["Oscilloscope","",()=>startPlace("xsc")]]],"-",["Simulation settings…","",openSimSettings]]],
+ ["Simulate",[["Run","F5",runSim],["Pause","F6",pauseSim],["Stop","",stopSim],["Record video","F8",()=>toggleRec()],"-",["Instruments",null,null,()=>[["Multimeter","",()=>startPlace("xmm")],["Function generator","",()=>startPlace("xfg")],["Wattmeter","",()=>startPlace("xwm")],["Oscilloscope","",()=>startPlace("xsc")],["Bode plotter","",()=>startPlace("xbp")]]],"-",["Analyses",null,null,()=>[["DC sweep and Grapher…","",()=>openDcSweep()],["IV analyzer…","",()=>openIvAnalyzer()],["Bode plotter","",()=>{const b=D.comps.find(c=>c.t==="xbp");if(b)openInstWin(b);else{startPlace("xbp");toast("Place the Bode plotter, wire IN to the input and OUT to the output, then double-click it.")}}]]],"-",["Simulation settings…","",openSimSettings]]],
  ["Transfer",[["Send to PCB layout","",()=>sendToPcb()],["Export SPICE netlist (.cir)…","",()=>exportCir()],["Import SPICE netlist (.cir)…","",()=>$("#fileIn").click()]]],
  ["Tools",[["Circuit code…","Ctrl+K",()=>openCodeEditor()],["Circuit from image…","",()=>openImageTool()],["Electrical rules check","",erc],["Database info","",()=>toast(countDB().toLocaleString()+" components in the CEsim master database across "+DB.reduce((a,g)=>a+g.fams.length,0)+" families.")]]],
  ["Reports",[["Bill of Materials","",bom],["Bill of Materials (CSV)…","",bomCsv],["Netlist report","",()=>exportCir()]]],
@@ -1070,7 +1076,7 @@ function buildToolbars(){const t1=$("#tb1");t1.innerHTML="";
  t2.appendChild(sep());t2.appendChild(tb("run","Run (F5)",runSim,"run"));t2.lastChild.id="bRun";t2.appendChild(tb("pause","Pause (F6)",pauseSim,"pause"));t2.lastChild.id="bPause";t2.appendChild(tb("stop","Stop",stopSim,"stop"));t2.appendChild(tb("rec","Record video of the running circuit (F8)",toggleRec,"rec"));t2.lastChild.id="bRec";
  const m=document.createElement("div");m.className="mode";m.id="modebox";m.innerHTML='<span class="dot"></span><span id="modetxt">Interactive</span>';t2.appendChild(m);
  const sp=document.createElement("select");sp.className="speed";sp.title="Simulation speed";sp.setAttribute("aria-label","Simulation speed");[["1","Real time ×1"],["0.1","Slow ×0.1"],["0.01","Slower ×0.01"],["0.001","×0.001"],["10","Fast ×10"],["0","Max speed"]].forEach(([v,l])=>{const o=document.createElement("option");o.value=v;o.textContent=l;sp.appendChild(o)});sp.onchange=()=>{speed=+sp.value};t2.appendChild(sp);
- const ib=$("#instbar");ib.innerHTML="";[["xmm","Multimeter"],["xfg","Function generator"],["xwm","Wattmeter"],["xsc","Oscilloscope"],["vm","Voltmeter","voltmeter"],["amm","Ammeter","ammeter"],["probe","Voltage probe","probe"]].forEach(([ic,t,type])=>ib.appendChild(tb(ic,t,()=>startPlace(type||ic))))}
+ const ib=$("#instbar");ib.innerHTML="";[["xmm","Multimeter"],["xfg","Function generator"],["xwm","Wattmeter"],["xsc","Oscilloscope"],["xbp","Bode plotter"],["vm","Voltmeter","voltmeter"],["amm","Ammeter","ammeter"],["probe","Voltage probe","probe"]].forEach(([ic,t,type])=>ib.appendChild(tb(ic,t,()=>startPlace(type||ic))))}
 function updateInUse(){const s=$("#inuse");if(!s)return;const seen=new Map();for(const c of D.comps){if(c.t==="gnd")continue;const v=LIB[c.t].val?LIB[c.t].val(c)[0]:"";const key=c.t+"|"+v;if(!seen.has(key))seen.set(key,{t:c.t,p:c.p,label:LIB[c.t].name+(v?" · "+v:"")})}s.innerHTML='<option value="">--- In-Use List ---</option>'+[...seen.values()].map(o=>`<option value='${esc(JSON.stringify({t:o.t,p:o.p}))}'>${esc(o.label)}</option>`).join("")}
 
 /* ================= windows & dialogs ================= */
@@ -1122,7 +1128,7 @@ function openBrowser(group,famName){if(group){cbState.g=group;cbState.f=0;cbStat
 /* instrument windows */
 const instWins=new Map();
 function closeInstWin(id){const w=instWins.get(id);if(w){w.win.close()}}
-function openInstWin(c){if(instWins.has(c.id)){const w=instWins.get(c.id).win;w.style.zIndex=31;return}let o;if(c.t==="xmm")o=dmmWin(c);else if(c.t==="xfg")o=fgWin(c);else if(c.t==="xsc")o=scopeWin(c);else if(c.t==="xwm")o=wmWin(c);if(o){o.win=makeWin(c.label+" — "+LIB[c.t].name,o.body,{x:Math.max(10,innerWidth-(c.t==="xsc"?780:340)),y:110,onclose:()=>instWins.delete(c.id)});instWins.set(c.id,o)}}
+function openInstWin(c){if(instWins.has(c.id)){const w=instWins.get(c.id).win;w.style.zIndex=31;return}let o;if(c.t==="xmm")o=dmmWin(c);else if(c.t==="xfg")o=fgWin(c);else if(c.t==="xsc")o=scopeWin(c);else if(c.t==="xwm")o=wmWin(c);else if(c.t==="xbp")o=bodeWin(c);if(o){o.win=makeWin(c.label+" — "+LIB[c.t].name,o.body,{x:Math.max(10,innerWidth-(c.t==="xsc"||c.t==="xbp"?880:340)),y:110,onclose:()=>instWins.delete(c.id)});instWins.set(c.id,o)}}
 function refreshInstWins(){for(const[id,o]of instWins){if(!D.comps.find(c=>c.id===id)){o.win.close()}}}
 function updateInstWins(){for(const[id,o]of instWins)o.update&&o.update()}
 function getSt(c){return sim&&sim.doc===D&&sim.state[c.id]}
@@ -1184,13 +1190,15 @@ function textWin(title,text,note){const body=el(`${note?`<p style="font-size:12p
  foot.children[1].onclick=async()=>{const ta=body.querySelector("textarea");try{await navigator.clipboard.writeText(ta.value);toast("Copied.")}catch(e){ta.select();try{document.execCommand("copy");toast("Copied.")}catch(_){toast("Select the text and press Ctrl+C.",true)}}};return w}
 function tryDownload(name,text,mime){try{if(window.cesimNative&&window.cesimNative.save){window.cesimNative.save(name,text);return true}const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([text],{type:mime||"text/plain"}));a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500);return true}catch(e){return false}}
 function exportDesign(){if(window.cesimNative){saveFileNative(true);return}const s=serialize(D);const fname=D.name.replace(/[^\w.-]+/g,"_")+".cesim";tryDownload(fname,s,"application/json");textWin("Save as file — "+fname,s,"If your browser blocked the download, copy this text into a file named <b>"+esc(fname)+"</b>. Open it later with File → Open.")}
-function toCir(){const net=nets();toCir.subs={};const lines=["* "+D.name+" — exported from CEsim","* SPICE netlist — opens in SPICE-compatible simulators"];const used=new Set();
+function toCir(){const net=nets();toCir.subs={};const lines=["* "+D.name+" — exported from CEsim","* SPICE netlist — opens in SPICE-compatible simulators"];const used=new Set();const bps=D.comps.filter(c=>c.t==="xbp");const bsrc=bps.length?bodeSource(D,bps[0]):null;
  for(const c of D.comps){const L_=LIB[c.t];if(!L_.spice)continue;const n=net.pinNodes.get(c.id).map(k=>k===0?"0":String(k));
   // a part named R1 is written R1, not RR1
   const out=String(L_.spice(c,n)).split("\n").map(l=>{if(/^[*.]/.test(l))return l;const m=l.match(/^([A-Za-z])(\S+)(.*)$/);if(!m)return l;let nm=m[2].toUpperCase().startsWith(m[1].toUpperCase())?m[2]:m[1]+m[2];nm=nm.replace(/[^\w]/g,"_");let k=nm,i=2;while(used.has(k.toUpperCase()))k=nm+"_"+i++;used.add(k.toUpperCase());return k+m[3]});
-  lines.push(...out)}
+  if(bsrc&&c===bsrc&&out.length&&/^V/i.test(out[0]))out[0]+=" AC 1";lines.push(...out)}
  for(const t of Object.values(toCir.subs))lines.push(t);
- const dt=autoDt(D);lines.push(".tran "+si(dt,"")+" "+si(dt*2000,""));lines.push(".end");
+ const dt=autoDt(D);lines.push((bsrc?"* (the Bode plotter needs the AC analysis below; remove the * to run a transient instead)\n*":"")+".tran "+(si(dt,"")+" "+si(dt*2000,"")).replace(/µ/g,"u"));
+ /* a Bode plotter becomes an AC analysis: plot V(OUT+)/V(IN+) */for(const b of bps){const pn=net.pinNodes.get(b.id)||[];const nn=k=>k===0?"0":String(k);const p={fmin:num(b.p.fmin),fmax:num(b.p.fmax)};lines.push(`* Bode plotter ${b.label}: plot V(${nn(pn[2])})/V(${nn(pn[0])})`);if(b===bps[0]&&bsrc)lines.push(`.ac dec ${Math.max(3,Math.round(+b.p.ppd||10))} ${si(p.fmin,"")} ${si(p.fmax,"")}`)}
+ lines.push(".end");
  // SPICE units: u for micro, MEG for mega (M means milli in SPICE)
  return lines.map(l=>/^\*/.test(l)?l:l.replace(/µ/g,"u").replace(/Ω/g,"").replace(/(\d)M(?![A-Za-z])/g,"$1MEG")).join("\n")}
 function sendToPcb(){if(!D.comps.some(c=>c.t!=="gnd")){toast("The design is empty.",true);return}let text;try{text=circuitToCode(D)}catch(e){toast(e.message,true);return}try{localStorage.setItem("cesim.handoff.pcb",JSON.stringify({kind:"netlist",text,name:D.name,from:"Circuit tool"}))}catch(e){}const N=window.cesimNative;if(N&&N.openTool)N.openTool("pcb");else window.open("pcb.html","_blank");toast("Opening the board in the PCB tool.")}
@@ -1460,6 +1468,162 @@ function openExample(n){const ex=EXAMPLES.find(e=>e[0]===n);if(!ex)return;const 
 window.addEventListener("resize",()=>{resize()});
 buildMenus();buildToolbars();
 try{const t=localStorage.getItem("cesim.theme");if(t)theme=t}catch(e){}setTheme(theme);
+/* ================= Analyses: Bode plotter, IV analyzer, DC sweep (Grapher) ================= */
+/* x-y plot on a canvas. series: {pts:[[x,y]..], col, name, right}. Returns a function that maps a mouse x to a data x. */
+function xyPlot(cv_, o){const dpr=devicePixelRatio||1;const W_=cv_.clientWidth||560,H_=cv_.clientHeight||320;cv_.width=W_*dpr;cv_.height=H_*dpr;const g=cv_.getContext("2d");g.setTransform(dpr,0,0,dpr,0,0);
+ const dark=o.dark!==false;const bg=dark?"#081018":"#fff",grid=dark?"rgba(120,160,190,.16)":"#e3e8ef",txt=dark?"#8fa6bb":"#5b6676";g.fillStyle=bg;g.fillRect(0,0,W_,H_);
+ const L0=58,R0=o.series.some(s=>s.right)?58:26,T0=14,B0=34;const pw=W_-L0-R0,ph=H_-T0-B0;
+ const all=o.series.flatMap(s=>s.pts);if(!all.length){g.fillStyle=txt;g.font="12px system-ui,sans-serif";g.fillText(o.empty||"No data yet",L0+10,T0+24);return null}
+ let x0=o.xmin!=null?o.xmin:Math.min(...all.map(p=>p[0])),x1=o.xmax!=null?o.xmax:Math.max(...all.map(p=>p[0]));if(x1<=x0)x1=x0+1;
+ const lx=v=>o.logx?Math.log10(Math.max(v,1e-30)):v;const X=v=>L0+(lx(v)-lx(x0))/(lx(x1)-lx(x0))*pw;
+ const rng=side=>{const ys=o.series.filter(s=>!!s.right===side).flatMap(s=>s.pts.map(p=>p[1])).filter(isFinite);if(!ys.length)return null;let a=Math.min(...ys),b=Math.max(...ys);if(side&&o.yminR!=null)a=o.yminR;if(side&&o.ymaxR!=null)b=o.ymaxR;if(!side&&o.ymin!=null)a=o.ymin;if(!side&&o.ymax!=null)b=o.ymax;if(b-a<1e-12){a-=1;b+=1}const pad=(b-a)*0.06;return nice(a-pad,b+pad)};
+ const nice=(a,b)=>{const st=Math.pow(10,Math.floor(Math.log10((b-a)/5)));const m=[1,2,2.5,5,10].find(k=>(b-a)/(st*k)<=7)*st;return{a:Math.floor(a/m)*m,b:Math.ceil(b/m)*m,step:m}};
+ const RL=rng(false),RR=rng(true);const Y=(v,r)=>T0+ph-(v-r.a)/(r.b-r.a)*ph;
+ g.strokeStyle=grid;g.lineWidth=1;g.font="10.5px "+CV.mono;g.fillStyle=txt;
+ if(o.logx){for(let e=Math.floor(Math.log10(x0));e<=Math.ceil(Math.log10(x1));e++)for(let k=1;k<10;k++){const v=k*Math.pow(10,e);if(v<x0||v>x1)continue;const x=X(v);g.globalAlpha=k===1?1:0.45;g.beginPath();g.moveTo(x+.5,T0);g.lineTo(x+.5,T0+ph);g.stroke();g.globalAlpha=1;if(k===1){g.textAlign="center";g.fillText(si(v,o.xunit||""),x,T0+ph+14)}}}
+ else{const r=nice(x0,x1);for(let v=r.a;v<=r.b+1e-9;v+=r.step){if(v<x0-1e-12||v>x1+1e-12)continue;const x=X(v);g.beginPath();g.moveTo(x+.5,T0);g.lineTo(x+.5,T0+ph);g.stroke();g.textAlign="center";g.fillText(si(+v.toPrecision(6),o.xunit||""),x,T0+ph+14)}}
+ if(RL)for(let v=RL.a;v<=RL.b+1e-9;v+=RL.step){const y=Y(v,RL);g.beginPath();g.moveTo(L0,y+.5);g.lineTo(L0+pw,y+.5);g.stroke();g.textAlign="right";g.fillText(si(+v.toPrecision(6),o.yunit||""),L0-5,y+4)}
+ if(RR){g.textAlign="left";for(let v=RR.a;v<=RR.b+1e-9;v+=RR.step){const y=Y(v,RR);g.fillText(si(+v.toPrecision(6),o.yunitR||""),L0+pw+5,y+4)}}
+ g.strokeStyle=dark?"rgba(160,190,215,.45)":"#9aa6b5";g.strokeRect(L0+.5,T0+.5,pw,ph);
+ g.textAlign="center";g.fillStyle=txt;g.font="11px system-ui,sans-serif";if(o.xlabel)g.fillText(o.xlabel,L0+pw/2,H_-4);
+ if(o.ylabel){g.save();g.translate(12,T0+ph/2);g.rotate(-Math.PI/2);g.fillText(o.ylabel,0,0);g.restore()}if(o.ylabelR&&RR){g.save();g.translate(W_-8,T0+ph/2);g.rotate(Math.PI/2);g.fillText(o.ylabelR,0,0);g.restore()}
+ g.save();g.beginPath();g.rect(L0,T0,pw,ph);g.clip();for(const s of o.series){const r=s.right?RR:RL;if(!r)continue;g.strokeStyle=s.col;g.lineWidth=s.w||1.8;g.beginPath();let f=true;for(const p of s.pts){if(!isFinite(p[1])){f=true;continue}const x=X(p[0]),y=Y(p[1],r);f?g.moveTo(x,y):g.lineTo(x,y);f=false}g.stroke();if(s.dots){g.fillStyle=s.col;for(const p of s.pts)if(isFinite(p[1])){g.beginPath();g.arc(X(p[0]),Y(p[1],r),2.4,0,2*PI);g.fill()}}}g.restore();
+ /* legend */if(o.series.length>1||o.legend){let lx_=L0+8;g.font="11px system-ui,sans-serif";g.textAlign="left";for(const s of o.series){if(!s.name)continue;g.fillStyle=s.col;g.fillRect(lx_,T0+6,10,3);g.fillStyle=txt;g.fillText(s.name,lx_+14,T0+11);lx_+=g.measureText(s.name).width+30}}
+ if(o.cursorX!=null&&o.cursorX>=x0&&o.cursorX<=x1){const x=X(o.cursorX);g.strokeStyle="#2f8bff";g.setLineDash([4,3]);g.beginPath();g.moveTo(x+.5,T0);g.lineTo(x+.5,T0+ph);g.stroke();g.setLineDash([])}
+ return{toX:px=>{const t=(px-L0)/pw;if(t<0||t>1)return null;return o.logx?Math.pow(10,lx(x0)+t*(lx(x1)-lx(x0))):x0+t*(x1-x0)}}}
+function interpAt(pts,x){if(!pts.length)return NaN;if(x<=pts[0][0])return pts[0][1];for(let i=1;i<pts.length;i++)if(pts[i][0]>=x){const a=pts[i-1],b=pts[i];const t=(x-a[0])/((b[0]-a[0])||1);return a[1]+(b[1]-a[1])*t}return pts[pts.length-1][1]}
+function copyDocForAnalysis(d){const c=deserialize(serialize(d),d.name);c.comps.forEach(x=>delete x._pp);return c}
+const sleep0=()=>new Promise(r=>setTimeout(r,0));
+
+/* ---- Bode plotter: sweeps the AC source and measures the gain and phase from IN to OUT at every frequency ---- */
+function bodeSource(d,bp){const net=buildNets(d);const inK=(net.pinNodes.get(bp.id)||[])[0];const srcs=d.comps.filter(c=>c.t==="acv"||c.t==="xfg");if(!srcs.length)return null;
+ const on=srcs.find(c=>(net.pinNodes.get(c.id)||[]).includes(inK));return on||srcs[0]}
+async function bodeSweep(d,bpId,o,prog){const freqs=[];const dec=Math.log10(o.fmax/o.fmin);const n=Math.max(2,Math.round(dec*o.ppd)+1);for(let i=0;i<n;i++)freqs.push(o.fmin*Math.pow(10,dec*i/(n-1)));
+ /* one simulation for the whole sweep: the DC operating point is found first with the source at 0 V, so coupling and bypass capacitors are already charged; then only the frequency changes from point to point */
+ const dc=copyDocForAnalysis(d);const bp=dc.comps.find(c=>c.id===bpId);const src=bodeSource(dc,bp);if(!src)throw new Error("Add an AC source (V SIN) or a function generator: the Bode plotter sweeps its frequency.");
+ if(src.t==="xfg")src.p.wave="sine";const amp0=src.p.amp;src.p.amp="0";delete src._pp;const S=new Sim(dc);const pn=S.net.pinNodes.get(bp.id)||[];const V=(a,b)=>S.vv(pn[a])-S.vv(pn[b]);
+ {let last=null,calm=0;const N=S.N;for(let i=0;i<20000;i++){if(!S.step(i<50?1e-6:1e-3))throw new Error("The DC operating point could not be found: "+(S.err||"no convergence"));let mx=0;if(last)for(let k=0;k<N;k++)mx=Math.max(mx,Math.abs(S.x[k]-last[k]));last=Float64Array.from(S.x.subarray(0,N));if(i>60&&mx<1e-9){if(++calm>=20)break}else calm=0;if(i%500===499)await sleep0()}}
+ src.p.amp=amp0;delete src._pp;
+ const out=[];for(let k=0;k<freqs.length;k++){if(o.stop&&o.stop())break;const f=freqs[k];src.p.freq=String(f);delete src._pp;
+  const spc=o.spc||2000,dt=1/(f*spc);let prevA=null,stable=0,res=null;
+  /* each cycle is fitted by least squares to offset + slope + cos + sin, so a circuit that is still settling (a charging coupling capacitor) does not tilt the result */
+  const fit=(G,y)=>{const n=4,M=G.map((r,i)=>[...r,y[i]]);for(let i=0;i<n;i++){let p=i;for(let k=i+1;k<n;k++)if(Math.abs(M[k][i])>Math.abs(M[p][i]))p=k;[M[i],M[p]]=[M[p],M[i]];for(let k=0;k<n;k++){if(k===i)continue;const r=M[k][i]/M[i][i];for(let j=i;j<=n;j++)M[k][j]-=r*M[i][j]}}return M.map((r,i)=>r[n]/r[i])};
+  for(let cyc=0;cyc<600;cyc++){const G=[[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]],yi=[0,0,0,0],yo=[0,0,0,0];for(let j=0;j<spc;j++){if(!S.step(dt))throw new Error(`The simulation stopped at ${si(f,"Hz")}: ${S.err||"no convergence"}`);const w=2*PI*f*S.t;const b=[1,(j+0.5)/spc-0.5,Math.cos(w),Math.sin(w)];const vi=V(0,1),vo=V(2,3);
+    for(let a=0;a<4;a++){yi[a]+=b[a]*vi;yo[a]+=b[a]*vo;for(let c2=0;c2<4;c2++)G[a][c2]+=b[a]*b[c2]}}
+   const ci=fit(G,yi),co=fit(G,yo);/* v = A cos(w) + B sin(w) = R sin(w + atan2(A,B)) */
+   const Ai=Math.hypot(ci[2],ci[3]),Ao=Math.hypot(co[2],co[3]);const g=Ai>1e-15?Ao/Ai:0;const ph=Math.atan2(co[2],co[3])-Math.atan2(ci[2],ci[3]);const hr=g*Math.cos(ph),hi=g*Math.sin(ph);res={f,g,ph,Ai};
+   if(prevA!=null&&Math.hypot(hr-prevA[0],hi-prevA[1])<=Math.max(1e-9,g*2e-4)){if(++stable>=3&&cyc>=6)break}else stable=0;prevA=[hr,hi]}
+  if(!res||res.Ai<1e-12)throw new Error("Nothing reaches IN: connect IN + to the input of the circuit and IN − to ground.");
+  let ph=res.ph*180/PI;ph=((ph+180)%360+360)%360-180;out.push({f,db:20*Math.log10(Math.max(res.g,1e-12)),g:res.g,ph});
+  /* keep the phase continuous from point to point */if(out.length>1){const a=out[out.length-2];let p=out[out.length-1].ph;while(p-a.ph>180)p-=360;while(p-a.ph<-180)p+=360;out[out.length-1].ph=p}
+  prog&&prog(k+1,freqs.length,out);await sleep0()}
+ return out}
+function bodeWin(c){const body=el(`<div class="scope" style="grid-template-columns:auto 210px"><div><canvas id="bp-cv" style="width:600px;height:330px;display:block;border-radius:4px;cursor:crosshair" aria-label="Bode plot"></canvas><div id="bp-read" class="mono" style="margin-top:8px;font-size:12px;min-height:34px"></div></div><div class="ctl">
+ <div class="grp"><h4>Mode</h4><label for="bp-m">Show</label><select id="bp-m">${["Magnitude","Phase","Both"].map(m=>`<option ${c.p.mode===m?"selected":""}>${m}</option>`).join("")}</select></div>
+ <div class="grp"><h4>Horizontal (frequency)</h4><label for="bp-fi">Start</label><input id="bp-fi" value="${esc(c.p.fmin)}"><label for="bp-ff">Stop</label><input id="bp-ff" value="${esc(c.p.fmax)}"><label for="bp-pd">Points per decade</label><input id="bp-pd" type="number" min="3" max="50" value="${esc(c.p.ppd)}"></div>
+ <div class="grp"><button class="btn pri" id="bp-run" style="grid-column:1/-1">Run sweep</button><button class="btn" id="bp-csv" style="grid-column:1/-1">Export CSV</button></div>
+ <div class="grp" style="font-size:11.5px;color:var(--ui-dim);display:block">IN + to the circuit input, OUT + to its output, both − to ground. The AC source or function generator is swept from Start to Stop. Click the plot to move the cursor.</div></div></div>`);
+ const cv_=body.querySelector("#bp-cv"),rd_=body.querySelector("#bp-read");let data=c._bode||null,cur=null,busy=false,stopF=false,map=null;
+ const draw=()=>{const m=body.querySelector("#bp-m").value;c.p.mode=m;const s=[];if(data&&m!=="Phase")s.push({pts:data.map(p=>[p.f,p.db]),col:"#ffcc3d",name:"Gain (dB)"});if(data&&m!=="Magnitude")s.push({pts:data.map(p=>[p.f,p.ph]),col:"#4cc9ff",name:"Phase (°)",right:m==="Both"});
+  map=xyPlot(cv_,{series:s,logx:true,xunit:"Hz",yunit:m==="Phase"?"°":"dB",yunitR:"°",xlabel:"Frequency",ylabel:m==="Phase"?"Phase (°)":"Gain (dB)",ylabelR:m==="Both"?"Phase (°)":"",cursorX:cur,empty:"Press Run sweep."});
+  if(!data){rd_.innerHTML='<span style="color:var(--ui-dim)">Press Run sweep to measure the gain and phase.</span>';return}
+  const mx=Math.max(...data.map(p=>p.db));const fc=(()=>{for(let i=1;i<data.length;i++){const a=data[i-1],b=data[i];if((a.db-(mx-3))*(b.db-(mx-3))<=0&&a.db!==b.db){const t=(mx-3-a.db)/(b.db-a.db);return Math.pow(10,Math.log10(a.f)+t*(Math.log10(b.f)-Math.log10(a.f)))}}return null})();
+  const pk=data.reduce((a,b)=>b.db>a.db?b:a);let h=`Peak ${pk.db.toFixed(2)} dB at ${rd(pk.f,"Hz")}`+(fc?` · −3 dB at ${rd(fc,"Hz")}`:"");
+  if(cur!=null)h=`Cursor ${rd(cur,"Hz")}: gain ${interpAt(data.map(p=>[p.f,p.db]),cur).toFixed(2)} dB, phase ${interpAt(data.map(p=>[p.f,p.ph]),cur).toFixed(1)}°<br>`+h;rd_.innerHTML=h};
+ const set=(id,k)=>{const e=body.querySelector(id);e.onchange=()=>{c.p[k]=e.value;c._pp=null;dirty=1}};set("#bp-fi","fmin");set("#bp-ff","fmax");set("#bp-pd","ppd");body.querySelector("#bp-m").onchange=draw;
+ cv_.onmousedown=e=>{if(!map||!data)return;const r=cv_.getBoundingClientRect();const x=map.toX(e.clientX-r.left);if(x!=null){cur=x;draw()}};cv_.onmousemove=e=>{if(e.buttons&1)cv_.onmousedown(e)};
+ body.querySelector("#bp-run").onclick=async()=>{const b=body.querySelector("#bp-run");if(busy){stopF=true;return}const fmin=num(c.p.fmin),fmax=num(c.p.fmax),ppd=Math.max(3,Math.min(50,Math.round(+c.p.ppd||10)));
+  if(!(fmin>0&&fmax>fmin)){toast("Set a start frequency below the stop frequency.",true);return}if(!E_conn(c,0)||!E_conn(c,2)){toast("Connect IN + and OUT + of the Bode plotter first.",true);return}
+  busy=true;stopF=false;b.textContent="Stop";const doc=D;try{data=await bodeSweep(doc,c.id,{fmin,fmax,ppd,stop:()=>stopF},(k,n,pts)=>{rd_.textContent=`Measuring ${k} of ${n} frequencies…`;data=pts.slice();c._bode=data;draw()});c._bode=data;draw()}catch(e){toast(e.message,true);rd_.textContent=e.message}finally{busy=false;b.textContent="Run sweep"}};
+ body.querySelector("#bp-csv").onclick=()=>{if(!data){toast("Run the sweep first.");return}tryDownload(c.label+"_bode.csv","frequency_Hz,gain_dB,gain_ratio,phase_deg\n"+data.map(p=>`${p.f.toPrecision(6)},${p.db.toFixed(4)},${p.g.toPrecision(6)},${p.ph.toFixed(3)}`).join("\n")+"\n","text/csv")};
+ setTimeout(draw,0);return{body,update(){}}}
+
+/* ---- IV analyzer: current-voltage curves of a diode, BJT, MOSFET or JFET ---- */
+const IV_KINDS={diode:"Diode",zener:"Zener",led:"LED",schottky:"Schottky diode",npn:"BJT NPN",pnp:"BJT PNP",nmos:"MOSFET N",pmos:"MOSFET P",njfet:"JFET N",pjfet:"JFET P"};
+function ivDefaults(t){if(/^(diode|led|schottky)$/.test(t))return{v0:-1,v1:t==="led"?3.5:1.2,s0:0,s1:0,ns:1,il:t==="led"?0.05:0.2};if(t==="zener")return{v0:-8,v1:1,s0:0,s1:0,ns:1,il:0.1};
+ if(t==="npn")return{v0:0,v1:10,s0:10e-6,s1:50e-6,ns:5};if(t==="pnp")return{v0:0,v1:-10,s0:-10e-6,s1:-50e-6,ns:5};if(t==="nmos")return{v0:0,v1:10,s0:2,s1:5,ns:4};if(t==="pmos")return{v0:0,v1:-10,s0:-2,s1:-5,ns:4};
+ if(t==="njfet")return{v0:0,v1:15,s0:0,s1:-3,ns:4};return{v0:0,v1:-15,s0:0,s1:3,ns:4}}
+function ivCurves(t,props,o){const P_=Object.entries(props||{}).filter(([k,v])=>v!=null&&v!=="").map(([k,v])=>`${k}=${/\s/.test(v)?'"'+v+'"':v}`).join(" ");const steps=Math.max(2,o.points|0);const res=[];
+ const lim=o.ilim>0?o.ilim:Infinity;
+ /* settle at every point; the source is first walked from 0 V to the start value so Newton never jumps far, and a curve stops at the current limit as a real curve tracer does */
+ const settle=S=>{let last=null;for(let i=0;i<300;i++){if(!S.step(1e-6))return false;let mx=0;const N=S.N;if(last)for(let k=0;k<N;k++)mx=Math.max(mx,Math.abs(S.x[k]-last[k]));last=Float64Array.from(S.x.subarray(0,N));if(i>2&&mx<1e-9)break}return true};
+ const run=(code,set,read,xs)=>{const pts=xs.map(x=>[x,NaN]);let i0=0;xs.forEach((x,i)=>{if(Math.abs(x)<Math.abs(xs[i0]))i0=i});
+  /* walk out from the point nearest 0 V in both directions, so a curve that runs past the limit at one end still shows the rest */
+  for(const dir of[1,-1]){const d=importCir(code,"iv");const S=new Sim(d);const n0=Math.max(1,Math.ceil(Math.abs(xs[i0])/0.05));for(let i=1;i<=n0;i++){set(d,xs[i0]*i/n0);settle(S)}
+   for(let i=dir>0?i0:i0-1;i>=0&&i<xs.length;i+=dir){set(d,xs[i]);if(!settle(S))break;const y=read(d,S);if(!isFinite(y)||Math.abs(y)>lim)break;pts[i][1]=y}}
+  return pts};
+ const meter=(d,S,lab)=>{const c=d.comps.find(c=>c.label===lab);const st=S.state[c.id];return st&&st.i!=null?st.i:NaN};
+ const setP=(lab,k)=>(d,x)=>{const c=d.comps.find(c=>c.label===lab);c.p[k]=String(x);delete c._pp};
+ const xs=[];for(let i=0;i<steps;i++)xs.push(o.v0+(o.v1-o.v0)*i/(steps-1));
+ if(/^(diode|zener|led|schottky)$/.test(t)){res.push({name:"I",pts:run(`V1 s 0 DC 0\nAM1 s a DC\nPART ${t} D1 a 0 ${P_}\n.end`,setP("V1","voltage"),(d,S)=>meter(d,S,"AM1"),xs)})}
+ else{const sv=[];for(let k=0;k<o.ns;k++)sv.push(o.ns===1?o.s0:o.s0+(o.s1-o.s0)*k/(o.ns-1));
+  for(const s of sv){let code,nm;if(t==="npn"||t==="pnp"){code=`I1 0 b DC ${s}\nV2 c0 0 DC 0\nAM2 c0 c DC\nPART ${t} Q1 b c 0 ${P_}\n.end`;nm="Ib = "+si(s,"A")}
+   else if(t==="nmos"||t==="pmos"){code=`V1 g 0 DC ${s}\nV2 d0 0 DC 0\nAM2 d0 d DC\nPART ${t} M1 g d 0 ${P_}\n.end`;nm="Vgs = "+si(s,"V")}
+   else{code=`V1 g 0 DC ${s}\nV2 d0 0 DC 0\nAM2 d0 d DC\nPART ${t} J1 g d 0 ${P_}\n.end`;nm="Vgs = "+si(s,"V")}
+   res.push({name:nm,pts:run(code,setP("V2","voltage"),(d,S)=>meter(d,S,"AM2"),xs)})}}
+ return res}
+function openIvAnalyzer(){const devs=D.comps.filter(c=>IV_KINDS[c.t]);const body=document.createElement("div");
+ body.innerHTML=`<div style="display:grid;grid-template-columns:auto 230px;gap:14px"><div><canvas id="iv-cv" style="width:600px;height:340px;display:block;border-radius:4px;cursor:crosshair" aria-label="IV curves"></canvas><div id="iv-read" class="mono" style="margin-top:8px;font-size:12px;min-height:30px"></div></div>
+ <div class="ctl" style="display:grid;grid-template-columns:96px 1fr;gap:7px 8px;align-content:start;font-size:12.5px">
+ <label for="iv-dev">Device</label><select id="iv-dev" class="inp">${devs.length?`<optgroup label="In this design">${devs.map(c=>`<option value="d:${c.id}">${esc(c.label)} (${esc(c.p.model||c.p.color||IV_KINDS[c.t])})</option>`).join("")}</optgroup>`:""}<optgroup label="Library">${Object.entries(IV_KINDS).map(([t,n])=>`<option value="t:${t}">${n}</option>`).join("")}</optgroup></select>
+ <label for="iv-model">Model</label><select id="iv-model" class="inp"></select>
+ <label for="iv-v0" id="iv-xl">V from</label><input id="iv-v0" class="inp"><label for="iv-v1">to</label><input id="iv-v1" class="inp">
+ <label for="iv-s0" id="iv-sl">Step from</label><input id="iv-s0" class="inp"><label for="iv-s1">to</label><input id="iv-s1" class="inp"><label for="iv-ns">Curves</label><input id="iv-ns" class="inp" type="number" min="1" max="10">
+ <label for="iv-np">Points</label><input id="iv-np" class="inp" type="number" min="10" max="400" value="80"><label for="iv-il">Current limit</label><input id="iv-il" class="inp">
+ <button class="btn pri" id="iv-run" style="grid-column:1/-1">Simulate</button><button class="btn" id="iv-csv" style="grid-column:1/-1">Export CSV</button></div></div>`;
+ const w=makeWin("IV analyzer",body,{x:Math.max(10,innerWidth-900),y:90});const q=s=>body.querySelector(s);let data=null,cur=null,map=null,kind="diode";
+ const fill=()=>{const v=q("#iv-dev").value;let t,props={};if(v.startsWith("d:")){const c=D.comps.find(c=>c.id===v.slice(2));t=c.t;props=Object.assign({},c.p)}else t=v.slice(2);kind=t;
+  const ms=MODELS[t]||(t==="zener"?ZENERS:null);const sel=q("#iv-model");if(ms){sel.innerHTML=Object.keys(ms).map(k=>`<option ${props.model===k?"selected":""}>${esc(k)}</option>`).join("");sel.disabled=false}else if(t==="led"){sel.innerHTML=Object.keys(LEDC).map(k=>`<option ${props.color===k?"selected":""}>${k}</option>`).join("");sel.disabled=false}else{sel.innerHTML="<option>default</option>";sel.disabled=true}
+  const df=ivDefaults(t);q("#iv-v0").value=df.v0;q("#iv-v1").value=df.v1;q("#iv-s0").value=si(df.s0,"").trim()||"0";q("#iv-s1").value=si(df.s1,"").trim()||"0";q("#iv-ns").value=df.ns;q("#iv-il").value=si(df.il||1,"A");
+  const diode=/^(diode|zener|led|schottky)$/.test(t);q("#iv-xl").textContent=t==="npn"||t==="pnp"?"Vce from":diode?"V from":"Vds from";q("#iv-sl").textContent=t==="npn"||t==="pnp"?"Ib from":"Vgs from";["#iv-s0","#iv-s1","#iv-ns"].forEach(s=>q(s).disabled=diode);data=null;cur=null;draw()};
+ const draw=()=>{const diode=/^(diode|zener|led|schottky)$/.test(kind);const cols=["#ffcc3d","#4cc9ff","#7ee787","#ff8a80","#d2a8ff","#ffa657","#79c0ff","#f2cc60","#56d4dd","#e3b341"];
+  map=xyPlot(cv_(),{series:(data||[]).map((s,i)=>({pts:s.pts,col:cols[i%cols.length],name:diode?"":s.name})),xunit:"V",yunit:"A",xlabel:diode?"Voltage across the device":kind==="npn"||kind==="pnp"?"Vce":"Vds",ylabel:diode?"Current":kind==="npn"||kind==="pnp"?"Ic":"Id",cursorX:cur,empty:"Choose a device and press Simulate."});
+  if(!data){q("#iv-read").innerHTML='<span style="color:var(--ui-dim)">Choose a device and press Simulate. Click the plot to read the curves.</span>';return}
+  q("#iv-read").innerHTML=cur==null?"Click the plot to read the curves.":`At ${rd(cur,"V")}: `+data.map(s=>(s.name&&!diode?s.name+" → ":"I = ")+rd(interpAt(s.pts,cur),"A")).join(" · ")};
+ const cv_=()=>q("#iv-cv");
+ q("#iv-dev").onchange=fill;q("#iv-run").onclick=()=>{const v=q("#iv-dev").value;let props={};if(v.startsWith("d:")){const c=D.comps.find(c=>c.id===v.slice(2));props=Object.assign({},c.p)}const m=q("#iv-model").value;if(kind==="led")props.color=m;else if(m&&m!=="default")props.model=m;
+  const o={v0:num(q("#iv-v0").value),v1:num(q("#iv-v1").value),s0:num(q("#iv-s0").value),s1:num(q("#iv-s1").value),ns:Math.max(1,Math.min(10,+q("#iv-ns").value||1)),points:Math.max(10,Math.min(400,+q("#iv-np").value||80)),ilim:Math.abs(num(String(q("#iv-il").value).replace(/A$/i,"")))};
+  if(![o.v0,o.v1].every(isFinite)||o.v0===o.v1){toast("Set two different voltages.",true);return}try{data=ivCurves(kind,props,o);draw()}catch(e){toast("The curves could not be worked out: "+e.message,true)}};
+ q("#iv-csv").onclick=()=>{if(!data){toast("Simulate first.");return}let s="voltage_V,"+data.map(c=>(c.name||"current").replace(/[ ,=]+/g,"_")+"_A").join(",")+"\n";data[0].pts.forEach((p,i)=>{s+=p[0].toPrecision(6)+","+data.map(c=>c.pts[i][1].toPrecision(6)).join(",")+"\n"});tryDownload("iv_curves.csv",s,"text/csv")};
+ cv_().onmousedown=e=>{if(!map||!data)return;const r=cv_().getBoundingClientRect();const x=map.toX(e.clientX-r.left);if(x!=null){cur=x;draw()}};cv_().onmousemove=e=>{if(e.buttons&1)cv_().onmousedown(e)};
+ fill();return w}
+
+/* ---- DC sweep: steps one value (a source, a resistor, a pot ...) and records every meter, then plots them (Grapher) ---- */
+function sweepables(d){const out=[];for(const c of d.comps){const L_=LIB[c.t];if(!L_)continue;const add=(k,u,what)=>out.push({id:c.id,k,label:`${c.label||c.t} ${what}`,u,val:c.p[k]});
+ if(c.t==="dcv"||c.t==="vcc")add("voltage","V","voltage");else if(c.t==="idc")add("current","A","current");else if(c.t==="res")add("resistance","Ω","resistance");else if(c.t==="pot")add("wiper","%","wiper position");else if(c.t==="ldr")add("light","%","light");else if(c.t==="acv")add("amp","V","amplitude");}return out}
+function sweepOutputs(d){return d.comps.filter(c=>/^(voltmeter|ammeter|probe|xmm)$/.test(c.t)).map(c=>({id:c.id,label:c.label||c.t,u:c.t==="ammeter"||(c.t==="xmm"&&c.p.mode==="A")?"A":"V"}))}
+function readOut(S,d,id){const c=d.comps.find(x=>x.id===id);const st=S.state[c.id]||{};const pn=S.net.pinNodes.get(c.id)||[];
+ if(c.t==="voltmeter"||c.t==="probe")return c.t==="probe"?S.vv(pn[0]):S.vv(pn[0])-S.vv(pn[1]);if(c.t==="ammeter")return st.i;if(c.t==="xmm")return c.p.mode==="Ω"?st.x/1e-3:st.x;return st.m}
+async function dcSweep(d,o,prog){const dc=copyDocForAnalysis(d);const tgt=dc.comps.find(c=>c.id===o.param.id);const S=new Sim(dc);const xs=[];for(let i=0;i<o.points;i++)xs.push(o.from+(o.to-o.from)*i/Math.max(1,o.points-1));
+ const res=o.outs.map(x=>({id:x.id,name:x.label,u:x.u,pts:[]}));const N=S.N;
+ for(let i=0;i<xs.length;i++){if(o.stop&&o.stop())break;tgt.p[o.param.k]=String(xs[i]);delete tgt._pp;let last=null,calm=0;
+  for(let s=0;s<6000;s++){if(!S.step(o.dt))throw new Error("The simulation stopped at "+rd(xs[i],o.param.u)+": "+(S.err||"no convergence"));let mx=0;if(last){for(let k=0;k<N;k++)mx=Math.max(mx,Math.abs(S.x[k]-last[k]))}last=Float64Array.from(S.x.subarray(0,N));if(mx<1e-7){if(++calm>=40)break}else calm=0}
+  res.forEach(r=>r.pts.push([xs[i],readOut(S,dc,r.id)]));prog&&prog(i+1,xs.length,res);if(i%4===3)await sleep0()}
+ return res}
+function openDcSweep(){const ps=sweepables(D),os=sweepOutputs(D);if(!ps.length){toast("Add a DC source, a resistor, a pot or another value to sweep.",true);return}if(!os.length){toast("Add a voltmeter, an ammeter, a multimeter or a probe to record.",true);return}
+ const body=document.createElement("div");body.innerHTML=`<div style="display:grid;grid-template-columns:auto 250px;gap:14px"><div><canvas id="ds-cv" style="width:620px;height:340px;display:block;border-radius:4px;cursor:crosshair" aria-label="Sweep results"></canvas><div id="ds-read" class="mono" style="margin-top:8px;font-size:12px;min-height:30px"></div><div id="ds-tab" style="max-height:180px;overflow:auto;margin-top:6px"></div></div>
+ <div style="display:grid;grid-template-columns:70px 1fr;gap:7px 8px;align-content:start;font-size:12.5px"><label for="ds-p">Sweep</label><select id="ds-p" class="inp">${ps.map((p,i)=>`<option value="${i}">${esc(p.label)}</option>`).join("")}</select>
+ <label for="ds-f">From</label><input id="ds-f" class="inp"><label for="ds-t">To</label><input id="ds-t" class="inp"><label for="ds-n">Points</label><input id="ds-n" class="inp" type="number" min="2" max="500" value="21">
+ <span style="grid-column:1/-1;color:var(--ui-dim)">Record</span><div id="ds-o" style="grid-column:1/-1;display:grid;gap:4px">${os.map((o,i)=>`<label style="display:flex;gap:6px;align-items:center"><input type="checkbox" data-i="${i}" checked> ${esc(o.label)} <span style="color:var(--ui-dim)">(${o.u})</span></label>`).join("")}</div>
+ <button class="btn pri" id="ds-run" style="grid-column:1/-1">Run sweep</button><button class="btn" id="ds-csv" style="grid-column:1/-1">Export CSV</button><button class="btn" id="ds-copy" style="grid-column:1/-1">Copy table</button></div></div>`;
+ const w=makeWin("DC sweep and Grapher",body,{x:Math.max(10,innerWidth-940),y:80});const q=s=>body.querySelector(s);let data=null,cur=null,map=null,busy=false,stopF=false;
+ const fillRange=()=>{const p=ps[+q("#ds-p").value];const v=num(p.val);let a=0,b=isFinite(v)&&v!==0?v:p.u==="%"?100:10;if(p.u==="Ω"){a=Math.max(1,b/10);b=b*10}if(p.u==="%")b=100;q("#ds-f").value=+a.toPrecision(4);q("#ds-t").value=+b.toPrecision(4)};
+ const cols=["#ffcc3d","#4cc9ff","#7ee787","#ff8a80","#d2a8ff","#ffa657","#79c0ff","#f2cc60"];
+ const draw=()=>{const p=ps[+q("#ds-p").value];const series=[];if(data){const us=[...new Set(data.map(r=>r.u))];data.forEach((r,i)=>series.push({pts:r.pts,col:cols[i%cols.length],name:r.name+" ("+r.u+")",right:us.length>1&&r.u===us[1],dots:r.pts.length<=40}))}
+  const us=data?[...new Set(data.map(r=>r.u))]:["V"];map=xyPlot(q("#ds-cv"),{series,xunit:p.u==="%"?"":p.u,yunit:us[0],yunitR:us[1]||"",xlabel:p.label+(p.u==="%"?" (%)":""),ylabel:us[0]==="A"?"Current":"Voltage",ylabelR:us[1]?(us[1]==="A"?"Current":"Voltage"):"",cursorX:cur,legend:true,empty:"Press Run sweep."});
+  if(!data){q("#ds-read").innerHTML='<span style="color:var(--ui-dim)">Choose what to sweep and press Run sweep. Click the plot to read the values.</span>';q("#ds-tab").innerHTML="";return}
+  q("#ds-read").innerHTML=cur==null?"":`At ${rd(cur,p.u==="%"?"":p.u)}${p.u==="%"?" %":""}: `+data.map(r=>`${esc(r.name)} = ${rd(interpAt(r.pts,cur),r.u)}`).join(" · ");
+  q("#ds-tab").innerHTML=`<table class="bom"><tr><th>${esc(p.label)}</th>${data.map(r=>`<th>${esc(r.name)}</th>`).join("")}</tr>${data[0].pts.map((pt,i)=>`<tr><td>${rd(pt[0],p.u==="%"?"":p.u)}${p.u==="%"?" %":""}</td>${data.map(r=>`<td>${rd(r.pts[i][1],r.u)}</td>`).join("")}</tr>`).join("")}</table>`};
+ q("#ds-p").onchange=()=>{fillRange();data=null;draw()};
+ q("#ds-run").onclick=async()=>{const b=q("#ds-run");if(busy){stopF=true;return}const p=ps[+q("#ds-p").value];const from=num(q("#ds-f").value),to=num(q("#ds-t").value),points=Math.max(2,Math.min(500,+q("#ds-n").value||21));
+  if(!isFinite(from)||!isFinite(to)||from===to){toast("Set two different values for From and To.",true);return}const outs=[...body.querySelectorAll("#ds-o input:checked")].map(x=>os[+x.dataset.i]);if(!outs.length){toast("Tick at least one meter to record.",true);return}
+  busy=true;stopF=false;b.textContent="Stop";try{data=await dcSweep(D,{param:p,from,to,points,outs,dt:1e-4,stop:()=>stopF},(k,n,r)=>{q("#ds-read").textContent=`Point ${k} of ${n}…`;data=r.map(x=>({...x,pts:x.pts.slice()}));draw()});draw()}catch(e){toast(e.message,true)}finally{busy=false;b.textContent="Run sweep"}};
+ const table=sep=>{const p=ps[+q("#ds-p").value];let s=[p.label+" ("+p.u+")",...data.map(r=>r.name+" ("+r.u+")")].join(sep)+"\n";data[0].pts.forEach((pt,i)=>{s+=[pt[0].toPrecision(6),...data.map(r=>r.pts[i][1].toPrecision(6))].join(sep)+"\n"});return s};
+ q("#ds-csv").onclick=()=>{if(!data){toast("Run the sweep first.");return}tryDownload((D.name||"sweep")+"_dc_sweep.csv",table(","),"text/csv")};
+ q("#ds-copy").onclick=async()=>{if(!data){toast("Run the sweep first.");return}try{await navigator.clipboard.writeText(table("\t"));toast("Table copied. Paste it into Excel or Word.")}catch(e){toast("Could not copy.",true)}};
+ const cv_=q("#ds-cv");cv_.onmousedown=e=>{if(!map||!data)return;const r=cv_.getBoundingClientRect();const x=map.toX(e.clientX-r.left);if(x!=null){cur=x;draw()}};cv_.onmousemove=e=>{if(e.buttons&1)cv_.onmousedown(e)};
+ fillRange();draw();return w}
+
 try{mypLoad()}catch(e){console.warn(e)}
 if(!loadLocal()){try{localStorage.setItem("cesim.exv",String(EXV))}catch(e){}docs.push(newDoc("Design1"));EXAMPLES.forEach(([n,f])=>{try{docs.push(splitAtPins(f()))}catch(e){console.error(n,e)}})}
 let ai=0;try{ai=+localStorage.getItem("cesim.active")||0}catch(e){}D=docs[clamp(ai,0,docs.length-1)];
