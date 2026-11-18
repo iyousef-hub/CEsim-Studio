@@ -36,6 +36,7 @@ select.s{height:28px;border:1px solid var(--line);border-radius:4px;background:#
 .tab{border:0;background:none;padding:0 13px;font:12.5px var(--font);color:var(--dim);cursor:pointer;border-bottom:2px solid transparent}.tab:hover{color:var(--text)}.tab.on{color:var(--text);border-bottom-color:var(--accent);font-weight:600}
 .tab i{font-style:normal;background:#c62828;color:#fff;border-radius:9px;padding:0 6px;font-size:10.5px;margin-left:5px}
 .pane{overflow:auto;min-height:0;position:relative}
+#dos{background:#000;color:#c8c8c8;font:14px/1.35 var(--mono);padding:8px 12px;white-space:pre-wrap;word-break:break-all;outline:none;cursor:text;height:100%;overflow:auto}#dos .dcur{background:#c8c8c8;color:#000;animation:dosblink 1s steps(2) infinite}@keyframes dosblink{50%{background:transparent;color:#c8c8c8}}#dos:not(:focus) .dcur{animation:none;background:transparent;outline:1px solid #888}
 #con{background:#10161f;color:#d7e2ef;font:13px/1.45 var(--mono);padding:10px 14px;white-space:pre-wrap;word-break:break-all;outline:none;cursor:text;height:100%;overflow:auto}
 #con:focus{box-shadow:inset 0 0 0 2px #2f6fb5}#con .cur{display:inline-block;width:.6em;background:#9fb7d3;animation:bl 1s steps(1) infinite}#con .pend{color:#ffd479}
 #con .hintc{color:#6d7d90;font-style:italic}@keyframes bl{50%{opacity:0}}
@@ -101,9 +102,10 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
   <div id="split" title="Drag to resize"></div>
   <div id="bot">
    <div id="tabs" role="tablist">
-    <button class="tab on" data-p="con">Console</button><button class="tab" data-p="mem">Memory</button><button class="tab" data-p="vars">Variables</button><button class="tab" data-p="lst">Listing</button><button class="tab" data-p="dev">Ports and devices</button><button class="tab" data-p="prob">Problems</button>
+    <button class="tab on" data-p="con">Console</button><button class="tab" data-p="dos" title="A DOS prompt with its own disk: DIR, CD, TYPE, SAVE, ASM and running programs by name">DOS</button><button class="tab" data-p="mem">Memory</button><button class="tab" data-p="vars">Variables</button><button class="tab" data-p="lst">Listing</button><button class="tab" data-p="dev">Ports and devices</button><button class="tab" data-p="prob">Problems</button>
    </div>
    <div class="pane" id="p-con"><div id="con" tabindex="0" aria-label="Console. Click here and type when the program asks for input"></div></div>
+   <div class="pane" id="p-dos" hidden><div id="dos" tabindex="0" role="textbox" aria-multiline="true" aria-label="DOS prompt. Click here and type a command, for example DIR or HELP"></div></div>
    <div class="pane" id="p-mem" hidden><div class="mh"><select class="s" id="mSeg" aria-label="Segment"><option value="ds">DS</option><option value="es">ES</option><option value="ss">SS</option><option value="cs">CS</option><option value="abs">Address</option></select><input id="mSegV" aria-label="Segment value" title="Segment (hex)"><span>:</span><input id="mOff" aria-label="Offset" title="Offset (hex)" value="0000"><button class="btn" id="mGo">Go</button><button class="btn" id="mPrev">◀ Page</button><button class="btn" id="mNext">Page ▶</button><span class="dim" style="color:var(--dim);font-size:11.5px;margin-left:6px">Click a byte to change it. Yellow: written by the last step</span></div><div id="memv"></div></div>
    <div class="pane" id="p-vars" hidden><div class="mh"><span style="font-size:12px;color:var(--dim)">Show values as</span><select class="s" id="vFmt"><option value="hex">Hex</option><option value="dec">Decimal</option><option value="sdec">Signed decimal</option><option value="bin">Binary</option><option value="chr">Characters</option></select></div><div id="varv"></div></div>
    <div class="pane" id="p-lst" hidden><div id="lstv"></div></div>
@@ -124,6 +126,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
 <input type="file" id="fileIn" accept=".asm,.s,.inc,.txt,.8086" hidden multiple>
 <script src="asm-core.js"></script>
 <script src="asm-examples.js"></script>
+<script src="asm-dos.js"></script>
 <script>
 'use strict';
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
@@ -308,7 +311,7 @@ $('#regs').addEventListener('click',e=>{const v=e.target.closest('.v');if(!v||v.
 $('#flags').addEventListener('click',e=>{const b=e.target.closest('.fl');if(!b)return;if(!ST.cpu||ST.dirty){toast('Assemble the program first (F9)');return}if(ST.running)return;ST.cpu.flags^=1<<+b.dataset.b;ST.cpu.hist=[];ST.prev=null;renderAll()});
 
 /* tabs and split */
-function showTab(p){ST.tab=p;$$('.tab').forEach(t=>t.classList.toggle('on',t.dataset.p===p));$$('.pane').forEach(x=>x.hidden=x.id!=='p-'+p);renderAll()}
+function showTab(p){ST.tab=p;$$('.tab').forEach(t=>t.classList.toggle('on',t.dataset.p===p));$$('.pane').forEach(x=>x.hidden=x.id!=='p-'+p);renderAll();if(p==='dos'){if(!ST.dosOn){ST.dosOn=true;window.CEDOS.init($('#dos'),{source:()=>src.value,name:()=>ST.name,edit:(n,t)=>{loadText(t,n.replace(/\.[^.]*$/,'').toLowerCase());saveLocal()},exit:()=>showTab('con')})}setTimeout(()=>$('#dos').focus(),0)}}
 $('#tabs').addEventListener('click',e=>{const t=e.target.closest('.tab');if(t)showTab(t.dataset.p)});
 (()=>{const sp=$('#split');let y0,h0;sp.onpointerdown=e=>{y0=e.clientY;h0=$('#bot').getBoundingClientRect().height;sp.setPointerCapture(e.pointerId);sp.onpointermove=ev=>{const h=Math.max(120,Math.min(window.innerHeight-220,h0-(ev.clientY-y0)));$('#left').style.setProperty('--bh',h+'px')}};sp.onpointerup=()=>{sp.onpointermove=null}})();
 

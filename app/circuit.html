@@ -198,7 +198,7 @@ kbd{font:11px var(--font-mono);border:1px solid var(--ui-border);border-bottom-w
 </div>
 <div id="splash" role="dialog" aria-label="CEsim"><div class="sp-box"><canvas id="sp-cv"></canvas><div class="sp-in">
  <div class="sp-row"><div class="sp-logo">CE</div><div><div class="sp-name">CE<span>sim</span></div><div class="sp-sub">Circuit Design &amp; Simulation Suite</div></div></div>
- <div class="sp-ver">Version 1.20.0</div><div class="sp-bar"><i id="sp-bar"></i></div><div class="sp-foot"><span id="sp-msg">Loading component database…</span><span class="sp-by">BY. YOUSEF</span></div>
+ <div class="sp-ver">Version 1.21.0</div><div class="sp-bar"><i id="sp-bar"></i></div><div class="sp-foot"><span id="sp-msg">Loading component database…</span><span class="sp-by">BY. YOUSEF</span></div>
 </div></div></div>
 <script src="lib/canvas2svg.js"></script>
 <script src="ms14.js"></script>
@@ -1141,9 +1141,9 @@ function scopeWin(c){const body=el(`<div class="scope"><div><canvas id="sc" widt
  <div class="grp"><h4>Timebase</h4><label for="s-tb">Scale</label><select id="s-tb">${TB.map(v=>`<option value="${v}" ${Math.abs(num(c.p.tb)-v)<v*1e-6?"selected":""}>${si(v,"s")}/Div</option>`).join("")}</select></div>
  <div class="grp"><h4 style="color:#d9a400">Channel A</h4><label for="s-va">Scale</label><select id="s-va">${VD.map(v=>`<option value="${v}" ${Math.abs(num(c.p.va)-v)<v*1e-6?"selected":""}>${si(v,"V")}/Div</option>`).join("")}</select><label for="s-pa">Y pos.</label><input id="s-pa" type="number" step="0.2" value="${esc(c.p.pa)}"></div>
  <div class="grp"><h4 style="color:#1f9fd6">Channel B</h4><label for="s-vb">Scale</label><select id="s-vb">${VD.map(v=>`<option value="${v}" ${Math.abs(num(c.p.vb)-v)<v*1e-6?"selected":""}>${si(v,"V")}/Div</option>`).join("")}</select><label for="s-pb">Y pos.</label><input id="s-pb" type="number" step="0.2" value="${esc(c.p.pb)}"></div>
- <div class="grp"><h4>Data</h4><button class="btn" id="s-csv" style="grid-column:1/-1">Export CSV</button></div><div class="grp"><h4>Trigger</h4><label for="s-tm">Mode</label><select id="s-tm">${["Auto","None"].map(m=>`<option ${c.p.tmode===m?"selected":""}>${m}</option>`).join("")}</select><label for="s-ts">Source</label><select id="s-ts">${["A","B"].map(m=>`<option ${c.p.tsrc===m?"selected":""}>${m}</option>`).join("")}</select><label for="s-tl">Level (V)</label><input id="s-tl" type="number" step="0.1" value="${esc(c.p.trig)}"></div>
+ <div class="grp"><h4>Data</h4><button class="btn" id="s-csv" style="grid-column:1/-1">Export CSV</button></div><div class="grp"><h4>Display</h4><label for="s-dm">Trace</label><select id="s-dm" title="Sweep draws each screen from left to right, like a real oscilloscope">${[["Normal","Normal"],["Sweep","Sweep (left to right)"]].map(([v,t])=>`<option value="${v}" ${(c.p.disp||"Normal")===v?"selected":""}>${t}</option>`).join("")}</select></div><div class="grp"><h4>Trigger</h4><label for="s-tm">Mode</label><select id="s-tm">${["Auto","None"].map(m=>`<option ${c.p.tmode===m?"selected":""}>${m}</option>`).join("")}</select><label for="s-ts">Source</label><select id="s-ts">${["A","B"].map(m=>`<option ${c.p.tsrc===m?"selected":""}>${m}</option>`).join("")}</select><label for="s-tl">Level (V)</label><input id="s-tl" type="number" step="0.1" value="${esc(c.p.trig)}"></div>
  </div></div>`);
- const map={"s-tb":"tb","s-va":"va","s-vb":"vb","s-pa":"pa","s-pb":"pb","s-tm":"tmode","s-ts":"tsrc","s-tl":"trig"};body.oninput=body.onchange=e=>{const k=map[e.target.id];if(k){c.p[k]=e.target.value;c._pp=null}};
+ const map={"s-tb":"tb","s-va":"va","s-vb":"vb","s-pa":"pa","s-pb":"pb","s-tm":"tmode","s-ts":"tsrc","s-tl":"trig","s-dm":"disp"};const SW={cur:null,prev:null,rate:null,lt:null,lw:0};body.oninput=body.onchange=e=>{const k=map[e.target.id];if(k){c.p[k]=e.target.value;c._pp=null;SW.cur=null;SW.prev=null;dirty=1}};
  const cvs=body.querySelector("#sc"),g=cvs.getContext("2d"),ms=body.querySelector("#ms");
  body.querySelector("#s-csv").onclick=()=>{const st=getSt(c);if(!st||!st.len){toast("Run the simulation first.");return}const N=st.N,len=st.len,buf=st.buf,head=st.head;let out="time_s,channel_A_V,channel_B_V\n";for(let j=0;j<len;j++){const i=((head-len+j)%N+N)%N;out+=buf[i*3].toPrecision(8)+","+buf[i*3+1].toPrecision(6)+","+buf[i*3+2].toPrecision(6)+"\n"}tryDownload(c.label+"_scope.csv",out,"text/csv")};
  return{body,update(){const Wd=520,Ht=340;g.fillStyle="#081018";g.fillRect(0,0,Wd,Ht);g.strokeStyle="rgba(120,160,190,.18)";g.lineWidth=1;for(let i=0;i<=10;i++){g.beginPath();g.moveTo(i*Wd/10+.5,0);g.lineTo(i*Wd/10+.5,Ht);g.stroke()}for(let i=0;i<=8;i++){g.beginPath();g.moveTo(0,i*Ht/8+.5);g.lineTo(Wd,i*Ht/8+.5);g.stroke()}g.strokeStyle="rgba(120,160,190,.4)";g.beginPath();g.moveTo(0,Ht/2+.5);g.lineTo(Wd,Ht/2+.5);g.moveTo(Wd/2+.5,0);g.lineTo(Wd/2+.5,Ht);g.stroke();
@@ -1152,7 +1152,23 @@ function scopeWin(c){const body=el(`<div class="scope"><div><canvas id="sc" widt
   const N=st.N,len=st.len,buf=st.buf,head=st.head;const at=j=>((head-len+j)%N+N)%N;const tb=num(c.p.tb),win=tb*10;const tEnd=buf[at(len-1)*3];let tStart=tEnd-win;
   if(c.p.tmode==="Auto"){const ch=c.p.tsrc==="B"?2:1,lvl=+c.p.trig||0;for(let j=len-2;j>0;j--){const t=buf[at(j)*3];if(t>tEnd-win)continue;if(t<tEnd-win*6)break;const a=buf[at(j-1)*3+ch],b=buf[at(j)*3+ch];if(a<lvl&&b>=lvl){tStart=t;break}}}
   const draw=(ch,col,vd,pos)=>{g.strokeStyle=col;g.lineWidth=1.6;g.beginPath();let first=true;for(let j=0;j<len;j++){const i=at(j);const t=buf[i*3];if(t<tStart)continue;if(t>tStart+win)break;const x=(t-tStart)/win*Wd,y=Ht/2-(buf[i*3+ch]/vd+pos)*Ht/8;first?g.moveTo(x,y):g.lineTo(x,y);first=false}g.stroke()};
-  const va=num(c.p.va),vb=num(c.p.vb);const cA=E_conn(c,0),cB=E_conn(c,1);if(cA)draw(1,"#ffcc3d",va,+c.p.pa||0);if(cB)draw(2,"#4cc9ff",vb,+c.p.pb||0);
+  const va=num(c.p.va),vb=num(c.p.vb);const cA=E_conn(c,0),cB=E_conn(c,1);
+  if(c.p.disp==="Sweep"){/* sweep: each screen is drawn from left to right. When the simulation runs slower than the screen, the beam follows the simulation itself;
+     when it runs faster, the latest triggered screen is replayed across about 0.9 s so the eye can follow it. The last screen stays dim behind the beam. */
+   const now=performance.now();if(SW.lt!=null&&now>SW.lw){const r=(tEnd-SW.lt)/((now-SW.lw)/1000);if(r>0&&isFinite(r))SW.rate=SW.rate==null?r:SW.rate*0.8+r*0.2}if(now-SW.lw>100||SW.lt==null){SW.lt=tEnd;SW.lw=now}
+   const live=SW.rate!=null&&win/SW.rate>0.9;
+   const grab=(t0)=>{const a=[];for(let j=0;j<len;j++){const i=at(j);const t=buf[i*3];if(t<t0)continue;if(t>t0+win)break;a.push(t-t0,buf[i*3+1],buf[i*3+2])}return a};
+   const startAt=()=>{if(c.p.tmode!=="Auto")return tEnd;const ch=c.p.tsrc==="B"?2:1,lvl=+c.p.trig||0;for(let j=len-2;j>0;j--){const t=buf[at(j)*3];if(t<tEnd-win)break;const a=buf[at(j-1)*3+ch],b=buf[at(j)*3+ch];if(a<lvl&&b>=lvl)return t}return tEnd};
+   let S=SW.cur;
+   if(live){if(!S||!S.live||tEnd>=S.t0+win){if(S&&S.live){SW.prev=grab(S.t0)}S=SW.cur={live:true,t0:startAt()}}}
+   else{if(!S||S.live||now-S.w0>=S.dur){if(S&&!S.live)SW.prev=S.data;S=SW.cur={live:false,data:grab(tStart),w0:now,dur:900}}}
+   const pts=S.live?grab(S.t0):S.data;const xEnd=S.live?Math.min(1,(tEnd-S.t0)/win):Math.min(1,(now-S.w0)/S.dur);
+   const path=(arr,ch,vd,pos,lim)=>{g.beginPath();let first=true,lx=0,ly=0;for(let k=0;k<arr.length;k+=3){const x=arr[k]/win*Wd;if(x>lim*Wd)break;const y=Ht/2-(arr[k+ch]/vd+pos)*Ht/8;first?g.moveTo(x,y):g.lineTo(x,y);first=false;lx=x;ly=y}g.stroke();return first?null:[lx,ly]};
+   for(const [ch,col,vd,pos,on] of [[1,"#ffcc3d",va,+c.p.pa||0,cA],[2,"#4cc9ff",vb,+c.p.pb||0,cB]]){if(!on)continue;
+    if(SW.prev){g.save();g.globalAlpha=0.22;g.strokeStyle=col;g.lineWidth=1.4;g.beginPath();g.rect(xEnd*Wd,0,Wd,Ht);g.clip();path(SW.prev,ch,vd,pos,1);g.restore()}
+    g.strokeStyle=col;g.lineWidth=1.6;const tip=path(pts,ch,vd,pos,xEnd);if(tip&&xEnd<1){g.save();g.fillStyle="#fff";g.shadowColor=col;g.shadowBlur=10;g.beginPath();g.arc(tip[0],tip[1],2.6,0,2*PI);g.fill();g.restore()}}
+   dirty=1}
+  else{if(cA)draw(1,"#ffcc3d",va,+c.p.pa||0);if(cB)draw(2,"#4cc9ff",vb,+c.p.pb||0)}
   const stat=ch=>{let mn=1e9,mx=-1e9,s2=0,n=0;for(let j=0;j<len;j++){const i=at(j);const t=buf[i*3];if(t<tEnd-win)continue;const v=buf[i*3+ch];mn=Math.min(mn,v);mx=Math.max(mx,v);s2+=v*v;n++}if(!n)return null;
    // frequency: rising crossings of the midpoint, with hysteresis, over everything recorded
    let f=null;const pp=mx-mn;if(pp>1e-6){const mid=(mx+mn)/2,h=pp*0.1;let armed=false,first=null,last=null,k=0;for(let j=0;j<len;j++){const i=at(j);const v=buf[i*3+ch],t=buf[i*3];if(v<mid-h)armed=true;else if(armed&&v>mid+h){armed=false;if(first==null)first=t;else{last=t;k++}}}if(k>=1&&last>first)f=k/(last-first)}
@@ -1282,14 +1298,23 @@ function takeLayout(line){let lay=null,lab=null,r=0,f=0,rr=false;let t=line;
 function splitJunctions(d){const P=[];for(const w of d.wires){P.push(w.pts[0],w.pts[w.pts.length-1])}for(const c of d.comps)LIB[c.t].pins.forEach((_,i)=>P.push(pinPos(c,i)));
  let again=true,guard=0;while(again&&guard++<2000){again=false;outer:for(const w of d.wires){for(let j=1;j<w.pts.length;j++){const a=w.pts[j-1],b=w.pts[j];for(const q of P){if((q.x===a.x&&q.y===a.y)||(q.x===b.x&&q.y===b.y))continue;if(onSeg(q,a,b)){const w2={id:uid(),pts:[{x:q.x,y:q.y}].concat(w.pts.slice(j).map(z=>({x:z.x,y:z.y})))};w.pts=w.pts.slice(0,j).map(z=>({x:z.x,y:z.y})).concat([{x:q.x,y:q.y}]);d.wires.push(w2);again=true;break outer}}}}}return d}
 function autoWire(d){// join the pins of each node with right-angle wires, nearest first
- const nets={};d.comps.forEach(c=>{if(!c._nodes)return;c._nodes.forEach((nm,i)=>{if(/^__NC_/.test(nm))return;(nets[nm]=nets[nm]||[]).push(pinPos(c,i))})});
+ const nets={};const pre=d.wires.length?buildNets(d):null;const grp=(c,i)=>pre?(pre.pinNodes.get(c.id)||[])[i]:null;d.comps.forEach(c=>{if(!c._nodes)return;c._nodes.forEach((nm,i)=>{if(/^__NC_/.test(nm))return;const q=pinPos(c,i);q.g=grp(c,i);(nets[nm]=nets[nm]||[]).push(q)})});
  const allPins=[];d.comps.forEach(c=>LIB[c.t].pins.forEach((_,i)=>allPins.push(pinPos(c,i))));
- const gPins=d.comps.filter(c=>c.t==="gnd").map(g=>pinPos(g,0));
+ const gPins=d.comps.filter(c=>c.t==="gnd").map(g=>{const q=pinPos(g,0);q.g=pre?0:null;return q});
  if(nets["0"]&&!d.comps.some(c=>c.t==="gnd")){const g0=nets["0"];const gy=Math.max(...allPins.map(q=>q.y))+40;const lo=g0.reduce((a,b)=>b.y>a.y?b:a);const g=mkComp(d,"gnd",lo.x,gy);d.comps.push(g);g0.push({x:lo.x,y:gy})}
  const hits=(a,b,mid)=>allPins.some(q=>!(q.x===a.x&&q.y===a.y)&&!(q.x===b.x&&q.y===b.y)&&(onSeg(q,a,mid)||onSeg(q,mid,b)));
- for(const nm in nets){const pts=nets[nm];const gr=nm==="0"&&gPins.length;if(pts.length<2&&!gr)continue;/* ground: every pin joins its nearest ground symbol or grounded pin, so separate blocks keep their own grounds */const inT=gr?gPins.slice():[pts[0]];const rest=gr?pts.slice():pts.slice(1);while(rest.length){let best=null;for(const a of inT)for(const b of rest){const dd=Math.abs(a.x-b.x)+Math.abs(a.y-b.y);if(!best||dd<best.d)best={a,b,d:dd}}rest.splice(rest.indexOf(best.b),1);inT.push(best.b);const {a,b}=best;
+ for(const nm in nets){const pts=nets[nm];const gr=nm==="0"&&gPins.length;if(pts.length<2&&!gr)continue;/* ground: every pin joins its nearest ground symbol or grounded pin, so separate blocks keep their own grounds */const inT=gr?gPins.slice():[pts[0]];const rest=gr?pts.slice():pts.slice(1);
+   /* pins the given wires already join count as joined: they come into the tree together */
+   const pull=()=>{for(let i=rest.length-1;i>=0;i--){const q=rest[i];if(q.g!=null&&(q.g>0||(gr&&q.g===0))&&inT.some(a=>a.g===q.g)){inT.push(q);rest.splice(i,1)}}};pull();
+   while(rest.length){let best=null;for(const a of inT)for(const b of rest){const dd=Math.abs(a.x-b.x)+Math.abs(a.y-b.y);if(!best||dd<best.d)best={a,b,d:dd}}rest.splice(rest.indexOf(best.b),1);inT.push(best.b);pull();const {a,b}=best;
    let pts2;if(a.x===b.x||a.y===b.y)pts2=[a,b];else{const m1={x:b.x,y:a.y},m2={x:a.x,y:b.y};pts2=!hits(a,b,m1)?[a,m1,b]:!hits(a,b,m2)?[a,m2,b]:[a,{x:a.x,y:Math.min(a.y,b.y)-30},{x:b.x,y:Math.min(a.y,b.y)-30},b]}
    const w={id:uid(),pts:pts2.map(q=>({x:q.x,y:q.y}))};if(cleanWire(w))d.wires.push(w)}}}
+function codePlacedWarn(d){const warn=[];const net=buildNets(d);const seen={},owner={};
+ for(const c of d.comps){if(!c._nodes)continue;const pn=net.pinNodes.get(c.id)||[];c._nodes.forEach((nm,i)=>{if(/^__NC_/.test(nm))return;const k=pn[i];const pin=(LIB[c.t].pins[i]||[])[2]||i+1;
+   if(nm==="0"){if(k!==0)warn.push(`${c.label} pin ${pin} is on node 0, but its wires do not reach a GND symbol.`);return}
+   if(k===0){warn.push(`${c.label} pin ${pin} is on node ${nm}, but its wires join it to ground.`);return}
+   if(seen[nm]==null)seen[nm]=k;else if(seen[nm]!==k)warn.push(`Node ${nm}: the wires do not join ${c.label} pin ${pin} to the rest of ${nm}.`);
+   if(owner[k]!=null&&owner[k]!==nm)warn.push(`Nodes ${owner[k]} and ${nm} are joined by the wires.`);else owner[k]=nm})}return warn}
 function buildPlaced(d,parts,xw,xg,xn,xt){const warn=[];
  for(const q of xt||[]){const c=mkComp(d,"text",q.lay.x,q.lay.y,q.p);c.r=q.lay.r||0;c.f=q.lay.f||0;d.comps.push(c)}
  for(const q of parts){const c=mkComp(d,q.t,q.lay.x,q.lay.y,q.p);c.label=q.lab||q.label;c.r=q.lay.r||0;c.f=q.lay.f||0;c._nodes=q.nodes;d.comps.push(c)}
@@ -1304,16 +1329,36 @@ function buildPlaced(d,parts,xw,xg,xn,xt){const warn=[];
    if(k===0){warn.push(`${c.label} pin ${pin} is on node ${nm}, but its wires join it to ground.`);return}
    if(seen[nm]==null)seen[nm]=k;else if(seen[nm]!==k)warn.push(`Node ${nm}: the wires do not join ${c.label} pin ${pin} to the rest of ${nm}.`);
    if(owner[k]!=null&&owner[k]!==nm)warn.push(`Nodes ${owner[k]} and ${nm} are joined by the wires.`);else owner[k]=nm})}
- if(warn.length&&xw.length&&!buildPlaced._retry){const keepC=d.comps,keepW=d.wires;d.comps=[];d.wires=[];buildPlaced._retry=true;let ok=false;try{buildPlaced(d,parts,[],xg,xn,xt);ok=!d._codeWarn.length}finally{buildPlaced._retry=false}
+ if(warn.length&&xw.length&&!buildPlaced._retry){const keepW=d.wires;
+  /* keep every W line that does not join two different nodes, then draw only the connections that are still missing */
+  const clash=ws=>{const keep=d.wires;d.wires=ws.map(w=>({id:w.id,pts:w.pts.map(p=>({x:p.x,y:p.y}))}));splitJunctions(d);const n2=buildNets(d);d.wires=keep;const own={};
+   for(const c of d.comps){if(!c._nodes)continue;const pn=n2.pinNodes.get(c.id)||[];for(let i=0;i<c._nodes.length;i++){const nm=c._nodes[i];if(/^__NC_/.test(nm))continue;const k=pn[i];if(k===0&&nm!=="0")return true;if(k>0){if(own[k]!=null&&own[k]!==nm)return true;own[k]=nm}}}return false};
+  const kept=[];let dropped=0;for(const pts of xw){const w={id:uid(),pts:pts.map(q=>({x:q.x,y:q.y}))};if(!cleanWire(w))continue;if(clash(kept.concat([w])))dropped++;else kept.push(w)}
+  /* a kept W line whose end touches neither a pin nor another wire would be left hanging: leave it out too */
+  {const pins=[];d.comps.forEach(c=>LIB[c.t].pins.forEach((_,i)=>pins.push(pinPos(c,i))));const at=(q,w)=>pins.some(p=>p.x===q.x&&p.y===q.y)||kept.some(o=>o!==w&&o.pts.some((p,i)=>(p.x===q.x&&p.y===q.y)||(i&&onSeg(q,o.pts[i-1],p))));
+   let ch=true;while(ch){ch=false;for(let i=kept.length-1;i>=0;i--){const w=kept[i],a=w.pts[0],b=w.pts[w.pts.length-1];if(!at(a,w)||!at(b,w)){kept.splice(i,1);dropped++;ch=true}}}}
+  d.wires=kept;autoWire(d);splitJunctions(d);
+  if(!codePlacedWarn(d).length){d.comps.forEach(c=>delete c._nodes);d._codeWarn=[dropped?`${dropped} of the ${xw.length} W lines did not end on the right pins and were left out; the missing connections were drawn from the nodes.`:"Some connections had no W line, so they were drawn from the nodes."];return d}
+  const keepC=d.comps;d.comps=[];d.wires=[];buildPlaced._retry=true;let ok=false;try{buildPlaced(d,parts,[],xg,xn,xt);ok=!d._codeWarn.length}finally{buildPlaced._retry=false}
   if(ok){d._codeWarn=["The W lines did not join the pins the way the nodes say, so the wires were drawn again from the nodes."];return d}d.comps=keepC;d.wires=keepW}
  d.comps.forEach(c=>delete c._nodes);d._codeWarn=[...new Set(warn)];return d}
 /* AI answers often list the positions on their own lines ("R1 @ 200 200") after the netlist: join each one to its part */
 function mergeLayoutLines(text){const L=String(text).split(/\r?\n/);const decl={};
  L.forEach((l,i)=>{const s=l.replace(/;.*$/,"").trim();if(!s||/^[*.+]/.test(s)||/^(W|GND|NET|TEXT)\b/i.test(s))return;const tk=s.split(/\s+/);if(tk[1]==="@"||tk[1]&&/^@/.test(tk[1]))return;const id=(/^PART$/i.test(tk[0])?tk[2]:tk[0]);if(id&&!(id.toUpperCase() in decl))decl[id.toUpperCase()]=i});
  const drop=new Set();L.forEach((l,i)=>{const m=l.replace(/;.*$/,"").trim().match(/^([A-Za-z_][\w]*)\s+(@[\s\S]*)$/);if(!m||/^(GND|NET|TEXT|W)$/i.test(m[1]))return;const j=decl[m[1].toUpperCase()];if(j==null||j===i||/(^|\s)@/.test(L[j].replace(/;.*$/,"")))return;L[j]=L[j].replace(/\s*;.*$/,"")+" "+m[2];drop.add(i)});
- return drop.size?L.filter((l,i)=>!drop.has(i)).join("\n"):String(text)}
+ return drop.size?L.map((l,i)=>drop.has(i)?"":l).join("\n"):String(text)}
+/* answers pasted from any AI chat: keep what is inside ``` fences, drop markdown, list bullets, // and # comments and sentences, and turn
+   typographic minus signs and spaces into plain ones. Lines are blanked, not removed, so error messages keep their line numbers. */
+function normalizeAiCode(text){let L=String(text==null?"":text).replace(/\r/g,"").split("\n");
+ if(L.some(l=>/^\s*```/.test(l))){let inF=false;L=L.map(l=>{if(/^\s*```/.test(l)){inF=!inF;return ""}return inF?l:""})}
+ return L.map(l=>{let s=l.replace(/[\u2212\u2012\u2013\u2014]/g,"-").replace(/[\u00A0\u2009\u202F\t]/g," ").replace(/[\u201C\u201D]/g,'"');
+  s=s.replace(/^\s*\/\/.*$/,"").replace(/\s\/\/.*$/,"").replace(/^\s*#.*$/,"").replace(/^\s*>\s?/,"");
+  s=s.replace(/^\s*(?:[-\u2022]\s+|\d{1,3}[.)]\s+(?=[A-Za-z]))/,"").replace(/`/g,"").replace(/\*\*/g,"");
+  const tr=s.trim();if(!tr)return "";if(/^[*.;+]/.test(tr))return s;
+  if(/:$/.test(tr))return "";if(/^[A-Z][a-z]+\s/.test(tr)&&/[.!?)]$/.test(tr)&&tr.split(/\s+/).length>4&&!/@|\bW\s|=/.test(tr))return "";
+  return s}).join("\n")}
 function stripSubckt(t){let inS=false;return String(t).split(/\r?\n/).map(l=>{if(/^\s*\.subckt\b/i.test(l)){inS=true;return "*"}if(inS){if(/^\s*\.ends\b/i.test(l))inS=false;return "*"}return l}).join("\n")}
-function parseCir(text){text=stripSubckt(mergeLayoutLines(text));const lines=text.split(/\r?\n/);const joined=[];for(const l of lines){if(/^\s*\+/.test(l)&&joined.length)joined[joined.length-1]+=" "+l.replace(/^\s*\+/,"");else joined.push(l)}
+function parseCir(text){text=stripSubckt(mergeLayoutLines(normalizeAiCode(text)));const lines=text.split(/\r?\n/);const joined=[];for(const l of lines){if(/^\s*\+/.test(l)&&joined.length)joined[joined.length-1]+=" "+l.replace(/^\s*\+/,"");else joined.push(l)}
  const models={};for(const l0 of joined){const l=l0.replace(/\s[;$].*$/,"");const m=l.match(/^\s*\.model\s+(\S+)\s+(\w+)/i);if(m)models[m[1].toLowerCase()]=m[2].toUpperCase()}
  const parts=[];const xw=[],xg=[],xn=[],xt=[];for(const raw of joined){const l0=raw.replace(/\s[;$].*$/,"").replace(/^[;$].*$/,"").trim();if(!l0||/^[*.;]/.test(l0))continue;
   if(/^W\s/i.test(l0)){const pts=[...l0.slice(2).matchAll(/(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)/g)].map(m=>({x:Math.round(+m[1]),y:Math.round(+m[2])}));if(pts.length<2)throw new Error("A wire line needs two or more points, like W 100,40 100,200");xw.push(pts);continue}
@@ -1328,10 +1373,10 @@ function parseCir(text){text=stripSubckt(mergeLayoutLines(text));const lines=tex
   else if(/^VM/i.test(id)){t="voltmeter";nodes=[tok[1],tok[2]];p.mode=/\bAC\b/i.test(l)?"AC":"DC";const ri=l.match(/\brin=(\S+)/i);if(ri)p.rin=ri[1]}
   else if(/^POT/i.test(id)){t="pot";nodes=[tok[1],tok[2],tok[3]];p.resistance=tok[4]||"10k";const wp=tok.slice(5).join(" ").match(/(\d+(?:\.\d+)?)\s*%/);if(wp)p.wiper=wp[1];const k=l.match(/\bkey=(\S+)/i);if(k)p.key=k[1]}
   else if(ty==="R"){t="res";nodes=[tok[1],tok[2]];p.resistance=tok[3]}else if(ty==="C"){t="cap";nodes=[tok[1],tok[2]];p.capacitance=tok[3]}else if(ty==="L"){t="ind";nodes=[tok[1],tok[2]];p.inductance=tok[3]}
-  else if(ty==="V"){nodes=[tok[1],tok[2]];const rest=tok.slice(3).join(" ");const s=rest.match(/sin\s*\(\s*([^\s)]+)\s+([^\s)]+)\s+([^\s)]+)/i);const pu=rest.match(/pulse\s*\(([^)]*)\)/i);if(s){t="acv";p={offset:s[1],amp:s[2],freq:s[3]}}else if(pu){const a=pu[1].trim().split(/[\s,]+/);t="clock";const per=num(a[6]),pw=num(a[5]);p={amp:a[1],freq:per>0?si(1/per,""):"1k",duty:per>0?String(Math.round(pw/per*100)):"50"};if(num(a[0]))p.low=a[0]}else{t="dcv";const dc=rest.match(/(?:dc\s+)?([-+\d.eE]+[a-zA-Zµ]*)/i);p.voltage=dc?dc[1]:"0"}}
+  else if(ty==="V"){nodes=[tok[1],tok[2]];const rest=tok.slice(3).join(" ").replace(/\(([^)]*)\)/g,(m,a)=>"("+a.replace(/,/g," ")+")");const s=rest.match(/sin(?:e)?\s*\(\s*([^\s)]+)\s+([^\s)]+)\s+([^\s)]+)/i);const acOnly=!s&&!/pulse/i.test(rest)&&rest.match(/\bAC\s+([-+\d.eE]+[a-zA-Zµ]*)/i);const pu=rest.match(/pulse\s*\(([^)]*)\)/i);if(s){t="acv";p={offset:s[1],amp:s[2],freq:s[3]}}else if(acOnly){t="acv";p={offset:"0",amp:acOnly[1],freq:"1k"}}else if(pu){const a=pu[1].trim().split(/[\s,]+/);t="clock";const per=num(a[6]),pw=num(a[5]);p={amp:a[1],freq:per>0?si(1/per,""):"1k",duty:per>0?String(Math.round(pw/per*100)):"50"};if(num(a[0]))p.low=a[0]}else{t="dcv";const dc=rest.match(/(?:dc\s+)?([-+\d.eE]+[a-zA-Zµ]*)/i);p.voltage=dc?dc[1]:"0"}}
   else if(ty==="I"){t="idc";nodes=[tok[2],tok[1]];p.current=(tok.slice(3).join(" ").match(/([-+\d.eE]+[a-zA-Zµ]*)\s*$/)||[0,"1m"])[1]}
-  else if(ty==="D"){t="diode";nodes=[tok[1],tok[2]];const mn=(tok[3]||"").toUpperCase();if(MODELS.diode[mn])p.model=mn;else if(ZENERS[mn]){t="zener";p.model=mn}else if(/LED/i.test(mn)){t="led"}}
-  else if(ty==="Q"){const mn=tok[4]||"";const pol=models[mn.toLowerCase()]||(MODELS.pnp[mn.toUpperCase()]?"PNP":"NPN");t=pol==="PNP"?"pnp":"npn";nodes=[tok[2],tok[1],tok[3]];if(MODELS[t][mn.toUpperCase()])p.model=mn.toUpperCase()}
+  else if(ty==="D"){t="diode";nodes=[tok[1],tok[2]];let mn=(tok[3]||"").toUpperCase();if(/^D\d?N\d/.test(mn)&&!MODELS.diode[mn]&&(MODELS.diode[mn.slice(1)]||ZENERS[mn.slice(1)]))mn=mn.slice(1);if(MODELS.diode[mn])p.model=mn;else if(ZENERS[mn]){t="zener";p.model=mn}else if(/LED/i.test(mn)){t="led"}}
+  else if(ty==="Q"){let mn=tok[4]||"";if(/^Q\d?N\d|^QBC\d/i.test(mn)&&!MODELS.npn[mn.toUpperCase()]&&!MODELS.pnp[mn.toUpperCase()])mn=mn.slice(1);const pol=models[mn.toLowerCase()]||(MODELS.pnp[mn.toUpperCase()]?"PNP":"NPN");t=pol==="PNP"?"pnp":"npn";nodes=[tok[2],tok[1],tok[3]];if(MODELS[t][mn.toUpperCase()])p.model=mn.toUpperCase()}
   else if(ty==="M"){const mn=tok[5]||"";const pol=models[mn.toLowerCase()]||"NMOS";t=/PMOS/.test(pol)?"pmos":"nmos";nodes=[tok[2],tok[1],tok[3]]}
   else if(ty==="X"){const mn=(tok[tok.length-1]||"");const key=Object.keys(MODELS.opamp).find(k=>k.toUpperCase()===mn.toUpperCase());if(key||/OPAMP|OP-?AMP|741|358|324|071|072|082/i.test(mn)){t="opamp";nodes=tok.slice(1,6);while(nodes.length<5)nodes.push("");if(key)p.model=key}}
   else if(ty==="E"){t="vcvs";nodes=[tok[3],tok[4],tok[1],tok[2]];p.gain=tok[5]}else if(ty==="G"){t="vccs";nodes=[tok[3],tok[4],tok[2],tok[1]];p.gm=tok[5]}
@@ -1444,6 +1489,10 @@ VEE  0    vee  DC 15            ; -15 V supply
 RL   out  0    10k
 .end
 `;
+function codePinTable(){const L1=[["R","res"],["C","cap"],["L","ind"],["V DC","dcv"],["V SIN","acv"],["V PULSE","clock"],["I","idc"],["D","diode"],["D LED","led"],["Q NPN","npn"],["Q PNP","pnp"],["M","nmos"],["XU op-amp","opamp"],["E","vcvs"],["AM","ammeter"],["VM","voltmeter"],["POT","pot"]];
+ const pin=p=>`${String(p[2]).replace("−","-")}(${p[0]},${p[1]})`;const out=L1.map(([n,t])=>`${n}: ${LIB[t].pins.map(pin).join(" ")}`);
+ for(const t of Object.keys(LIB)){if(/^(gnd|netlabel|text|wire|res|cap|ind|dcv|acv|clock|idc|diode|led|npn|pnp|nmos|opamp|vcvs|ammeter|voltmeter|pot)$/.test(t))continue;out.push(`PART ${t}: ${LIB[t].pins.map(pin).join(" ")}`)}
+ out.push("NET: its pin is at its own @ point");return out.join("\n")}
 function codePartList(){const skip=/^(gnd|netlabel|text|wire|res|cap|ind|dcv|acv|idc|diode|zener|led|npn|pnp|nmos|pmos|opamp|vcvs|ammeter|voltmeter|pot)$/;return Object.keys(LIB).filter(t=>!skip.test(t)).map(t=>{const L=LIB[t];const set=(L.fields||[]).map(f=>f[0]+"="+(L.props&&L.props[f[0]]!=null?L.props[f[0]]:"")).join(" ");return `PART ${t} ${L.prefix||"U"}1 ${(()=>{const seen={};return L.pins.map(p=>{let n=String(p[2]).replace("−","-");const bar=/[\u0305\u0304¯̅]|^\/|'$/.test(n);n=n.replace(/[^\w+-]/g,"")||"pin";if(bar||seen[n])n+="bar";seen[n]=1;return n}).join(" ")})()}${set?"  "+set:""}   ${L.name}`}).join("\n")}
 function codeModelList(){const g=(k,lab)=>MODELS[k]?lab+": "+Object.keys(MODELS[k]).join(", "):"";return [g("diode","Diodes"),"Zener diodes: "+Object.keys(ZENERS).join(", "),g("npn","NPN"),g("pnp","PNP"),g("nmos","N-MOSFET"),g("pmos","P-MOSFET"),g("njfet","N-JFET"),g("pjfet","P-JFET"),g("opamp","Op-amps"),g("comparator","Comparators"),g("reg","Regulators"),g("scr","SCR"),g("triac","TRIAC"),g("diac","DIAC"),g("opto","Optocouplers")].filter(Boolean).join("\n")}
 const CODE_PROMPT=`You are helping me enter a circuit into my simulator, CEsim Studio. I will send you a picture (or a description) of a circuit. Reply with ONLY its netlist in the format below, inside one code block, with no explanation.
@@ -1489,6 +1538,20 @@ DRAWING (always include it when I send a picture, so the drawing matches it exac
 - At the end of the SAME line as the part you may add @ x y (x to the right, y down, on a 10-unit grid, parts about 100 apart), rot=90/180/270 and flip, and label=Name to show a different label. Example: R1 n1 n2 1k @ 200 100 rot=90. Do not put the positions on separate lines.
 - If you give positions, give them to every part, add GND @ x y for each ground symbol, and draw each wire as W x1,y1 x2,y2 x3,y3 ... through its corners. Wire ends must land exactly on pins or on other wires. If you are not sure where the pins are, leave out the W lines: the simulator then draws the wires from the nodes.
 - Optional extras, each on its own line with a position: NET name @ x y (a net label), TEXT "a note" @ x y (a text note on the drawing).
+- Pin positions, so wires can end exactly on pins: each entry is pin(x,y) measured from the part's @ point with rot=0. With rot=90 a pin at (x,y) moves to (-y,x), with rot=180 to (-x,-y), with rot=270 to (y,-x); flip first turns (x,y) into (x,-y). GND has its pin at its own @ point.
+${codePinTable()}
+
+EXAMPLE WITH POSITIONS (a voltage divider; every wire end is a pin worked out from the table):
+V1 a 0 DC 10 @ 100 200
+R1 a b 1k @ 200 140
+R2 b 0 1k @ 260 200 rot=90
+GND @ 100 260
+GND @ 260 260
+W 100,170 100,140 170,140
+W 230,140 260,140 260,170
+W 100,230 100,260
+W 260,230 260,260
+.end
 
 Finish with the line .end
 
@@ -1529,7 +1592,7 @@ function circuitToCode(doc,opt){opt=opt||{};const LAY=!!opt.layout||(doc.comps.l
   if(LAY)for(const w of doc.wires)if(w.pts.length>=2)out.push("W "+w.pts.map(p=>p.x+","+p.y).join(" "));
   if(skipped.length)out.push("* Not written as code (add them on the sheet): "+skipped.join(", "));
   out.push(".end")}finally{D=keep;netCache=null}return out.join("\n")}
-function lintCode(text){text=stripSubckt(mergeLayoutLines(text));const msgs=[];const lines=text.split(/\r?\n/);const cnt={},where={},names={};let parts=0,ground=false;
+function lintCode(text){text=stripSubckt(mergeLayoutLines(normalizeAiCode(text)));const msgs=[];const lines=text.split(/\r?\n/);const cnt={},where={},names={};let parts=0,ground=false;
  const nodesOf=(L,tk)=>L==="Q"?tk.slice(1,4):L==="M"?tk.slice(1,4):L==="X"?tk.slice(1,6):L==="E"||L==="G"?tk.slice(1,5):tk.slice(1,3);
  lines.forEach((raw,i)=>{const l0=raw.replace(/;.*$/,"").trim();if(!l0||/^[*.+]/.test(l0))return;if(/^W\s/i.test(l0))return;const LY=takeLayout(l0);const l=LY.s;if(/^(GND|NET|TEXT)\b/i.test(l))return;const tk=codeTokens(l);let L=tk[0][0].toUpperCase();
   if(!/^PART$/i.test(tk[0]))for(let q=tk.length-1;q>0;q--)if(/^[A-Za-z_]\w*=/.test(tk[q]))tk.splice(q,1);
@@ -2204,7 +2267,9 @@ W 760,290 760,310
   q("#ce-count").textContent=prevOk?d.comps.filter(c=>c.t!=="gnd").length+" parts":"";q("#ce-build").disabled=!prevOk||r.msgs.some(m=>m.err);
   const pv=q("#ce-prev");if(!prevOk){pv.innerHTML='<div class="ce-empty">The preview appears when the code is valid.</div>';return}
   const keep=D;try{D=d;netCache=null;const o=renderExport({fmt:"svg",area:"all",bg:"white",grid:false,sheet:false});pv.innerHTML="";const img=new Image();img.alt="Circuit preview";img.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(o.data);pv.appendChild(img)}catch(e){pv.innerHTML='<div class="ce-empty">Preview failed: '+esc(e.message)+'</div>'}finally{D=keep;netCache=null;dirty=1}}
- ta.addEventListener("input",()=>{clearTimeout(tmr);tmr=setTimeout(update,350)});ta.addEventListener("scroll",()=>{q("#ce-ln").scrollTop=ta.scrollTop});
+ ta.addEventListener("input",()=>{clearTimeout(tmr);tmr=setTimeout(update,350)});
+ /* an answer pasted straight from an AI chat (with ``` fences and sentences around the code) is cleaned to just the code */
+ ta.addEventListener("paste",e=>{const t=(e.clipboardData||window.clipboardData).getData("text");if(!t||!/```|^[A-Z][a-z]+ [^\n]*[.:]\s*$/m.test(t))return;const c=normalizeAiCode(t).split("\n").map(l=>l.replace(/\s+$/,"")).join("\n").replace(/\n{3,}/g,"\n\n").trim();if(!c)return;e.preventDefault();const a=ta.selectionStart,b2=ta.selectionEnd;ta.value=ta.value.slice(0,a)+c+"\n"+ta.value.slice(b2);ta.selectionStart=ta.selectionEnd=a+c.length+1;ta.dispatchEvent(new Event("input"));toast("Pasted the code from the answer (text around it left out).")});ta.addEventListener("scroll",()=>{q("#ce-ln").scrollTop=ta.scrollTop});
  ta.addEventListener("keydown",e=>{e.stopPropagation();if(e.key==="Tab"){e.preventDefault();const s0=ta.selectionStart;ta.setRangeText("  ",s0,ta.selectionEnd,"end");ta.dispatchEvent(new Event("input"))}if((e.ctrlKey||e.metaKey)&&e.key==="Enter"){e.preventDefault();q("#ce-build").click()}});
  q("#ce-msg").addEventListener("click",e=>{const x=e.target.closest("[data-line]");const n=+(x&&x.dataset.line);if(!n)return;const ls=ta.value.split("\n");let pos=0;for(let i=0;i<n-1;i++)pos+=ls[i].length+1;ta.focus();ta.setSelectionRange(pos,pos+ls[n-1].length)});
  const copy=async(t,ok)=>{try{await navigator.clipboard.writeText(t);toast(ok)}catch(e){const x=document.createElement("textarea");x.value=t;document.body.appendChild(x);x.select();document.execCommand("copy");x.remove();toast(ok)}};

@@ -44,8 +44,8 @@ Get the latest build from the **Releases** page:
 
 Open it from the Studio, or in the Circuit tool with **Tools → Circuit code** (Ctrl+K).
 
-1. Press **Copy prompt for AI** and paste it into any AI chat together with a photo of your circuit.
-2. Paste the chat's answer into the editor. The preview and the error list update as you type.
+1. Press **Copy prompt for AI** and paste it into any AI chat (ChatGPT, Gemini, Claude, Copilot and others) together with a photo of your circuit. The prompt lists every part with its pin order and the position of every pin, so the chat can place parts and wires exactly as in the photo.
+2. Paste the chat's whole answer into the editor. Text around the code, ``` fences, list numbers, `//` comments and LTspice-style model names are cleaned away, and positions written on their own lines are joined to their parts. W lines that end on the wrong pins are left out and only the missing connections are drawn, so a drawing that is almost right stays as it was. The preview and the error list update as you type.
 3. Press **Build circuit**, then **Run**.
 
 The editor opens with a worked example, and **From current design** writes any open circuit back as code.
@@ -76,7 +76,7 @@ W 500,190 570,190
 
 ## Video of a running circuit
 
-In the Circuit tool press the red record button next to Stop (or **F8**). The simulation starts if it is not running, a REC timer appears, and pressing the button again saves the video. Open instrument screens, such as the oscilloscope, are recorded where they sit over the drawing. In the Breadboard tool the **Record** button (F8) records the board the same way. Videos are saved as MP4 (H.264), or as WebM where MP4 is not available, and stop by themselves after 10 minutes.
+In the Circuit tool press the red record button next to Stop (or **F8**). In the oscilloscope window, **Display → Sweep** draws each screen from left to right like a real oscilloscope, which also shows well in a video. The simulation starts if it is not running, a REC timer appears, and pressing the button again saves the video. Open instrument screens, such as the oscilloscope, are recorded where they sit over the drawing. In the Breadboard tool the **Record** button (F8) records the board the same way. Videos are saved as MP4 (H.264), or as WebM where MP4 is not available, and stop by themselves after 10 minutes.
 
 ## My parts
 
@@ -170,6 +170,7 @@ Every part in the library exports. Logic gates (AND, OR, NAND, NOR, XOR, XNOR, N
 - Registers, flags and memory bytes can be changed by clicking them. Values that changed in the last step are highlighted.
 - Error messages point to the line and explain the fix, for example when operand sizes do not match or a conditional jump is out of range.
 - **Reference** lists the supported instructions, directives, interrupts and ports.
+- The **DOS** tab is a DOS prompt with its own drive C:. It has `DIR`, `CD`, `MD`, `RD`, `TYPE`, `COPY` (also `COPY CON`), `DEL`, `REN`, `TREE`, `CLS`, `ECHO`, `DATE`, `TIME`, `VER`, `VOL`, `MEM` and batch files. `SAVE NAME.ASM` saves the program in the editor there, `ASM NAME.ASM` assembles it to `NAME.COM` or `NAME.EXE`, typing `NAME` runs it on the same screen (with keyboard input and a command tail), and `EDIT NAME.ASM` opens a file in the editor. The examples are in `C:\EXAMPLES`, and `FORMAT C:` puts them back.
 
 ## Arduino
 
