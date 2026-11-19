@@ -1,0 +1,40 @@
+name: Web version
+on:
+  push:
+    branches: [main]
+    paths: ['app/**', '.github/workflows/pages.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: true
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the web version
+        run: |
+          mkdir -p _site
+          cp -r app/* _site/
+          rm -f _site/main.js _site/preload.js _site/package.json
+          touch _site/.nojekyll
+          cat > _site/manifest.webmanifest <<'JSON'
+          {"name":"CEsim Studio","short_name":"CEsim","start_url":"studio.html","display":"standalone","background_color":"#0f141a","theme_color":"#0f141a","icons":[{"src":"icon.png","sizes":"512x512","type":"image/png"}]}
+          JSON
+          printf '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=studio.html"><title>CEsim Studio</title></head><body><a href="studio.html">Open CEsim Studio</a></body></html>\n' > _site/index.html
+          for f in _site/*.html; do sed -i 's#<meta name="viewport"#<link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="icon.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="viewport"#' "$f"; done
+      - uses: actions/configure-pages@v5
+        with:
+          enablement: true
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deploy
+        uses: actions/deploy-pages@v4
