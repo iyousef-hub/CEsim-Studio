@@ -52,7 +52,7 @@ const INFO={char:{b:8,s:1,sz:1},u8:{b:8,s:0,sz:1},int:{b:16,s:1,sz:2},uint:{b:16
 const isInt=t=>typeof t==='string'&&INFO[t]&&t!=='float';
 const isNum=t=>typeof t==='string'&&!!INFO[t];
 const isArr=t=>t&&typeof t==='object'&&t.arr;
-const TNAME={char:'char',u8:'byte',int:'int',uint:'unsigned int',long:'long',ulong:'unsigned long',bool:'bool',float:'float',String:'String',cstr:'text',void:'void',Servo:'Servo',LCD:'LiquidCrystal'};
+const TNAME={char:'char',u8:'byte',int:'int',uint:'unsigned int',long:'long',ulong:'unsigned long',bool:'bool',float:'float',String:'String',cstr:'text',void:'void',Servo:'Servo',LCD:'LiquidCrystal',OLED:'Adafruit_SSD1306'};
 const tname=t=>isArr(t)?tname(t.el)+'[]':TNAME[t]||String(t);
 function promote(t){return t==='char'||t==='u8'||t==='bool'?'int':t}
 function common(a,b){if(a==='float'||b==='float')return'float';a=promote(a);b=promote(b);if(a===b)return a;const A=INFO[a],B=INFO[b];if(A.b!==B.b)return A.b>B.b?a:b;return A.s?b:a}
@@ -60,7 +60,7 @@ function wrap(t,c){switch(t){case'char':return`((${c})<<24>>24)`;case'u8':return
 function fits(f,t){if(f===t)return true;if(f==='bool')return isInt(t);const F=INFO[f],T=INFO[t];if(!F||!T||t==='float'||f==='float')return false;return F.b<T.b&&(T.s||!F.s)}
 
 /* ---------------- parser ---------------- */
-const TYPEKW=new Set(['void','int','char','long','short','unsigned','signed','float','double','bool','boolean','byte','word','String','uint8_t','int8_t','uint16_t','int16_t','uint32_t','int32_t','uint64_t','int64_t','size_t','const','static','volatile','Servo','LiquidCrystal','LiquidCrystal_I2C','unsigned_long','inline','constexpr']);
+const TYPEKW=new Set(['void','int','char','long','short','unsigned','signed','float','double','bool','boolean','byte','word','String','uint8_t','int8_t','uint16_t','int16_t','uint32_t','int32_t','uint64_t','int64_t','size_t','const','static','volatile','Servo','LiquidCrystal','LiquidCrystal_I2C','Adafruit_SSD1306','unsigned_long','inline','constexpr']);
 function Parser(toks){this.t=toks;this.p=0;this.enums=new Set();this.warns=[]}
 const P=Parser.prototype;
 P.peek=function(k){return this.t[this.p+(k||0)]};
@@ -77,10 +77,10 @@ P.type=function(){const st=this.peek().line;let sg=null,len=0,base=null,cnst=fal
  for(;;){const x=this.peek();if(x.t!=='id')break;const v=x.v;
   if(v==='const'||v==='constexpr'){cnst=true}else if(v==='static'){stat=true}else if(v==='volatile'||v==='inline'){}
   else if(v==='unsigned'){sg='u'}else if(v==='signed'){sg='s'}else if(v==='long'){len++}else if(v==='short'){base=base||'short'}
-  else if(['void','int','char','float','double','bool','boolean','byte','word','String','uint8_t','int8_t','uint16_t','int16_t','uint32_t','int32_t','uint64_t','int64_t','size_t','Servo','LiquidCrystal','LiquidCrystal_I2C'].includes(v)){if(base&&base!=='short'||(base==='short'&&v!=='int'))break;base=v}
+  else if(['void','int','char','float','double','bool','boolean','byte','word','String','uint8_t','int8_t','uint16_t','int16_t','uint32_t','int32_t','uint64_t','int64_t','size_t','Servo','LiquidCrystal','LiquidCrystal_I2C','Adafruit_SSD1306'].includes(v)){if(base&&base!=='short'||(base==='short'&&v!=='int'))break;base=v}
   else break;this.p++;any=true}
  if(!any)return null;let t;
- if(base==='float'||base==='double')t='float';else if(base==='void')t='void';else if(base==='bool'||base==='boolean')t='bool';else if(base==='String')t='String';else if(base==='Servo')t='Servo';else if(base==='LiquidCrystal'||base==='LiquidCrystal_I2C')t='LCD';
+ if(base==='float'||base==='double')t='float';else if(base==='void')t='void';else if(base==='bool'||base==='boolean')t='bool';else if(base==='String')t='String';else if(base==='Servo')t='Servo';else if(base==='LiquidCrystal'||base==='LiquidCrystal_I2C')t='LCD';else if(base==='Adafruit_SSD1306')t='OLED';
  else if(base==='byte'||base==='uint8_t')t='u8';else if(base==='int8_t')t='char';else if(base==='word'||base==='uint16_t')t='uint';else if(base==='int16_t'||base==='short')t=sg==='u'?'uint':'int';else if(base==='uint32_t'||base==='uint64_t')t='ulong';else if(base==='int32_t'||base==='int64_t')t='long';else if(base==='size_t')t='uint';
  else if(base==='char')t=sg==='u'?'u8':'char';else if(len)t=sg==='u'?'ulong':'long';else t=sg==='u'?'uint':'int';
  if(base==='LiquidCrystal_I2C')this.i2c=true;
@@ -95,7 +95,7 @@ P.program=function(){const items=[];while(this.peek().t!=='eof'){
   if(this.is('using')||this.is('namespace')){while(!this.is(';')&&this.peek().t!=='eof')this.p++;this.eat(';');continue}
   const ty=this.type();if(!ty){const x=this.peek();if(x.t==='id'&&this.is('(',1))fail(`'${x.v}' needs a return type, for example: void ${x.v}()`,x.line);fail(`Expected a declaration but found '${x.v}'${x.t==='id'?'. Is the type spelled correctly?':''}`,x.line)}
   const nameTok=this.peek();const name=this.ident('a name');
-  if(this.is('(')&&!(ty.t==='Servo'||ty.t==='LCD')){this.p++;const params=this.params();if(this.eat(';')){items.push({k:'proto',name,ret:ty.t,params,line:nameTok.line});continue}const body=this.block();items.push({k:'func',name,ret:ty.t,params,body,line:nameTok.line,end:this.t[this.p-1].line});continue}
+  if(this.is('(')&&!(ty.t==='Servo'||ty.t==='LCD'||ty.t==='OLED')){this.p++;const params=this.params();if(this.eat(';')){items.push({k:'proto',name,ret:ty.t,params,line:nameTok.line});continue}const body=this.block();items.push({k:'func',name,ret:ty.t,params,body,line:nameTok.line,end:this.t[this.p-1].line});continue}
   this.p--;items.push(this.declRest(ty));}
  return items};
 P.enumDecl=function(){const line=this.next().line;if(this.peek().t==='id')this.p++;this.expect('{');const vals=[];while(!this.is('}')){const n=this.ident('an enum name');let e=null;if(this.eat('='))e=this.expr(true);vals.push({name:n,e});this.enums.add(n);if(!this.eat(','))break}this.expect('}');if(this.peek().t==='id'){while(!this.is(';'))this.p++}this.expect(';');return{k:'enum',vals,line}};
@@ -159,7 +159,7 @@ P.primary=function(){const x=this.next();
  fail(`Unexpected '${x.v}'`,x.line)};
 
 /* ---------------- code generator ---------------- */
-const CONSTS={HIGH:[1,'int'],LOW:[0,'int'],INPUT:[0,'int'],OUTPUT:[1,'int'],INPUT_PULLUP:[2,'int'],LED_BUILTIN:[13,'int'],A0:[14,'int'],A1:[15,'int'],A2:[16,'int'],A3:[17,'int'],A4:[18,'int'],A5:[19,'int'],DEC:[10,'int'],HEX:[16,'int'],BIN:[2,'int'],OCT:[8,'int'],PI:[Math.PI,'float'],HALF_PI:[Math.PI/2,'float'],TWO_PI:[Math.PI*2,'float'],DEG_TO_RAD:[Math.PI/180,'float'],RAD_TO_DEG:[180/Math.PI,'float'],EULER:[Math.E,'float'],CHANGE:[1,'int'],FALLING:[2,'int'],RISING:[3,'int'],LSBFIRST:[0,'int'],MSBFIRST:[1,'int'],NULL:[0,'int'],SERIAL:[0,'int'],DISPLAY:[1,'int']};
+const CONSTS={WHITE:[1,'int'],BLACK:[0,'int'],INVERSE:[2,'int'],SSD1306_WHITE:[1,'int'],SSD1306_BLACK:[0,'int'],SSD1306_INVERSE:[2,'int'],SSD1306_SWITCHCAPVCC:[2,'int'],SSD1306_EXTERNALVCC:[1,'int'],HIGH:[1,'int'],LOW:[0,'int'],INPUT:[0,'int'],OUTPUT:[1,'int'],INPUT_PULLUP:[2,'int'],LED_BUILTIN:[13,'int'],A0:[14,'int'],A1:[15,'int'],A2:[16,'int'],A3:[17,'int'],A4:[18,'int'],A5:[19,'int'],DEC:[10,'int'],HEX:[16,'int'],BIN:[2,'int'],OCT:[8,'int'],PI:[Math.PI,'float'],HALF_PI:[Math.PI/2,'float'],TWO_PI:[Math.PI*2,'float'],DEG_TO_RAD:[Math.PI/180,'float'],RAD_TO_DEG:[180/Math.PI,'float'],EULER:[Math.E,'float'],CHANGE:[1,'int'],FALLING:[2,'int'],RISING:[3,'int'],LSBFIRST:[0,'int'],MSBFIRST:[1,'int'],NULL:[0,'int'],SERIAL:[0,'int'],DISPLAY:[1,'int']};
 const PWM=new Set([3,5,6,9,10,11]);
 function Gen(items,includes,warns){this.items=items;this.out=[];this.scopes=[new Map()];this.funcs=new Map();this.tmp=0;this.warns=warns;this.includes=includes;this.statics=[];this.loopDepth=0;this.switchDepth=0}
 const G=Gen.prototype;
@@ -170,7 +170,7 @@ G.conv=function(e,to,line,what){const f=e.type;if(to==='void')return e.code;
  if(isArr(to)){if(!isArr(f)&&!(f==='cstr'&&to.el==='char'))fail(`Expected an array for ${what||'this value'}, not ${tname(f)}`,line);return e.code}
  if(to==='String'){if(f==='String'||f==='cstr')return e.code;if(isArr(f)&&f.el==='char')return`RT.cs(${e.code})`;if(f==='char')return`String.fromCharCode(${e.code}&255)`;if(isNum(f))return`RT.fmt(${e.code},'${f}')`;fail(`Cannot turn ${tname(f)} into a String`,line)}
  if(to==='cstr'){if(f==='cstr'||f==='String')return e.code;if(isArr(f)&&f.el==='char')return`RT.cs(${e.code})`;fail(`Expected text for ${what||'this value'}, not ${tname(f)}`,line)}
- if(to==='Servo'||to==='LCD'){if(f!==to)fail(`Expected a ${tname(to)}`,line);return e.code}
+ if(to==='Servo'||to==='LCD'||to==='OLED'){if(f!==to)fail(`Expected a ${tname(to)}`,line);return e.code}
  if(isNum(to)){if(f==='void')fail(`${what?what[0].toUpperCase()+what.slice(1):'This'} uses a function that returns nothing (void)`,line);
   if(f==='String'||f==='cstr'||isArr(f))fail(`Cannot use ${f==='cstr'?'text':tname(f)} as a number${what?' for '+what:''}${f==='String'?'. Use .toInt()':''}`,line);
   if(isNum(f)&&fits(f,to))return e.code;
@@ -328,6 +328,19 @@ G.method=function(obj,m,e,ae){const l=e.line;const R=(code,type)=>({code,type});
   case'c_str':this.args(e,0,0,'c_str');return R(S,'cstr');
   case'isEmpty':return R(`((${S}).length?0:1)`,'bool');
   }fail(`String.${m}() is not supported`,l)}
+ if(obj.type==='OLED'){const O=obj.code;const A=(a,b,nm)=>this.args(e,a,b,nm).map(x=>this.num(x,l));switch(m){
+  case'begin':return R(`${O}.begin()`,'bool');case'display':return R(`${O}.show()`,'void');case'clearDisplay':return R(`${O}.clear()`,'void');
+  case'setTextSize':{const a=A(1,2,'setTextSize');return R(`${O}.ts=Math.max(1,(${a[0]})|0)`,'void')}case'setTextColor':{const a=A(1,2,'setTextColor');return R(`${O}.tc=(${a[0]})?1:0`,'void')}
+  case'setCursor':{const a=A(2,2,'setCursor');return R(`${O}.setCursor(${a[0]},${a[1]})`,'void')}case'setRotation':case'cp437':case'dim':case'setTextWrap':case'startscrollright':case'startscrollleft':case'stopscroll':this.args(e,0,4,m);return R('0','void');
+  case'invertDisplay':{const a=A(1,1,'invertDisplay');return R(`${O}.inv=(${a[0]})?1:0`,'void')}case'width':return R('128','int');case'height':return R(`${O}.h`,'int');
+  case'drawPixel':{const a=A(3,3,'drawPixel');return R(`${O}.px(${a.join(',')})`,'void')}case'drawLine':{const a=A(5,5,'drawLine');return R(`${O}.line(${a.join(',')})`,'void')}
+  case'drawFastHLine':{const a=A(4,4,m);return R(`${O}.line(${a[0]},${a[1]},(${a[0]})+(${a[2]})-1,${a[1]},${a[3]})`,'void')}case'drawFastVLine':{const a=A(4,4,m);return R(`${O}.line(${a[0]},${a[1]},${a[0]},(${a[1]})+(${a[2]})-1,${a[3]})`,'void')}
+  case'drawRect':case'fillRect':case'drawRoundRect':case'fillRoundRect':{const a=A(5,6,m);return R(`${O}.rect(${a[0]},${a[1]},${a[2]},${a[3]},${a[a.length-1]},${/fill/.test(m)?1:0})`,'void')}
+  case'drawCircle':case'fillCircle':{const a=A(4,4,m);return R(`${O}.circ(${a.join(',')},${m==='fillCircle'?1:0})`,'void')}
+  case'drawTriangle':case'fillTriangle':{const a=A(7,7,m);return R(`${O}.tri(${a.join(',')},${m==='fillTriangle'?1:0})`,'void')}
+  case'print':return R(`${O}.print(${this.printArgs(e,l,'display.print')})`,'uint');case'println':return R(`${O}.print((${e.args.length?this.printArgs(e,l,'display.println'):"''"})+'\\n')`,'uint');
+  case'write':{const[a]=this.args(e,1,1,'display.write');return R(`${O}.print(String.fromCharCode((${a.code})&255))`,'uint')}
+  }fail(`display.${m}() is not supported`,l)}
  if(obj.type==='Servo'){const O=obj.code;switch(m){
   case'attach':{const a=this.args(e,1,3,'attach');return R(`${O}.attach(${a[0].code},${l})`,'uint')}
   case'write':{const[a]=this.args(e,1,1,'write');return R(`${O}.write(${this.num(a,l)})`,'void')}
@@ -359,6 +372,7 @@ G.constVal=function(e,line,what){const r=this.expr(e);if(r.k!=='const'||!isInt(r
 G.decl=function(d,global){const ty=d.ty;const out=[];
  for(const it of d.items){const line=it.line;let t=ty.t;
   if(t==='void')fail(`'${it.name}' cannot be void`,line);
+  if(t==='OLED'){if(it.dims.length)fail('Arrays of objects are not supported',line);const js=(global?'g_':'v_')+it.name;this.declare(it.name,{kind:'var',type:t,js,cnst:true},line);out.push(`${js}=RT.newOLED(${JSON.stringify(it.name)})`);continue}
   if(t==='Servo'||t==='LCD'){if(it.dims.length)fail('Arrays of objects are not supported',line);const js=(global?'g_':'v_')+it.name;this.declare(it.name,{kind:'var',type:t,js,cnst:true},line);
    if(t==='Servo')out.push(`${js}=RT.newServo(${JSON.stringify(it.name)})`);else{const a=(it.ctor||[]).map(x=>this.expr(x).code);out.push(`${js}=RT.newLCD(${JSON.stringify(it.name)},[${a.join(',')}],${this.i2c?1:0})`)}continue}
   if(it.ctor){if(it.ctor.length!==1)fail(`'${it.name}' takes one value in ( )`,line);it.init=it.ctor[0]}
@@ -410,7 +424,7 @@ G.program=function(){const out=[];const globals=[];
  for(const n of['setup','loop']){const f=this.funcs.get(n);if(f.params.length)fail(`${n}() must not take any values`,f.line)}
  const gnames=[...this.scopes[0]].filter(([k,v])=>v.kind==='var').map(([k,v])=>({name:k,js:v.js,type:v.type}));
  const gvars=gnames.map(g=>g.js).concat(this.statics.map(s=>s.split('=')[0]));
- const watch=`function watch(){return[${gnames.map(g=>`[${JSON.stringify(g.name)},${JSON.stringify(tname(g.type))},${g.type==='Servo'||g.type==='LCD'?'null':g.js}]`).join(',')}]}`;
+ const watch=`function watch(){return[${gnames.map(g=>`[${JSON.stringify(g.name)},${JSON.stringify(tname(g.type))},${g.type==='Servo'||g.type==='LCD'||g.type==='OLED'?'null':g.js}]`).join(',')}]}`;
  const ginitTemps=[];for(let i=0;i<gtmp;i++)ginitTemps.push('_t'+i);
  const code=`"use strict";\n${gvars.length?'let '+gvars.join(',')+';':''}\n${this.statics.length?this.statics.map(s=>s+';').join('\n'):''}\nfunction* init(){${ginitTemps.length?'let '+ginitTemps.join(',')+';':''}\n${ginit.join('\n')}\n}\n${fns.join('\n')}\n${watch}\nreturn{init,setup:f_setup,loop:f_loop,watch};`;
  return code};
@@ -419,7 +433,7 @@ function compile(src){
  const warns=[];
  try{const toks=lex(String(src));const pp=preprocess(toks);const ps=new Parser(pp.toks);const items=ps.program();const g=new Gen(items,pp.includes,warns);g.i2c=!!ps.i2c;const code=g.program();
   let factory;try{factory=new Function('RT',code)}catch(e){return{ok:false,errors:[{line:0,msg:'Internal compiler error: '+e.message}],warnings:warns,code}}
-  const libs=pp.includes.map(i=>i.name);const known=['Servo.h','LiquidCrystal.h','LiquidCrystal_I2C.h','Wire.h','Arduino.h','SPI.h','math.h','stdlib.h','string.h','avr/io.h','avr/interrupt.h'];
+  const libs=pp.includes.map(i=>i.name);const known=['Servo.h','LiquidCrystal.h','LiquidCrystal_I2C.h','Adafruit_SSD1306.h','Adafruit_GFX.h','Wire.h','Arduino.h','SPI.h','math.h','stdlib.h','string.h','avr/io.h','avr/interrupt.h'];
   for(const i of pp.includes)if(!known.includes(i.name))warns.push({line:i.line,msg:`The library ${i.name} is not simulated. Its functions will not be available`});
   return{ok:true,errors:[],warnings:warns,code,factory,includes:libs}}
  catch(e){if(e instanceof CErr)return{ok:false,errors:[{line:e.line,msg:e.message}],warnings:warns};throw e}}
@@ -506,6 +520,17 @@ class Sim{
   scroll(d){this.shift+=d;this.sim.emit('lcd')},
   cmd(c){if(c==='init'){this.clear();this.on=true}if(c==='backlight')this.light=true;if(c==='noBacklight')this.light=false;if(c==='display')this.on=true;if(c==='noDisplay')this.on=false;this.sim.emit('lcd')},
   text(){const out=[];for(let r=0;r<this.rows;r++){let s='';for(let c=0;c<this.cols;c++){const k=c-this.shift;s+=k>=0&&k<40?this.buf[r][k]:' '}out.push(s)}return out}};L.clear();this.us-=1600;this.lcds.push(L);return L}
+ /* 128 x 64 monochrome OLED: drawing goes to a back buffer; display() shows it */
+ newOLED(name){const W=128,H=64;const O={name,h:H,buf:new Uint8Array(W*H),shown:new Uint8Array(W*H),txt:[],txtShown:[],cx:0,cy:0,ts:1,tc:1,inv:0,on:false,sim:this,
+  begin(){this.on=true;this.sim.us+=20000;return 1},clear(){this.buf.fill(0);this.txt=[];this.cx=0;this.cy=0},show(){this.shown=this.buf.slice();this.txtShown=this.txt.slice();this.sim.us+=2500;this.sim.emit('oled')},
+  setCursor(x,y){this.cx=x|0;this.cy=y|0},px(x,y,c){x|=0;y|=0;if(x<0||y<0||x>=W||y>=H)return;if(c===2)this.buf[y*W+x]^=1;else this.buf[y*W+x]=c?1:0},
+  line(x0,y0,x1,y1,c){x0|=0;y0|=0;x1|=0;y1|=0;const dx=Math.abs(x1-x0),sx=x0<x1?1:-1,dy=-Math.abs(y1-y0),sy=y0<y1?1:-1;let er=dx+dy;for(let k=0;k<4096;k++){this.px(x0,y0,c);if(x0===x1&&y0===y1)break;const e2=2*er;if(e2>=dy){er+=dy;x0+=sx}if(e2<=dx){er+=dx;y0+=sy}}},
+  rect(x,y,w,h,c,f){if(f){for(let j=0;j<h;j++)for(let i=0;i<w;i++)this.px(x+i,y+j,c)}else{this.line(x,y,x+w-1,y,c);this.line(x,y+h-1,x+w-1,y+h-1,c);this.line(x,y,x,y+h-1,c);this.line(x+w-1,y,x+w-1,y+h-1,c)}},
+  circ(x0,y0,r,c,f){for(let y=-r;y<=r;y++)for(let x=-r;x<=r;x++){const d=x*x+y*y;if(f?d<=r*r+r:Math.abs(Math.sqrt(d)-r)<0.5)this.px(x0+x,y0+y,c)}},
+  tri(x0,y0,x1,y1,x2,y2,c,f){this.line(x0,y0,x1,y1,c);this.line(x1,y1,x2,y2,c);this.line(x2,y2,x0,y0,c);if(f){const mnx=Math.min(x0,x1,x2),mxx=Math.max(x0,x1,x2),mny=Math.min(y0,y1,y2),mxy=Math.max(y0,y1,y2);const s=(ax,ay,bx,by,px,py)=>(bx-ax)*(py-ay)-(by-ay)*(px-ax);for(let y=mny;y<=mxy;y++)for(let x=mnx;x<=mxx;x++){const a=s(x0,y0,x1,y1,x,y),b=s(x1,y1,x2,y2,x,y),d=s(x2,y2,x0,y0,x,y);if((a>=0&&b>=0&&d>=0)||(a<=0&&b<=0&&d<=0))this.px(x,y,c)}}},
+  /* text is kept as runs of characters, 6 x 8 pixels per character at size 1 */
+  print(s){s=String(s);let run='';const flush=()=>{if(run){this.txt.push({x:this.cx-run.length*6*this.ts,y:this.cy,s:run,z:this.ts,c:this.tc});run=''}};for(const ch of s){if(ch==='\n'){flush();this.cx=0;this.cy+=8*this.ts;continue}if(ch==='\r')continue;if(this.cx+6*this.ts>W){flush();this.cx=0;this.cy+=8*this.ts}run+=ch;this.cx+=6*this.ts}flush();this.sim.us+=20*s.length;return s.length}};
+  this.oleds=this.oleds||[];this.oleds.push(O);return O}
  warn(l,m){if(this.events.some(e=>e.msg===m))return;this.events.push({line:l,msg:m});this.emit('warn')}
  emit(k){this.dirty=true}
  watch(){try{return this.m.watch()}catch(e){return[]}}

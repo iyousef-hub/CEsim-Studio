@@ -110,6 +110,12 @@ The Circuit tool has three analyses under **Simulate → Analyses**. Each one pl
 
 The Breadboard tool has an **Arduino Uno board**. Wire its header pins (D0–D13, A0–A5, 5V, 3.3V, GND) to the breadboard, select the board, write or pick a sketch and press **Upload**. While the simulation runs, outputs drive the circuit at 5 V through 25 Ω, analogWrite gives the PWM average, INPUT_PULLUP adds 20 kΩ to 5 V, digitalRead and analogRead read the real node voltage, and the Serial Monitor shows the sketch output. Examples: blink, traffic light, fade, button, pot on A0 and a night light, and two ready boards under Examples.
 
+## More boards and modules on the breadboard
+
+Next to the Uno, the Breadboard tool has an **ESP32 DevKit** and a **Raspberry Pi Pico**. They run 3.3 V logic and read analog inputs as 0 to 4095; the sketch uses the board's own pin numbers (A0, LED_BUILTIN and SDA/SCL are set for each board).
+
+Modules: a **DC motor** that spins with speed and rpm, a **servo** driven by the Servo library, a **28BYJ-48 stepper** on a ULN2003 driver, a **relay module** that clicks, an **I2C LCD 16×2** (LiquidCrystal_I2C), a **128×64 I2C OLED** (Adafruit_SSD1306: text, pixels, lines, rectangles, circles, triangles), an **HC-SR04 distance sensor** read with pulseIn, an **LM35 / TMP36 temperature sensor** and a **buzzer** that really sounds (Sound button). Each board has examples for every module.
+
 ## DOS machine
 
 The **DOS machine** tab of the 8086 tool boots a full emulated PC with DOS. Drive C has the files of the DOS tab, and **Run editor program** assembles the program in the editor and copies it to drive C as a .COM file. Click the screen and type.
@@ -284,7 +290,7 @@ The DOS machine uses the js-dos emulators package (DOSBox compiled to WebAssembl
 
 ### بالعربي
 
-**CEsim Studio** برنامج سطح مكتب فيه محاكي دوائر، ولوحة تجارب Breadboard تشتغل مباشرة، وتصميم لوحات PCB مع تصدير ملفات التصنيع، وتصميم شرائح VLSI بترانزستورات CMOS، ومحاكي دوائر رقمية وأدوات الجبر البولياني، ومحاكي Verilog مع عارض الإشارات، ومحاكي معمارية MIPS وRISC-V مع مسار البيانات والـ Pipeline، ومحاكي 8086 بلغة التجميع، ومحاكي Arduino بقطع افتراضية، وأداة رسم مخططات، وتصميم ثلاثي الأبعاد بقياسات حقيقية، وأداة تحول صورة الدائرة إلى دائرة قابلة للمحاكاة عن طريق ذكاء اصطناعي يشتغل على جهازك (Ollama). ويقدر يسجّل فيديو للدائرة وهي تشتغل، وفيه Bode Plotter وIV Analyzer وDC Sweep مع رسم النتائج وجداولها، وMonte Carlo، ومولد كلمات ومحلل منطقي، وحاسبات تصميم تبني الدائرة لك، ومولد تقارير معامل Word وPDF، ووضع الأعطال للمعلم، واختبارات، ولوحة Arduino Uno على البريدبورد، وجهاز DOS كامل، وتصدير المخطط إلى .asc و.kicad_sch، ووضع "اشرح لي"، وحركة التيار على الأسلاك، والحل اليدوي بطريقة جهود العقد، وسجل النسخ، ومكتبة 144 دائرة، والواجبات اللي تنصحح تلقائيًا، والكفاءة، وتقدر تبني قطعك الخاصة من دائرة صغيرة ويتأكد منها البرنامج ويكتب جنبها Verified.
+**CEsim Studio** برنامج سطح مكتب فيه محاكي دوائر، ولوحة تجارب Breadboard تشتغل مباشرة، وتصميم لوحات PCB مع تصدير ملفات التصنيع، وتصميم شرائح VLSI بترانزستورات CMOS، ومحاكي دوائر رقمية وأدوات الجبر البولياني، ومحاكي Verilog مع عارض الإشارات، ومحاكي معمارية MIPS وRISC-V مع مسار البيانات والـ Pipeline، ومحاكي 8086 بلغة التجميع، ومحاكي Arduino بقطع افتراضية، وأداة رسم مخططات، وتصميم ثلاثي الأبعاد بقياسات حقيقية، وأداة تحول صورة الدائرة إلى دائرة قابلة للمحاكاة عن طريق ذكاء اصطناعي يشتغل على جهازك (Ollama). ويقدر يسجّل فيديو للدائرة وهي تشتغل، وفيه Bode Plotter وIV Analyzer وDC Sweep مع رسم النتائج وجداولها، وMonte Carlo، ومولد كلمات ومحلل منطقي، وحاسبات تصميم تبني الدائرة لك، ومولد تقارير معامل Word وPDF، ووضع الأعطال للمعلم، واختبارات، ولوحة Arduino Uno على البريدبورد، وجهاز DOS كامل، وتصدير المخطط إلى .asc و.kicad_sch، ووضع "اشرح لي"، وحركة التيار على الأسلاك، والحل اليدوي بطريقة جهود العقد، وسجل النسخ، ومكتبة 144 دائرة، والواجبات اللي تنصحح تلقائيًا، والكفاءة، ولوحات ESP32 وPico مع محركات وشاشات وحساسات وصوت على البريدبورد، وتقدر تبني قطعك الخاصة من دائرة صغيرة ويتأكد منها البرنامج ويكتب جنبها Verified.
 النسخ متوفرة للماك (Apple Silicon) والويندوز واللينكس من صفحة **Releases**.
 
 BY. YOUSEF A.ALGHAMDI
