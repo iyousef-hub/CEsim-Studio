@@ -116,6 +116,13 @@ Next to the Uno, the Breadboard tool has an **ESP32 DevKit** and a **Raspberry P
 
 Modules: a **DC motor** that spins with speed and rpm, a **servo** driven by the Servo library, a **28BYJ-48 stepper** on a ULN2003 driver, a **relay module** that clicks, an **I2C LCD 16×2** (LiquidCrystal_I2C), a **128×64 I2C OLED** (Adafruit_SSD1306: text, pixels, lines, rectangles, circles, triangles), an **HC-SR04 distance sensor** read with pulseIn, an **LM35 / TMP36 temperature sensor** and a **buzzer** that really sounds (Sound button). Each board has examples for every module.
 
+## Web version, share links and teamwork
+
+- **Web version:** the tools also run in a web browser at https://iyousef-hub.github.io/CEsim-Studio/ with nothing to install, including on an iPad. On an iPad, Share → Add to Home Screen gives it its own icon.
+- **Touch and pen:** one finger or the pen works like the mouse; two fingers pan and pinch to zoom; a long press or a double tap opens a part's properties.
+- **Share link (File menu):** a link that carries the whole circuit or breadboard and opens it in a web browser.
+- **Merge changes from a copy (Circuit, File menu):** when classmates work on copies of the same design, bring in the parts and wires one of them added, changed or removed, ticking what to keep.
+
 ## DOS machine
 
 The **DOS machine** tab of the 8086 tool boots a full emulated PC with DOS. Drive C has the files of the DOS tab, and **Run editor program** assembles the program in the editor and copies it to drive C as a .COM file. Click the screen and type.
@@ -290,7 +297,7 @@ The DOS machine uses the js-dos emulators package (DOSBox compiled to WebAssembl
 
 ### بالعربي
 
-**CEsim Studio** برنامج سطح مكتب فيه محاكي دوائر، ولوحة تجارب Breadboard تشتغل مباشرة، وتصميم لوحات PCB مع تصدير ملفات التصنيع، وتصميم شرائح VLSI بترانزستورات CMOS، ومحاكي دوائر رقمية وأدوات الجبر البولياني، ومحاكي Verilog مع عارض الإشارات، ومحاكي معمارية MIPS وRISC-V مع مسار البيانات والـ Pipeline، ومحاكي 8086 بلغة التجميع، ومحاكي Arduino بقطع افتراضية، وأداة رسم مخططات، وتصميم ثلاثي الأبعاد بقياسات حقيقية، وأداة تحول صورة الدائرة إلى دائرة قابلة للمحاكاة عن طريق ذكاء اصطناعي يشتغل على جهازك (Ollama). ويقدر يسجّل فيديو للدائرة وهي تشتغل، وفيه Bode Plotter وIV Analyzer وDC Sweep مع رسم النتائج وجداولها، وMonte Carlo، ومولد كلمات ومحلل منطقي، وحاسبات تصميم تبني الدائرة لك، ومولد تقارير معامل Word وPDF، ووضع الأعطال للمعلم، واختبارات، ولوحة Arduino Uno على البريدبورد، وجهاز DOS كامل، وتصدير المخطط إلى .asc و.kicad_sch، ووضع "اشرح لي"، وحركة التيار على الأسلاك، والحل اليدوي بطريقة جهود العقد، وسجل النسخ، ومكتبة 144 دائرة، والواجبات اللي تنصحح تلقائيًا، والكفاءة، ولوحات ESP32 وPico مع محركات وشاشات وحساسات وصوت على البريدبورد، وتقدر تبني قطعك الخاصة من دائرة صغيرة ويتأكد منها البرنامج ويكتب جنبها Verified.
+**CEsim Studio** برنامج سطح مكتب فيه محاكي دوائر، ولوحة تجارب Breadboard تشتغل مباشرة، وتصميم لوحات PCB مع تصدير ملفات التصنيع، وتصميم شرائح VLSI بترانزستورات CMOS، ومحاكي دوائر رقمية وأدوات الجبر البولياني، ومحاكي Verilog مع عارض الإشارات، ومحاكي معمارية MIPS وRISC-V مع مسار البيانات والـ Pipeline، ومحاكي 8086 بلغة التجميع، ومحاكي Arduino بقطع افتراضية، وأداة رسم مخططات، وتصميم ثلاثي الأبعاد بقياسات حقيقية، وأداة تحول صورة الدائرة إلى دائرة قابلة للمحاكاة عن طريق ذكاء اصطناعي يشتغل على جهازك (Ollama). ويقدر يسجّل فيديو للدائرة وهي تشتغل، وفيه Bode Plotter وIV Analyzer وDC Sweep مع رسم النتائج وجداولها، وMonte Carlo، ومولد كلمات ومحلل منطقي، وحاسبات تصميم تبني الدائرة لك، ومولد تقارير معامل Word وPDF، ووضع الأعطال للمعلم، واختبارات، ولوحة Arduino Uno على البريدبورد، وجهاز DOS كامل، وتصدير المخطط إلى .asc و.kicad_sch، ووضع "اشرح لي"، وحركة التيار على الأسلاك، والحل اليدوي بطريقة جهود العقد، وسجل النسخ، ومكتبة 144 دائرة، والواجبات اللي تنصحح تلقائيًا، والكفاءة، ولوحات ESP32 وPico مع محركات وشاشات وحساسات وصوت على البريدبورد، ونسخة ويب تشتغل على الآيباد، وروابط مشاركة، ودمج تعديلات الزملاء، وتقدر تبني قطعك الخاصة من دائرة صغيرة ويتأكد منها البرنامج ويكتب جنبها Verified.
 النسخ متوفرة للماك (Apple Silicon) والويندوز واللينكس من صفحة **Releases**.
 
 BY. YOUSEF A.ALGHAMDI
