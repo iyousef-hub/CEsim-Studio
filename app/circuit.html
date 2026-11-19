@@ -198,7 +198,7 @@ kbd{font:11px var(--font-mono);border:1px solid var(--ui-border);border-bottom-w
 </div>
 <div id="splash" role="dialog" aria-label="CEsim"><div class="sp-box"><canvas id="sp-cv"></canvas><div class="sp-in">
  <div class="sp-row"><div class="sp-logo">CE</div><div><div class="sp-name">CE<span>sim</span></div><div class="sp-sub">Circuit Design &amp; Simulation Suite</div></div></div>
- <div class="sp-ver">Version 1.26.0</div><div class="sp-bar"><i id="sp-bar"></i></div><div class="sp-foot"><span id="sp-msg">Loading component database…</span><span class="sp-by">BY. YOUSEF</span></div>
+ <div class="sp-ver">Version 1.27.0</div><div class="sp-bar"><i id="sp-bar"></i></div><div class="sp-foot"><span id="sp-msg">Loading component database…</span><span class="sp-by">BY. YOUSEF</span></div>
 </div></div></div>
 <script src="lib/canvas2svg.js"></script>
 <script src="ms14.js"></script>
@@ -823,7 +823,7 @@ class Sim{
  constructor(doc){this.doc=doc;this.t=0;this.tn=0;this.dt=1e-5;this.err=null;this.warn=0;this.compile()}
  compile(){const net=buildNets(this.doc);this.net=net;let n=net.n;for(const c of this.doc.comps){const L_=LIB[c.t];if(L_&&L_.extraNodes){const k=L_.extraNodes(c);c._xn=[];for(let i=0;i<k;i++)c._xn.push(n++)}}this.n=n;this.lin=[];this.nlin=[];this.pres=[];this.posts=[];this.nb=0;this.state={};
   this.x=new Float64Array(0);
-  for(const c of this.doc.comps){const L_=LIB[c.t];if(!L_.build)continue;const st=this.state[c.id]={};const E=this.mkE(c,net.pinNodes.get(c.id),net.conn.get(c.id),st);if(c._ppFault&&!c.fault){delete c._pp;delete c._ppFault}if(!(c.fault&&faultBuild(c,net.pinNodes.get(c.id),E)))L_.build(c,net.pinNodes.get(c.id),E)}
+  for(const c of this.doc.comps){const L_=LIB[c.t];if(!L_.build)continue;const st=this.state[c.id]={};const E=this.mkE(c,net.pinNodes.get(c.id),net.conn.get(c.id),st);if(c._ppFault&&!c.fault){delete c._pp;delete c._ppFault}const l0=this.lin.length,n0=this.nlin.length;if(!(c.fault&&faultBuild(c,net.pinNodes.get(c.id),E)))L_.build(c,net.pinNodes.get(c.id),E);(this.rng=this.rng||{})[c.id]=[l0,this.lin.length,n0,this.nlin.length]}
   const N=n-1+this.nb;this.N=N;this.A=new Float64Array(N*N);this.b=new Float64Array(N);this.x=new Float64Array(N);this.xg=new Float64Array(N);this.xn=new Float64Array(N);
   for(const f of this.inits||[])f();this.inits=null}
  mkE(c,nodes,conn,st){const S=this;return{st,conn:i=>!!conn[i],v:k=>k>0?S.x[k-1]:0,x:k=>S.x[k],t:()=>S.tn,dt:()=>S.dt,
@@ -839,6 +839,13 @@ class Sim{
   NL(ns,fn){S.nlin.push({ns,fn})},pre(f){S.pres.push(f)},post(f){S.posts.push(f)},
   sub(pc,nodes){const st={};S.state[pc.id]=st;const E2=S.mkE(pc,nodes,nodes.map(()=>true),st);LIB[pc.t].build(pc,nodes,E2);return st}}}
  vv(k){return k>0?this.x[k-1]:0}
+ /* current into every pin of every part: re-stamp each part alone at the solution and read its KCL residual (run before the posts, so capacitors still hold the previous step) */
+ measureAll(){const N=this.N,n1=this.n-1,x=this.x,sA=this.A,sb=this.b;const A=new Float64Array(N*N),b=new Float64Array(N);this.A=A;this.b=b;const out={};
+  try{for(const c of this.doc.comps){const r=this.rng&&this.rng[c.id];if(!r)continue;for(let i=r[0];i<r[1];i++)this.lin[i]();for(let i=r[2];i<r[3];i++)this.stampNL(this.nlin[i],x);
+    const pn=this.net.pinNodes.get(c.id)||[];const res=new Map();for(const k of new Set(pn)){if(k<=0)continue;let s=-b[k-1];const row=(k-1)*N;for(let j=0;j<N;j++)s+=A[row+j]*x[j];res.set(k,s)}
+    const seen=new Map();out[c.id]=pn.map(k=>{if(k<=0)return null;const n=pn.filter(q=>q===k).length;return res.get(k)/n});for(const k of res.keys()){A.fill(0,(k-1)*N,k*N);b[k-1]=0}
+    /* a pin on ground: the rest of the current comes back through it */const gi=pn.map((k,i)=>k<=0?i:-1).filter(i=>i>=0);if(gi.length){const sum=out[c.id].reduce((a,v)=>a+(v||0),0);gi.forEach(i=>out[c.id][i]=-sum/gi.length)}}}
+  finally{this.A=sA;this.b=sb}this.cur=out;this.curT=this.t;return out}
  g(a,b,G){const N=this.N,A=this.A,ia=a-1,ib=b-1;if(ia>=0){A[ia*N+ia]+=G;if(ib>=0){A[ia*N+ib]-=G;A[ib*N+ia]-=G}}if(ib>=0)A[ib*N+ib]+=G}
  i(a,b,I){if(a>0)this.b[a-1]-=I;if(b>0)this.b[b-1]+=I}
  vs(a,b,k,V){const N=this.N,A=this.A;if(a>0){A[(a-1)*N+k]+=1;A[k*N+a-1]+=1}if(b>0){A[(b-1)*N+k]-=1;A[k*N+b-1]-=1}this.b[k]+=V}
@@ -856,7 +863,7 @@ class Sim{
    if(conv){ok=true;break}}
   /* no convergence (for example a sharp edge into a saturating op-amp): retry the interval as ten shorter steps */
   if(!ok&&hasNL&&depth<3){for(let k=0;k<10;k++)if(!this.step(dt/10,depth+1))return false;this.dt=dt;return true}
-  if(!ok)this.warn++;this.x.set(x);this.t=this.tn;for(const f of this.posts)f();return true}
+  if(!ok)this.warn++;this.x.set(x);this.t=this.tn;if(this.measure&&depth===0){this.measure=false;try{this.measureAll()}catch(e){}}for(const f of this.posts)f();return true}
 }
 
 /* ================= canvas, view & rendering ================= */
@@ -899,6 +906,7 @@ function render(){
  for(const w of D.wires){ctx.strokeStyle=sel.has(w)?CV.sel:CV.wire;ctx.lineWidth=sel.has(w)?2.6:1.6;ctx.beginPath();w.pts.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.stroke()}
  for(const c of D.comps){const st=S?S[c.id]:null;drawComp(c,st);drawLabels(c,st)}
  ctx.fillStyle=CV.wire;for(const p of nets().junc){ctx.beginPath();ctx.arc(p.x,p.y,3,0,2*PI);ctx.fill()}
+ try{drawFlow(ctx);drawNodeTags(ctx)}catch(e){}
  // unconnected pin markers
  const net=nets();for(const c of D.comps){const cn=net.conn.get(c.id);LIB[c.t].pins.forEach((_,i)=>{if(cn&&!cn[i]){const p=pinPos(c,i);ctx.strokeStyle=CV.pin;ctx.lineWidth=1;ctx.beginPath();ctx.arc(p.x,p.y,2.2,0,2*PI);ctx.stroke()}})}
  for(const c of D.comps)if(sel.has(c)){const[x1,y1,x2,y2]=wbbox(c);ctx.save();ctx.strokeStyle=CV.sel;ctx.lineWidth=1.2/v.z;ctx.setLineDash([4/v.z,3/v.z]);ctx.strokeRect(x1-4,y1-4,x2-x1+8,y2-y1+8);ctx.restore()}
@@ -940,7 +948,7 @@ function selectAll(){sel.clear();D.comps.forEach(c=>sel.add(c));D.wires.forEach(
 function structural(){netCache=null;dirty=1;updateInUse();if(sim&&sim.doc===D&&running){rebuildSim()}}
 function setHint(s){$("#st-hint").textContent=s}
 cv.addEventListener("contextmenu",e=>e.preventDefault());
-cv.addEventListener("mousedown",e=>{cv.focus();closeMenus();const r=cv.getBoundingClientRect();const sx=e.clientX-r.left,sy=e.clientY-r.top;const[wx,wy]=s2w(sx,sy);mouse={x:sx,y:sy,wx,wy};
+cv.addEventListener("mousedown",e=>{cv.focus();closeMenus();const r=cv.getBoundingClientRect();const sx=e.clientX-r.left,sy=e.clientY-r.top;const[wx,wy]=s2w(sx,sy);mouse={x:sx,y:sy,wx,wy};if(explainOn&&e.button===0&&mode==="select"){const hc=hitComp(wx,wy);if(hc&&LIB[hc.t].build&&!LIB[hc.t].instrument)openExplain(hc)}
  if(e.button===1||(e.button===0&&e.altKey)){pan={sx,sy,vx:D.view.x,vy:D.view.y};return}
  if(e.button===2){e.stopPropagation();if(mode!=="select"){if(mode==="wire"&&wireDraft&&wireDraft.pts.length>1){finishWire(null)}else cancelModes();return}const c=hitComp(wx,wy),w=c?null:hitWire(wx,wy);if(c||w){if(!sel.has(c||w)){sel.clear();sel.add(c||w)}dirty=1}showCtx(e.clientX,e.clientY,c,w);return}
  if(mode==="place"){placeGhost();return}
@@ -986,7 +994,7 @@ window.addEventListener("keydown",e=>{const tag=(e.target&&e.target.tagName)||""
  if(ctrl&&k.toLowerCase()==="r"){e.preventDefault();rotateSel(e.shiftKey?-1:1);return}if(ctrl&&k.toLowerCase()==="w"){e.preventDefault();openBrowser();return}if(ctrl&&k.toLowerCase()==="t"){e.preventDefault();startPlace("text");return}if(ctrl&&k.toLowerCase()==="l"){e.preventDefault();startPlace("netlabel");return}if(ctrl&&k.toLowerCase()==="q"){e.preventDefault();toast("Drag from any pin to draw a wire. Ctrl+click a wire to branch from it.");return}
  if(ctrl&&k.toLowerCase()==="s"){e.preventDefault();saveLocal(true);return}if(ctrl&&k.toLowerCase()==="o"){e.preventDefault();$("#fileIn").click();return}if(ctrl&&k.toLowerCase()==="n"){e.preventDefault();addDoc();return}if(ctrl&&k.toLowerCase()==="k"){e.preventDefault();openCodeEditor();return}if(ctrl&&k.toLowerCase()==="e"){e.preventDefault();openExportDlg();return}if(ctrl&&k.toLowerCase()==="m"){e.preventDefault();const c=[...sel].find(x=>x.t);if(c)openProps(c);return}
  if(e.altKey&&k.toLowerCase()==="y"){e.preventDefault();flipSel(false);return}if(e.altKey&&k.toLowerCase()==="x"){e.preventDefault();flipSel(true);return}
- if(k==="F5"){e.preventDefault();running?stopSim():runSim();return}if(k==="F6"){e.preventDefault();pauseSim();return}if(k==="F7"){e.preventDefault();zoomFit();return}if(k==="F8"){e.preventDefault();toggleRec();return}if(k==="F1"){e.preventDefault();showHelp();return}
+ if(k==="F5"){e.preventDefault();running?stopSim():runSim();return}if(k==="F6"){e.preventDefault();pauseSim();return}if(k==="F7"){e.preventDefault();zoomFit();return}if(k==="F8"){e.preventDefault();toggleRec();return}if(k==="F9"){e.preventDefault();toggleFlow();return}if(k==="F10"){e.preventDefault();toggleExplain();return}if(k==="F1"){e.preventDefault();showHelp();return}
  if(k==="Escape"){if(mode==="wire"&&wireDraft&&wireDraft.pts.length>1)finishWire(null);else cancelModes();closeMenus();return}
  if((k==="Delete"||k==="Backspace")&&sel.size){e.preventDefault();deleteSel();return}
  if(k==="+"||k==="="){zoomBy(1.25);return}if(k==="-"){zoomBy(0.8);return}
@@ -1042,13 +1050,13 @@ function svg(n){return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColo
 
 /* ================= menus & toolbars ================= */
 const MENUS=[
- ["File",[["New design","Ctrl+N",()=>addDoc()],["Open…","Ctrl+O",()=>$("#fileIn").click()],["Save","Ctrl+S",()=>saveLocal(true)],["Save as… (.cesim)","",()=>exportDesign()],"-",["Open example",null,null,()=>EXAMPLES.map(([n])=>[n,"",()=>openExample(n)])],"-",["Export…","Ctrl+E",()=>openExportDlg()],["Export SPICE netlist (.cir)…","",()=>exportCir()],["Export design (.ms14)…","",()=>exportMs14()],["Export image (PNG)…","",()=>exportPngFile()],["Export SVG…","",()=>doExportC({fmt:"svg",area:"all",bg:"theme"})],["Export PDF…","",()=>exportPdfFile()],["Export Bill of Materials (CSV)…","",()=>bomCsv()],["Export node voltages (CSV)…","",()=>voltsCsv()],"-",["Screenshot to clipboard","",()=>copyShot()],"-",["Close design","",()=>closeDoc(docs.indexOf(D))]]],
+ ["File",[["New design","Ctrl+N",()=>addDoc()],["Open…","Ctrl+O",()=>$("#fileIn").click()],["Save","Ctrl+S",()=>saveLocal(true)],["Save as… (.cesim)","",()=>exportDesign()],["Version history…","",()=>openHistory()],"-",["Open example",null,null,()=>EXAMPLES.map(([n])=>[n,"",()=>openExample(n)])],"-",["Export…","Ctrl+E",()=>openExportDlg()],["Export SPICE netlist (.cir)…","",()=>exportCir()],["Export design (.ms14)…","",()=>exportMs14()],["Export image (PNG)…","",()=>exportPngFile()],["Export SVG…","",()=>doExportC({fmt:"svg",area:"all",bg:"theme"})],["Export PDF…","",()=>exportPdfFile()],["Export Bill of Materials (CSV)…","",()=>bomCsv()],["Export node voltages (CSV)…","",()=>voltsCsv()],"-",["Screenshot to clipboard","",()=>copyShot()],"-",["Close design","",()=>closeDoc(docs.indexOf(D))]]],
  ["Edit",[["Undo","Ctrl+Z",undo],["Redo","Ctrl+Y",redo],"-",["Cut","Ctrl+X",()=>{if(copySel())deleteSel()}],["Copy","Ctrl+C",copySel],["Paste","Ctrl+V",paste],["Delete","Del",deleteSel],["Select all","Ctrl+A",selectAll],"-",["Rotate 90° clockwise","Ctrl+R",()=>rotateSel(1)],["Rotate 90° counter-clockwise","Ctrl+Shift+R",()=>rotateSel(-1)],["Flip vertically","Alt+Y",()=>flipSel(false)],["Flip horizontally","Alt+X",()=>flipSel(true)],"-",["Properties","Ctrl+M",()=>{const c=[...sel].find(x=>x.t);if(c)openProps(c);else toast("Select a component first.")}]]],
- ["View",[["Zoom in","+",()=>zoomBy(1.25)],["Zoom out","−",()=>zoomBy(0.8)],["Zoom to fit","F7",zoomFit],"-",["Show grid","",()=>{showGrid=!showGrid;dirty=1},()=>showGrid],["Show sheet border","",()=>{showBorder=!showBorder;dirty=1},()=>showBorder]]],
+ ["View",[["Zoom in","+",()=>zoomBy(1.25)],["Zoom out","−",()=>zoomBy(0.8)],["Zoom to fit","F7",zoomFit],"-",["Show grid","",()=>{showGrid=!showGrid;dirty=1},()=>showGrid],["Show current flow","F9",toggleFlow,()=>flowOn],["Explain mode","F10",toggleExplain,()=>explainOn],["Show sheet border","",()=>{showBorder=!showBorder;dirty=1},()=>showBorder]]],
  ["Place",[["Component…","Ctrl+W",()=>openBrowser()],["Create a part…","",()=>openPartMaker()],["Wire","Ctrl+Q",()=>toast("Drag from any pin to draw a wire. Ctrl+click a wire to branch from it.")],"-",["Ground","",()=>startPlace("gnd")],["VCC rail","",()=>startPlace("vcc")],["Voltage probe","",()=>startPlace("probe")],"-",["Text / note","Ctrl+T",()=>startPlace("text")],["Net label","Ctrl+L",()=>startPlace("netlabel")],["Title block…","",editTitleBlock]]],
  ["Simulate",[["Run","F5",runSim],["Pause","F6",pauseSim],["Stop","",stopSim],["Record video","F8",()=>toggleRec()],"-",["Instruments",null,null,()=>[["Multimeter","",()=>startPlace("xmm")],["Function generator","",()=>startPlace("xfg")],["Wattmeter","",()=>startPlace("xwm")],["Oscilloscope","",()=>startPlace("xsc")],["Bode plotter","",()=>startPlace("xbp")],["Word generator","",()=>startPlace("xwg")],["Logic analyzer","",()=>startPlace("xla")]]],"-",["Analyses",null,null,()=>[["DC sweep and Grapher…","",()=>openDcSweep()],["IV analyzer…","",()=>openIvAnalyzer()],["Monte Carlo…","",()=>openMonteCarlo()],["Bode plotter","",()=>{const b=D.comps.find(c=>c.t==="xbp");if(b)openInstWin(b);else{startPlace("xbp");toast("Place the Bode plotter, wire IN to the input and OUT to the output, then double-click it.")}}]]],"-",["Faults…","",()=>openFaults()],"-",["Simulation settings…","",openSimSettings]]],
  ["Transfer",[["Send to PCB layout","",()=>sendToPcb()],["Export SPICE netlist (.cir)…","",()=>exportCir()],["Export .asc schematic…","",()=>exportAscFile()],["Export .kicad_sch schematic…","",()=>exportKicadFile()],["Import SPICE netlist (.cir)…","",()=>$("#fileIn").click()]]],
- ["Tools",[["Circuit code…","Ctrl+K",()=>openCodeEditor()],["Circuit from image…","",()=>openImageTool()],["Design calculators…","",()=>openCalculators()],["Quiz…","",()=>openQuiz()],["Electrical rules check","",erc],["Database info","",()=>toast(countDB().toLocaleString()+" components in the CEsim master database across "+DB.reduce((a,g)=>a+g.fams.length,0)+" families.")]]],
+ ["Tools",[["Circuit code…","Ctrl+K",()=>openCodeEditor()],["Circuit from image…","",()=>openImageTool()],["Design calculators…","",()=>openCalculators()],["Solve by hand (node voltages)…","",()=>openHandSolve()],["Quiz…","",()=>openQuiz()],["Electrical rules check","",erc],["Database info","",()=>toast(countDB().toLocaleString()+" components in the CEsim master database across "+DB.reduce((a,g)=>a+g.fams.length,0)+" families.")]]],
  ["Reports",[["Lab report…","",()=>openLabReport()],"-",["Bill of Materials","",bom],["Bill of Materials (CSV)…","",bomCsv],["Netlist report","",()=>exportCir()]]],
  ["Options",[["Theme",null,null,()=>[["Classic White","",()=>setTheme("white"),()=>theme==="white"],["Dark","",()=>setTheme("dark"),()=>theme==="dark"],["Blueprint","",()=>setTheme("blueprint"),()=>theme==="blueprint"],["Graphite","",()=>setTheme("graphite"),()=>theme==="graphite"]]],["Simulation settings…","",openSimSettings]]],
  ["Window",[["Designs",null,null,()=>docs.map((d,i)=>[d.name,"",()=>switchDoc(i),()=>d===D])]]],
@@ -1248,7 +1256,7 @@ function bom(){const m=new Map();for(const c of D.comps){if(c.t==="gnd")continue
  const rows=[...m.values()].map(r=>`<tr><td>${r.refs.length}</td><td>${esc(r.n)}</td><td>${esc(r.v)}</td><td>${esc(r.refs.join(", "))}</td></tr>`).join("");makeWin("Bill of Materials — "+D.name,el(`<table class="bom"><tr><th>Qty</th><th>Component</th><th>Value / Model</th><th>RefDes</th></tr>${rows||'<tr><td colspan="4">No components.</td></tr>'}</table>`),{modal:true})}
 function erc(){const net=nets();const issues=[];if(!net.hasGnd)issues.push("No ground symbol. Add Ground so voltages have a reference.");for(const c of D.comps){const cn=net.conn.get(c.id);LIB[c.t].pins.forEach((p,i)=>{if(!cn[i]&&!(c.t==="opamp"||c.t==="comparator")&&!(c.t==="timer555"&&(i===1||i===6))&&!(c.t==="xsc")&&!(c.t==="netlabel")&&!(c.t==="xfg"&&i!==0))issues.push(`${c.label||LIB[c.t].name}: pin ${p[2]} is not connected.`)})}
  makeWin("Electrical rules check",el(issues.length?"<ul style='margin:0;padding-left:18px;max-width:480px'>"+issues.map(s=>"<li>"+esc(s)+"</li>").join("")+"</ul>":"<p style='margin:0'>No problems found.</p>"),{modal:true})}
-function showHelp(){makeWin("Keyboard shortcuts",el(`<table class="bom" style="min-width:420px">${[["Place component","Ctrl+W"],["Draw wire","Drag from a pin · Ctrl+click a wire to branch"],["Rotate","Ctrl+R / Ctrl+Shift+R"],["Record video of the running circuit","F8"],["Flip","Alt+X / Alt+Y"],["Properties","Double-click · Ctrl+M"],["Delete","Del"],["Undo / Redo","Ctrl+Z / Ctrl+Y"],["Run / Stop","F5"],["Pause","F6"],["Zoom","Mouse wheel · + / −"],["Zoom to fit","F7"],["Pan","Drag empty space · middle mouse"],["Box select","Shift+drag"],["Toggle a switch","Its key (Space by default) or click while running"],["Potentiometer","Its key (A) increases · Shift+key decreases"]].map(([a,b])=>`<tr><td>${a}</td><td>${b}</td></tr>`).join("")}</table>`),{modal:true})}
+function showHelp(){makeWin("Keyboard shortcuts",el(`<table class="bom" style="min-width:420px">${[["Place component","Ctrl+W"],["Draw wire","Drag from a pin · Ctrl+click a wire to branch"],["Rotate","Ctrl+R / Ctrl+Shift+R"],["Record video of the running circuit","F8"],["Show current flow","F9"],["Explain mode (click a part)","F10"],["Flip","Alt+X / Alt+Y"],["Properties","Double-click · Ctrl+M"],["Delete","Del"],["Undo / Redo","Ctrl+Z / Ctrl+Y"],["Run / Stop","F5"],["Pause","F6"],["Zoom","Mouse wheel · + / −"],["Zoom to fit","F7"],["Pan","Drag empty space · middle mouse"],["Box select","Shift+drag"],["Toggle a switch","Its key (Space by default) or click while running"],["Potentiometer","Its key (A) increases · Shift+key decreases"]].map(([a,b])=>`<tr><td>${a}</td><td>${b}</td></tr>`).join("")}</table>`),{modal:true})}
 function about(){makeWin("About CEsim",el(`<div style="max-width:420px;line-height:1.55"><b style="font-size:15px">CEsim</b> — circuit simulator<br>Schematic capture with an interactive transient engine (modified nodal analysis, Newton-Raphson, backward Euler).<br><br>${countDB().toLocaleString()} components in the master database. Designs save in the browser and as .cesim files; netlists export to SPICE (.cir).</div>`),{modal:true})}
 function showCtx(x,y,c,w){closeMenus();const items=c?[["Properties","Ctrl+M",()=>LIB[c.t].instrument?openInstWin(c):openProps(c)],"-",["Rotate 90° clockwise","Ctrl+R",()=>rotateSel(1)],["Rotate 90° counter-clockwise","Ctrl+Shift+R",()=>rotateSel(-1)],["Flip horizontally","Alt+X",()=>flipSel(true)],["Flip vertically","Alt+Y",()=>flipSel(false)],"-",["Cut","Ctrl+X",()=>{if(copySel())deleteSel()}],["Copy","Ctrl+C",copySel],["Delete","Del",deleteSel]]:w?[["Delete wire","Del",deleteSel]]:[["Place component…","Ctrl+W",()=>openBrowser()],["Paste","Ctrl+V",paste],["Zoom to fit","F7",zoomFit]];showMenu(items,x,y,null)}
 
@@ -1954,6 +1962,120 @@ function exportKicad(d){const mm=v=>+(v*0.127).toFixed(4);const q=s=>'"'+String(
 function exportAscFile(){const t=exportAsc(D);tryDownload(D.name.replace(/[^\w.-]+/g,"_")+".asc",t,"text/plain");toast("Saved the .asc schematic. Every part connects through net labels; the models and the analysis are in the directives.")}
 function exportKicadFile(){const t=exportKicad(D);tryDownload(D.name.replace(/[^\w.-]+/g,"_")+".kicad_sch",t,"text/plain");toast("Saved the .kicad_sch schematic with the same parts, pins and wires.")}
 
+/* ================= Explain mode, current flow, hand solution, version history ================= */
+let explainOn=false,flowOn=false;const EXW=new Map();
+/* one line on what each kind of part does */
+const ROLE={res:"A resistor turns voltage into a set current (I = V / R) and turns the power into heat.",pot:"A potentiometer is a resistor with a sliding contact; the wiper divides the voltage between its two ends.",
+ ldr:"An LDR is a resistor whose value falls when more light falls on it.",cap:"A capacitor stores charge: it blocks steady DC and passes changing signals; its current is C dV/dt.",ecap:"An electrolytic capacitor stores a lot of charge; keep its + side at the higher voltage.",
+ ind:"An inductor stores energy in a magnetic field and resists changes of current; its voltage is L dI/dt.",dcv:"A DC voltage source holds a fixed voltage between its terminals and supplies whatever current the circuit takes.",
+ vcc:"A supply rail holds its node at a fixed voltage against ground.",acv:"An AC source gives a sine wave; the current it supplies depends on the circuit.",idc:"A current source pushes a fixed current, whatever voltage that needs.",
+ diode:"A diode lets current flow from anode to cathode once about 0.6–0.7 V is across it, and blocks it the other way.",schottky:"A Schottky diode conducts from about 0.3 V and switches quickly.",
+ zener:"A Zener diode conducts backwards at its Zener voltage, so it holds that voltage steady.",led:"An LED gives light when current flows from anode to cathode; a series resistor sets its current.",
+ npn:"An NPN transistor lets a small base current control a collector current about β times larger.",pnp:"A PNP transistor works like an NPN with every voltage and current reversed.",
+ nmos:"An N-channel MOSFET conducts from drain to source when the gate is above the threshold voltage.",pmos:"A P-channel MOSFET conducts when its gate is below its source by more than the threshold.",
+ njfet:"An N-channel JFET conducts until a negative gate voltage pinches the channel off.",pjfet:"A P-channel JFET conducts until a positive gate voltage pinches the channel off.",
+ opamp:"An op-amp drives its output so that its two inputs stay almost equal, as long as the output stays inside the supply.",comparator:"A comparator switches its output high or low depending on which input is higher.",
+ timer555:"A 555 timer charges and discharges its timing capacitor between 1/3 and 2/3 of the supply to make pulses.",reg:"A voltage regulator keeps its output fixed while the input and the load change.",lm317:"An LM317 holds 1.25 V between OUT and ADJ, so two resistors set the output voltage.",
+ lamp:"A lamp turns electrical power into light and heat; its brightness follows the power.",buzzer:"A buzzer sounds when current flows through it.",motor:"A DC motor turns faster with more voltage; its current rises with the load.",
+ relay:"A relay uses a coil current to close a separate switch contact.",xfmr:"A transformer changes an AC voltage in the ratio of its turns.",fuse:"A fuse is a thin conductor that melts and opens the circuit when the current is too high.",
+ spst:"A switch either joins its two terminals or leaves them open.",push:"A push button joins its terminals only while it is pressed.",bridge:"A bridge rectifier turns AC into one-way DC with four diodes."};
+function roleOf(c){return ROLE[c.t]||(LIB[c.t]&&LIB[c.t].name?LIB[c.t].name+".":"")}
+function explainData(c){const S=sim;if(!S||S.doc!==D)return null;if(!S.cur||S.curT!==S.t){S.measure=true;return S.cur?explainFrom(c,S):null}return explainFrom(c,S)}
+function explainFrom(c,S){const L_=LIB[c.t];const pn=S.net.pinNodes.get(c.id)||[];const V=pn.map(k=>S.vv(k));const I=(S.cur&&S.cur[c.id])||pn.map(()=>NaN);const P_=V.reduce((a,v,i)=>a+v*(I[i]||0),0);
+ const names=L_.pins.map(p=>p[2]);const pin=n=>names.indexOf(n);const lines=[];const on=(a,b)=>V[pin(a)]-V[pin(b)];
+ if(pn.length===2){const vd=V[0]-V[1],id=I[0];lines.push(["Voltage across",rd(vd,"V")],["Current through",rd(Math.abs(id),"A")+(Math.abs(id)>1e-12?(id>0?` (${names[0]} → ${names[1]})`:` (${names[1]} → ${names[0]})`):"")],[P_>=0?"Power taken":"Power given out",rd(Math.abs(P_),"W")]);
+  if(/^(diode|led|schottky|zener)$/.test(c.t)){const fwd=vd>0.05&&id>1e-6,rev=c.t==="zener"&&vd<-1&&id<-1e-6;lines.push(["State",fwd?"conducting forwards":rev?"conducting backwards (Zener)":"off (no current)"])}
+  if(c.t==="res"){const r=num(c.p.resistance);lines.push(["Check","I = V / R = "+rd(Math.abs(vd),"V")+" / "+si(r,"Ω")+" = "+rd(Math.abs(vd)/r,"A")])}}
+ else if(c.t==="npn"||c.t==="pnp"){const ib=I[pin("B")],ic=I[pin("C")],ie=I[pin("E")],vbe=on("B","E"),vce=on("C","E");const sg=c.t==="npn"?1:-1;const reg=sg*vbe<0.5?"cut-off (off)":sg*vce<0.25?"saturation (fully on, used as a switch)":"active (amplifying)";
+  lines.push(["Base current",rd(Math.abs(ib),"A")],["Collector current",rd(Math.abs(ic),"A")],["Emitter current",rd(Math.abs(ie),"A")],["V(BE)",rd(vbe,"V")],["V(CE)",rd(vce,"V")],["Region",reg]);if(Math.abs(ib)>1e-9&&reg.startsWith("active"))lines.push(["β = Ic / Ib",(Math.abs(ic)/Math.abs(ib)).toFixed(1)]);lines.push(["Power",rd(Math.abs(P_),"W")])}
+ else if(/^(nmos|pmos|njfet|pjfet)$/.test(c.t)){lines.push(["Drain current",rd(Math.abs(I[pin("D")]),"A")],["V(GS)",rd(on("G","S"),"V")],["V(DS)",rd(on("D","S"),"V")],["Power",rd(Math.abs(P_),"W")])}
+ else if(c.t==="opamp"||c.t==="comparator"){const ip=pin("+")>=0?pin("+"):pin("IN+"),im=pin("−")>=0?pin("−"):pin("-")>=0?pin("-"):pin("IN−");const out=pin("OUT")>=0?pin("OUT"):2;
+  const vdiff=(ip>=0&&im>=0)?V[ip]-V[im]:NaN;lines.push(["Output",rd(V[out],"V")],["V(+) − V(−)",rd(vdiff,"V")],["Output current",rd(Math.abs(I[out]||0),"A")]);
+  const vp=V[pin("V+")],vn=V[pin("V−")>=0?pin("V−"):pin("V-")];if(isFinite(vp)&&isFinite(vn))lines.push(["Mode",V[out]>vp-1.6||V[out]<vn+1.6?"saturated at the supply (not linear)":"linear: the inputs are held almost equal"])}
+ else{L_.pins.forEach((p,i)=>lines.push([`Pin ${p[2]}`,rd(V[i],"V")+" · "+(isFinite(I[i])?rd(I[i],"A")+" in":"")]));lines.push(["Power",rd(Math.abs(P_),"W")])}
+ return{lines,V,names}}
+function openExplain(c){if(EXW.has(c.id)){const w=EXW.get(c.id);w.style.zIndex=++zTop;return}const body=document.createElement("div");body.style.cssText="width:300px;font-size:12.5px";
+ const w=makeWin(`${c.label||""} · ${LIB[c.t].name}`,body,{x:Math.max(10,innerWidth-360),y:120+EXW.size*30});EXW.set(c.id,w);const old=w.querySelector(".x,.close,[data-close]");
+ const upd=()=>{if(!document.body.contains(w)){EXW.delete(c.id);return false}const d=explainData(c);body.innerHTML=`<p style="margin:0 0 8px;line-height:1.45">${esc(roleOf(c))}</p>`+(d?`<table class="bom" style="width:100%">${d.lines.map(([k,v])=>`<tr><td style="color:var(--ui-dim)">${esc(k)}</td><td class="mono">${esc(v)}</td></tr>`).join("")}<tr><td style="color:var(--ui-dim)">Pin voltages</td><td class="mono">${d.names.map((n,i)=>esc(n)+" "+rd(d.V[i],"V")).join("<br>")}</td></tr></table>`:`<p style="color:var(--ui-dim)">Run the simulation to see the voltages, currents and power.</p>`);return true};
+ upd();const t=setInterval(()=>{if(!upd())clearInterval(t)},300);return w}
+function toggleExplain(){explainOn=!explainOn;toast(explainOn?"Explain mode: click any part to see what it does and its live voltages, currents and power.":"Explain mode off.");dirty=1}
+/* ---- current flow: dots move along every wire at a speed set by its current ---- */
+const FLOW={phase:new Map(),last:0};
+function flowGraph(){const nt=nets();if(nt._flow)return nt._flow;const K=(x,y)=>x+","+y;const adj=new Map();const add=(a,b,e)=>{if(!adj.has(a))adj.set(a,[]);adj.get(a).push([b,e])};const segs=[];
+ for(const w of D.wires)for(let j=1;j<w.pts.length;j++){const a=w.pts[j-1],b=w.pts[j];const ka=K(a.x,a.y),kb=K(b.x,b.y);if(ka===kb)continue;const e={w,j,a:ka,b:kb};segs.push(e);add(ka,kb,e);add(kb,ka,e)}
+ const pins=[];for(const c of D.comps)LIB[c.t].pins.forEach((_,i)=>{const p=pinPos(c,i);pins.push([c.id,i,K(p.x,p.y)])});
+ /* points that lie inside a segment join it (T joints) */for(const k of new Set([...adj.keys(),...pins.map(p=>p[2])])){const[x,y]=k.split(",").map(Number);for(const e of segs){if(k===e.a||k===e.b)continue;const[ax,ay]=e.a.split(",").map(Number),[bx,by]=e.b.split(",").map(Number);if((ax===bx&&x===ax&&y>Math.min(ay,by)&&y<Math.max(ay,by))||(ay===by&&y===ay&&x>Math.min(ax,bx)&&x<Math.max(ax,bx))){add(k,e.a,{virt:1});add(k,e.b,{virt:1})}}}
+ const trees=[];const seen=new Set();for(const start of adj.keys()){if(seen.has(start))continue;const order=[],par=new Map();const st=[start];seen.add(start);par.set(start,null);while(st.length){const u=st.pop();order.push(u);for(const[v,e]of adj.get(u)||[]){if(seen.has(v))continue;seen.add(v);par.set(v,[u,e]);st.push(v)}}trees.push({order,par})}
+ return nt._flow={pins,trees}}
+function wireCurrents(){const S=sim;if(!S||S.doc!==D||!S.cur)return null;const G=flowGraph();const out=new Map();const inj=new Map();
+ /* current that leaves each part into the net at its pin point */for(const[cid,i,k]of G.pins){const I=S.cur[cid];if(!I||!isFinite(I[i]))continue;inj.set(k,(inj.get(k)||0)-I[i])}
+ for(const{order,par}of G.trees){const sum=new Map();for(const k of order)sum.set(k,inj.get(k)||0);for(let i=order.length-1;i>0;i--){const v=order[i];const[u,e]=par.get(v);const f=sum.get(v);sum.set(u,sum.get(u)+f);if(e&&!e.virt)out.set(e.w.id+":"+e.j,e.b===u?f:-f)}}
+ return out}
+function drawFlow(ctx){if(!flowOn||!running||!sim||sim.doc!==D)return;if(!sim.cur||sim.curT!==sim.t)sim.measure=true;const cur=wireCurrents();if(!cur)return;const now=performance.now(),dt=Math.min(0.1,(now-(FLOW.last||now))/1000);FLOW.last=now;
+ const mx=Math.max(1e-9,...[...cur.values()].map(Math.abs));ctx.save();ctx.fillStyle="#ffd23f";
+ for(const w of D.wires)for(let j=1;j<w.pts.length;j++){const I=cur.get(w.id+":"+j)||0;const a=w.pts[j-1],b=w.pts[j];const L=Math.hypot(b.x-a.x,b.y-a.y);if(!L||Math.abs(I)<mx*1e-4||Math.abs(I)<1e-9)continue;
+  const sp=20+80*Math.log10(1+9*Math.abs(I)/mx);const key=w.id+":"+j;let ph=(FLOW.phase.get(key)||0)+sp*dt*Math.sign(I);ph=((ph%14)+14)%14;FLOW.phase.set(key,ph);
+  for(let s=ph;s<L;s+=14){const t=s/L;ctx.beginPath();ctx.arc(a.x+(b.x-a.x)*t,a.y+(b.y-a.y)*t,2.2,0,2*PI);ctx.fill()}}ctx.restore();dirty=1}
+function toggleFlow(){flowOn=!flowOn;toast(flowOn?"Current flow on: the dots move the way conventional current flows, faster where the current is larger.":"Current flow off.");dirty=1}
+
+/* ---- hand solution: node-voltage method for DC circuits of resistors and sources ---- */
+function handSolve(d){const net=buildNets(d);const nn=k=>k===0?"0 (ground)":"N"+k;const R=[],VS=[],IS=[],skip=[];
+ for(const c of d.comps){const pn=net.pinNodes.get(c.id)||[];const L_=LIB[c.t];if(!L_||!L_.build)continue;
+  if(c.t==="res")R.push({c,a:pn[0],b:pn[1],r:num(c.p.resistance)});else if(c.t==="pot"){const r=num(c.p.resistance),w=Math.max(0.001,Math.min(99.999,num(c.p.wiper)))/100;R.push({c,a:pn[0],b:pn[2],r:r*w,lab:c.label+" (end 1 to wiper)"},{c,a:pn[2],b:pn[1],r:r*(1-w),lab:c.label+" (wiper to end 2)"})}
+  else if(c.t==="dcv")VS.push({c,p:pn[0],m:pn[1],v:num(c.p.voltage)});else if(c.t==="vcc")VS.push({c,p:pn[0],m:0,v:num(c.p.voltage)});else if(c.t==="idc")IS.push({c,from:pn[1],to:pn[0],i:num(c.p.current)});
+  else if(c.t==="ammeter")VS.push({c,p:pn[0],m:pn[1],v:0,meter:1});else if(/^(voltmeter|probe|gnd|text|netlabel|xmm)$/.test(c.t)||LIB[c.t].instrument){}else if(c.t==="ind")VS.push({c,p:pn[0],m:pn[1],v:0,short:1});else if(/^(cap|ecap)$/.test(c.t)){}else skip.push(c)}
+ if(skip.length)return{error:`The hand solution covers DC circuits of resistors, potentiometers, DC voltage and current sources and meters. Take out or replace: ${skip.map(c=>c.label||c.t).join(", ")}.`};
+ if(!VS.length&&!IS.length)return{error:"There is no DC source to solve for."};
+ const nodes=[...new Set([...R.flatMap(x=>[x.a,x.b]),...VS.flatMap(x=>[x.p,x.m]),...IS.flatMap(x=>[x.from,x.to])])].filter(k=>k>0).sort((a,b)=>a-b);const n=nodes.length,m=VS.length,ix=new Map(nodes.map((k,i)=>[k,i]));
+ const N=n+m;const A=Array.from({length:N},()=>new Array(N).fill(0)),z=new Array(N).fill(0);const g=(a,b,G)=>{const i=ix.get(a),j=ix.get(b);if(i!=null)A[i][i]+=G;if(j!=null)A[j][j]+=G;if(i!=null&&j!=null){A[i][j]-=G;A[j][i]-=G}};
+ R.forEach(x=>g(x.a,x.b,1/x.r));IS.forEach(x=>{const i=ix.get(x.from),j=ix.get(x.to);if(i!=null)z[i]-=x.i;if(j!=null)z[j]+=x.i});VS.forEach((x,k)=>{const r=n+k,i=ix.get(x.p),j=ix.get(x.m);if(i!=null){A[i][r]+=1;A[r][i]+=1}if(j!=null){A[j][r]-=1;A[r][j]-=1}z[r]=x.v});
+ /* Gaussian elimination */const M=A.map((r,i)=>[...r,z[i]]);for(let i=0;i<N;i++){let p=i;for(let k=i+1;k<N;k++)if(Math.abs(M[k][i])>Math.abs(M[p][i]))p=k;if(Math.abs(M[p][i])<1e-15)return{error:"The equations have no single answer: a node may be floating or two sources may fight."};[M[i],M[p]]=[M[p],M[i]];for(let k=0;k<N;k++){if(k===i)continue;const f=M[k][i]/M[i][i];for(let j=i;j<=N;j++)M[k][j]-=f*M[i][j]}}
+ const sol=M.map((r,i)=>r[N]/r[i]);const Vn=k=>k>0?sol[ix.get(k)]:0;
+ /* steps */const st=[];const vname=k=>k>0?`V<sub>${k}</sub>`:"0";const lbl=x=>x.lab||x.c.label||x.c.t;
+ st.push({h:"1. Choose the reference",t:`Ground is node 0. The unknowns are the node voltages ${nodes.map(k=>vname(k)).join(", ")}${m?` and the current of every voltage source (${VS.map(x=>"I<sub>"+esc(x.c.label)+"</sub>").join(", ")})`:""}.`});
+ const fixed=VS.filter(x=>x.m===0||x.p===0);
+ st.push({h:"2. Voltage sources",t:VS.length?VS.map(x=>`${esc(x.c.label)}${x.meter?" (ammeter, 0 V)":x.short?" (inductor, a short at DC)":""}: ${vname(x.p)} − ${vname(x.m)} = ${x.v} V`+(x.m===0&&x.p>0?` → ${vname(x.p)} = ${x.v} V directly`:x.p===0&&x.m>0?` → ${vname(x.m)} = ${-x.v} V directly`:" (a supernode joins these two nodes)")).join("<br>"):"None."});
+ const kcl=[];for(const k of nodes){if(fixed.some(x=>(x.p===k&&x.m===0)||(x.m===k&&x.p===0)))continue;const terms=R.filter(x=>x.a===k||x.b===k).map(x=>{const o=x.a===k?x.b:x.a;return`(${vname(k)} − ${vname(o)}) / ${si(x.r,"Ω")}`});
+  const srcs=IS.filter(x=>x.to===k||x.from===k).map(x=>(x.to===k?"+ ":"− ")+rd(x.i,"A")+` (${esc(x.c.label)})`);const vs=VS.filter(x=>x.p===k||x.m===k).map(x=>(x.p===k?"+ ":"− ")+`I<sub>${esc(x.c.label)}</sub>`);
+  kcl.push(`Node ${k}: ${terms.join(" + ")||"0"}${vs.length?" "+vs.join(" "):""} = ${srcs.length?srcs.join(" ").replace(/^\+ /,""):"0"}`)}
+ st.push({h:"3. KCL at every other node (currents leaving the node = currents fed in)",t:kcl.join("<br>")||"Every node is set by a voltage source."});
+ const fmt=v=>Math.abs(v)<1e-12?"0":(+v.toPrecision(5)).toString();
+ st.push({h:"4. The equations as a matrix  G · x = z",t:`<table class="bom mono" style="font-size:11px">${M.length?A.map((r,i)=>`<tr>${r.map(v=>`<td>${fmt(v)}</td>`).join("")}<td>·</td><td>${i<n?vname(nodes[i]):"I<sub>"+esc(VS[i-n].c.label)+"</sub>"}</td><td>=</td><td>${fmt(z[i])}</td></tr>`).join(""):""}</table>`});
+ st.push({h:"5. Solve",t:nodes.map(k=>`${vname(k)} = <b>${rd(Vn(k),"V")}</b>`).join("<br>")+(m?"<br>"+VS.map((x,k)=>`I<sub>${esc(x.c.label)}</sub> = ${rd(sol[n+k],"A")}`).join("<br>"):"")});
+ const br=R.map(x=>({x,v:Vn(x.a)-Vn(x.b),i:(Vn(x.a)-Vn(x.b))/x.r}));
+ st.push({h:"6. Currents by Ohm's law",t:br.map(b=>`I<sub>${esc(lbl(b.x))}</sub> = (${vname(b.x.a)} − ${vname(b.x.b)}) / ${si(b.x.r,"Ω")} = ${rd(b.v,"V")} / ${si(b.x.r,"Ω")} = <b>${rd(b.i,"A")}</b>, P = ${rd(b.v*b.i,"W")}`).join("<br>")});
+ /* KVL round the independent loops: a spanning tree of the branches, one loop per extra branch */
+ const brs=[...R.map(x=>({a:x.a,b:x.b,name:lbl(x),drop:Vn(x.a)-Vn(x.b)})),...VS.map(x=>({a:x.p,b:x.m,name:x.c.label,drop:Vn(x.p)-Vn(x.m)}))];const parent=new Map();const find=k=>{while(parent.has(k)&&parent.get(k)!==k)k=parent.get(k);return k};
+ const tree=[],extra=[];for(const b of brs){const ra=find(b.a),rb=find(b.b);if(ra===rb)extra.push(b);else{parent.set(ra,rb);parent.set(rb,rb);tree.push(b)}}
+ const pathTo=(from,to)=>{const adj=new Map();tree.forEach(b=>{if(!adj.has(b.a))adj.set(b.a,[]);if(!adj.has(b.b))adj.set(b.b,[]);adj.get(b.a).push([b.b,b,1]);adj.get(b.b).push([b.a,b,-1])});const prev=new Map([[from,null]]);const q=[from];while(q.length){const u=q.shift();if(u===to)break;for(const[v,b,s]of adj.get(u)||[])if(!prev.has(v)){prev.set(v,[u,b,s]);q.push(v)}}const out=[];let u=to;while(prev.get(u)){const[p,b,s]=prev.get(u);out.unshift([b,s]);u=p}return out};
+ const loops=extra.slice(0,6).map(b=>{const path=[[b,1],...pathTo(b.b,b.a)];const sum=path.reduce((a,[q,s])=>a+s*q.drop,0);return`${path.map(([q,s])=>(s>0?"+":"−")+" V("+esc(q.name)+")").join(" ")} = ${path.map(([q,s])=>(s>0?"+ ":"− ")+rd(Math.abs(q.drop),"V").replace(/^-/,"")).join(" ")} → ${rd(sum,"V")} ✓`});
+ st.push({h:"7. KVL check round each loop",t:loops.length?loops.join("<br>"):"The circuit has no closed loop of branches to check."});
+ return{st,nodes,Vn,br,VS,sol,n}}
+function openHandSolve(){const r=handSolve(D);const body=document.createElement("div");body.style.cssText="width:620px;max-height:72vh;overflow:auto;font-size:12.8px;line-height:1.55";
+ if(r.error){body.innerHTML=`<p style="margin:0">${esc(r.error)}</p>`;return makeWin("Hand solution",body,{x:Math.max(10,innerWidth/2-320),y:70})}
+ /* compare with the simulator: run the circuit to its DC point */let cmp="";try{const S=new Sim(D);for(let i=0;i<400;i++)S.step(1e-4);cmp=`<table class="bom" style="width:100%"><tr><th>Node</th><th>By hand</th><th>Simulated</th><th>Difference</th></tr>${r.nodes.map(k=>{const a=r.Vn(k),b=S.vv(k);return`<tr><td>N${k}</td><td>${rd(a,"V")}</td><td>${rd(b,"V")}</td><td>${Math.abs(a-b)<1e-6+Math.abs(a)*1e-4?"same":rd(a-b,"V")}</td></tr>`}).join("")}</table>`}catch(e){cmp=`<p>The simulation could not run: ${esc(e.message)}</p>`}
+ body.innerHTML=`<p style="margin:0 0 10px;color:var(--ui-dim)">Node-voltage method. Node numbers are shown on the drawing while this window is open; capacitors count as open and inductors as shorts at DC.</p>`+r.st.map(s=>`<h4 style="margin:12px 0 4px;color:var(--ui-acc,#2f8bff)">${s.h}</h4><div>${s.t}</div>`).join("")+`<h4 style="margin:14px 0 4px;color:var(--ui-acc,#2f8bff)">8. Against the simulation</h4>${cmp}`;
+ const w=makeWin("Hand solution",body,{x:Math.max(10,innerWidth/2-320),y:70});window.__showNodes=true;dirty=1;const t=setInterval(()=>{if(!document.body.contains(w)){window.__showNodes=false;dirty=1;clearInterval(t)}},400);return w}
+function drawNodeTags(ctx){if(!window.__showNodes)return;const net=buildNets(D);const seen=new Set();ctx.save();ctx.font="bold 9px "+(CV.mono||"monospace");for(const c of D.comps){const pn=net.pinNodes.get(c.id)||[];LIB[c.t].pins.forEach((_,i)=>{const k=pn[i];if(!(k>0)||seen.has(k))return;seen.add(k);const p=pinPos(c,i);const t="N"+k;const w=ctx.measureText(t).width+6;ctx.fillStyle="#2f8bff";ctx.fillRect(p.x+3,p.y-13,w,11);ctx.fillStyle="#fff";ctx.fillText(t,p.x+6,p.y-4.5)})}ctx.restore()}
+
+/* ---- version history: a snapshot of the design every minute while it changes, kept per design ---- */
+const HIST={key:d=>{d.meta=d.meta||{};return"cesim.hist."+(d.meta.hid||(d.meta.hid=uid()))},last:new Map()};
+function histList(d){try{return JSON.parse(localStorage.getItem(HIST.key(d))||"[]")}catch(e){return[]}}
+function histSnap(d,why){const s=serialize(d);const list=histList(d);if(list.length&&list[list.length-1].s===s)return;list.push({t:Date.now(),why:why||"Autosave",n:d.comps.length,w:d.wires.length,s});while(list.length>60)list.shift();
+ for(;;){try{localStorage.setItem(HIST.key(d),JSON.stringify(list));break}catch(e){if(list.length<=2)break;list.splice(0,Math.ceil(list.length/4))}}}
+setInterval(()=>{for(const d of docs){const s=serialize(d);if(HIST.last.get(d)===s)continue;if(HIST.last.has(d))histSnap(d);HIST.last.set(d,s)}try{saveLocal(false)}catch(e){}},60000);
+function openHistory(){const list=histList(D).slice().reverse();const body=document.createElement("div");body.style.cssText="width:460px;max-height:60vh;overflow:auto;font-size:12.5px";
+ body.innerHTML=`<p style="margin:0 0 8px;color:var(--ui-dim)">A copy of “${esc(D.name)}” is kept every minute while it changes (the last 60). Open one in a new tab to compare, or restore it here.</p><div style="display:flex;gap:6px;margin-bottom:10px"><button class="btn" id="hs-now">Save a version now</button></div>`+
+  (list.length?`<table class="bom" style="width:100%"><tr><th>When</th><th>Parts</th><th>Wires</th><th></th></tr>${list.map((h,i)=>`<tr><td>${new Date(h.t).toLocaleString()}<br><span style="color:var(--ui-dim)">${esc(h.why)}</span></td><td>${h.n}</td><td>${h.w}</td><td style="white-space:nowrap"><button class="btn" data-o="${i}">Open</button> <button class="btn" data-r="${i}">Restore</button></td></tr>`).join("")}</table>`:`<p>No versions yet. They appear here as you work.</p>`);
+ const w=makeWin("Version history",body,{x:Math.max(10,innerWidth/2-240),y:90});
+ body.querySelector("#hs-now").onclick=()=>{histSnap(D,"Saved by hand");HIST.last.set(D,serialize(D));w.remove();openHistory()};
+ body.querySelectorAll("[data-o]").forEach(b=>b.onclick=()=>{const h=list[+b.dataset.o];const d=deserialize(h.s,D.name+" ("+new Date(h.t).toLocaleTimeString()+")");if(d.meta)delete d.meta.hid;addDoc(d)});
+ body.querySelectorAll("[data-r]").forEach(b=>b.onclick=()=>{const h=list[+b.dataset.r];histSnap(D,"Before restoring");pushUndo();const d=deserialize(h.s,D.name);D.comps=d.comps;D.wires=d.wires;structural();toast("Restored the version from "+new Date(h.t).toLocaleString()+". Ctrl+Z undoes it.");w.remove()});return w}
+
+
+/* smooth zoom: the zoom buttons, keys and Zoom to fit glide to the new view instead of jumping */
+let viewAnim=null;function animView(v1,ms=180){const v0={x:D.view.x,y:D.view.y,z:D.view.z};const t0=performance.now();cancelAnimationFrame(viewAnim);const st=()=>{const t=Math.min(1,(performance.now()-t0)/ms),e=1-Math.pow(1-t,3);D.view.z=v0.z*Math.pow(v1.z/v0.z,e);D.view.x=v0.x+(v1.x-v0.x)*e;D.view.y=v0.y+(v1.y-v0.y)*e;dirty=1;if(t<1)viewAnim=requestAnimationFrame(st)};st()}
+{const zf=zoomFit,zb=zoomBy;zoomFit=function(){const v0={...D.view};zf();const v1={...D.view};Object.assign(D.view,v0);animView(v1,240)};zoomBy=function(f,cx,cy){const v0={...D.view};zb(f,cx,cy);const v1={...D.view};Object.assign(D.view,v0);animView(v1)}}
 try{mypLoad()}catch(e){console.warn(e)}
 if(!loadLocal()){try{localStorage.setItem("cesim.exv",String(EXV))}catch(e){}docs.push(newDoc("Design1"));EXAMPLES.forEach(([n,f])=>{try{docs.push(splitAtPins(f()))}catch(e){console.error(n,e)}})}
 let ai=0;try{ai=+localStorage.getItem("cesim.active")||0}catch(e){}D=docs[clamp(ai,0,docs.length-1)];
