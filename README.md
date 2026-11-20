@@ -283,6 +283,32 @@ You set what each sensor senses in Details: temperature and humidity, the warm o
 
 **3D models:** every new board, sensor, drone part and motor is also in **Boards and modules** in the 3D tool, made to the real dimensions, with a search box. Use them to design a case or a drone mount around them.
 
+## Pointers, structs and the ESP32 camera
+
+Sketches can use **pointers and structs**: `int *p = &x;`, `*p`, `p[i]`, pointer arithmetic, `NULL` checks, `struct` and `typedef struct`, `p->field`, arrays of structs and passing pointers to functions. Reading through a NULL pointer or past the end of an array stops the sketch and says where. On 32-bit boards (ESP32, ESP32-S3, Pico, Due, MKR, Nano 33, Uno R4) `int` is 32-bit like on the real board.
+
+The real **esp_camera** library works on the ESP32-S3: `camera_config_t`, `esp_camera_init(&config)`, `esp_camera_fb_get()`, `fb->buf`, `fb->width`, `fb->height`, `fb->len`, `esp_camera_fb_return(fb)` and `sensor_t *s = esp_camera_sensor_get()` with `s->set_framesize()`, `s->set_vflip()` and more. Frames come in RGB565, grayscale, RGB888 or JPEG from 96 × 96 to 1600 × 1200. The OV2640 module has its 18 pins, and `esp_camera_init` checks every pin in the config against the wiring and says which one is wrong.
+
+## Flying the drone
+
+Add a frame, a **flight controller (F405)**, four ESCs, four brushless motors and a LiPo. The flight controller has its own gyro: in Angle mode it keeps the drone level, in Acro mode the sticks set the rotation rate, and Altitude hold keeps a height from 0 to 10 m. Fly it from the sliders in Details or from the keyboard (I and K throttle, J and L yaw, arrow keys roll and pitch, Enter arms), or from a board that sends servo pulses to THR, ROLL, PITCH, YAW and AUX1. The drone has real physics: thrust and reaction torque of each motor at its arm, gravity, drag and the ground. It climbs, tilts, drifts and turns, shows its height and an attitude indicator, and crashes if it hits the ground too fast. Wrong prop directions make it spin, and a wrong motor order flips it. An MPU6050 or a VL53L0X mounted on the drone reads its motion and height.
+
+## I2C sensors on the Raspberry Pi
+
+Python programs on every Pi can use `board` and `busio` with `adafruit_sht31d`, `adafruit_mlx90640`, `adafruit_vl53l0x`, `adafruit_mpu6050`, the `mpu6050` package and `picamera2` (`capture_array()`). `i2c.scan()` lists the wired sensors, and a sensor that is not wired gives the same "No I2C device at address" error as on a real Pi.
+
+## More motors and tools
+
+- **Motors:** NEMA 17 stepper with A4988 driver (1 to 1/16 microsteps), MG996R and FS90R continuous servos, 40 mm fan, mini water pump, coin vibration motor and 12 V push solenoid.
+- **Tools:** two-channel oscilloscope (time and volts per division, trigger, Vpp and frequency), function generator (sine, square, triangle and saw up to 2 kHz) and logic probe (HI, LO and PULSE).
+- **3D models** for all of them, plus a multimeter and a bench power supply, in the Tools group of the 3D tool.
+
+## Wires
+
+- Moving or rotating a part takes the wires attached to its legs with it; their other end stays where it is.
+- Two wires that only touch in the air no longer join. Wires join at holes and part terminals.
+- Double-click a wire to add a bend, drag the square to shape it, and double-click the square to remove it.
+
 ## Breadboard parts panel
 
 The parts list is on the right, with a search box (press / or Ctrl+F) and a Details tab for the selected part. Parts and boards are drawn like the real ones, and the zoom moves in small smooth steps.

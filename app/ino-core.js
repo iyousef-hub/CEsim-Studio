@@ -51,10 +51,10 @@ function preprocess(toks){const defs=new Map(),out=[],includes=[],warns=[];const
 const INFO={char:{b:8,s:1,sz:1},u8:{b:8,s:0,sz:1},int:{b:16,s:1,sz:2},uint:{b:16,s:0,sz:2},long:{b:32,s:1,sz:4},ulong:{b:32,s:0,sz:4},bool:{b:1,s:0,sz:1},float:{sz:4}};
 const isInt=t=>typeof t==='string'&&INFO[t]&&t!=='float';
 const isNum=t=>typeof t==='string'&&!!INFO[t];
-const isArr=t=>t&&typeof t==='object'&&t.arr;
+const isArr=t=>t&&typeof t==='object'&&t.arr;const isPtr=t=>t&&typeof t==='object'&&t.ptr;const isSt=t=>t&&typeof t==='object'&&t.st;
 const OBJCLS={Adafruit_SHT31:'SHT31',Adafruit_MLX90640:'MLX',VL53L0X:'VL53',OV2640:'CAM',MPU6050:'IMU'};const isObjT=t=>t==='Servo'||t==='LCD'||t==='OLED'||t==='SHT31'||t==='MLX'||t==='VL53'||t==='CAM'||t==='IMU';
 const TNAME={char:'char',u8:'byte',int:'int',uint:'unsigned int',long:'long',ulong:'unsigned long',bool:'bool',float:'float',String:'String',cstr:'text',void:'void',Servo:'Servo',LCD:'LiquidCrystal',OLED:'Adafruit_SSD1306',SHT31:'Adafruit_SHT31',MLX:'Adafruit_MLX90640',VL53:'VL53L0X',CAM:'OV2640',IMU:'MPU6050'};
-const tname=t=>isArr(t)?tname(t.el)+'[]':TNAME[t]||String(t);
+const tname=t=>isArr(t)?tname(t.el)+'[]':isPtr(t)?tname(t.el)+'*':isSt(t)?t.st:TNAME[t]||String(t);
 function promote(t){return t==='char'||t==='u8'||t==='bool'?'int':t}
 function common(a,b){if(a==='float'||b==='float')return'float';a=promote(a);b=promote(b);if(a===b)return a;const A=INFO[a],B=INFO[b];if(A.b!==B.b)return A.b>B.b?a:b;return A.s?b:a}
 function wrap(t,c){switch(t){case'char':return`((${c})<<24>>24)`;case'u8':return`((${c})&255)`;case'int':return`((${c})<<16>>16)`;case'uint':return`((${c})&65535)`;case'long':return`((${c})|0)`;case'ulong':return`((${c})>>>0)`;case'bool':return`((${c})?1:0)`;case'float':return`Math.fround(${c})`}return c}
@@ -62,7 +62,11 @@ function fits(f,t){if(f===t)return true;if(f==='bool')return isInt(t);const F=IN
 
 /* ---------------- parser ---------------- */
 const TYPEKW=new Set(['void','int','char','long','short','unsigned','signed','float','double','bool','boolean','byte','word','String','uint8_t','int8_t','uint16_t','int16_t','uint32_t','int32_t','uint64_t','int64_t','size_t','const','static','volatile','Servo','LiquidCrystal','LiquidCrystal_I2C','Adafruit_SSD1306','Adafruit_SHT31','Adafruit_MLX90640','VL53L0X','OV2640','MPU6050','unsigned_long','inline','constexpr']);
-function Parser(toks){this.t=toks;this.p=0;this.enums=new Set();this.warns=[]}
+const CAM_PINS=['pin_pwdn','pin_reset','pin_xclk','pin_sccb_sda','pin_sccb_scl','pin_sscb_sda','pin_sscb_scl','pin_d7','pin_d6','pin_d5','pin_d4','pin_d3','pin_d2','pin_d1','pin_d0','pin_vsync','pin_href','pin_pclk'];
+const LIBSTRUCT={camera_config_t:{lib:true,fields:[...CAM_PINS,'xclk_freq_hz','ledc_timer','ledc_channel','pixel_format','frame_size','jpeg_quality','fb_count','fb_location','grab_mode','sccb_i2c_port'].map(n=>({name:n,type:n==='xclk_freq_hz'?'long':'int'}))},
+ camera_fb_t:{lib:true,fields:[{name:'buf',type:{ptr:true,el:'u8'}},{name:'len',type:'ulong'},{name:'width',type:'int'},{name:'height',type:'int'},{name:'format',type:'int'}]},
+ sensor_t:{lib:true,fields:[{name:'id',type:'int'}]}};
+function Parser(toks){this.t=toks;this.p=0;this.enums=new Set();this.warns=[];this.structs=new Set(Object.keys(LIBSTRUCT))}
 const P=Parser.prototype;
 P.peek=function(k){return this.t[this.p+(k||0)]};
 P.next=function(){return this.t[this.p++]};
@@ -73,40 +77,46 @@ P.expect=function(v,what){if(this.is(v))return this.next();const x=this.peek(),p
  if(v===';')fail(`Expected ';' before '${x.v||'end of file'}'`,x.line);
  fail(`Expected '${v}'${what?' '+what:''} but found '${x.v||'end of file'}'`,x.line)};
 P.ident=function(what){const x=this.peek();if(x.t!=='id')fail(`Expected ${what||'a name'} but found '${x.v||'end of file'}'`,x.line);this.p++;return x.v};
-P.isType=function(k){const x=this.peek(k||0);return x&&x.t==='id'&&TYPEKW.has(x.v)};
+P.isType=function(k){const x=this.peek(k||0);return x&&x.t==='id'&&(TYPEKW.has(x.v)||this.structs.has(x.v)||x.v==='struct')};
 P.type=function(){const st=this.peek().line;let sg=null,len=0,base=null,cnst=false,stat=false;let any=false;
  for(;;){const x=this.peek();if(x.t!=='id')break;const v=x.v;
   if(v==='const'||v==='constexpr'){cnst=true}else if(v==='static'){stat=true}else if(v==='volatile'||v==='inline'){}
+  else if(v==='struct'){}else if(this.structs.has(v)){if(base)break;base=v}
   else if(v==='unsigned'){sg='u'}else if(v==='signed'){sg='s'}else if(v==='long'){len++}else if(v==='short'){base=base||'short'}
   else if(['void','int','char','float','double','bool','boolean','byte','word','String','uint8_t','int8_t','uint16_t','int16_t','uint32_t','int32_t','uint64_t','int64_t','size_t','Servo','LiquidCrystal','LiquidCrystal_I2C','Adafruit_SSD1306','Adafruit_SHT31','Adafruit_MLX90640','VL53L0X','OV2640','MPU6050'].includes(v)){if(base&&base!=='short'||(base==='short'&&v!=='int'))break;base=v}
   else break;this.p++;any=true}
  if(!any)return null;let t;
  if(base==='float'||base==='double')t='float';else if(base==='void')t='void';else if(base==='bool'||base==='boolean')t='bool';else if(base==='String')t='String';else if(base==='Servo')t='Servo';else if(base==='LiquidCrystal'||base==='LiquidCrystal_I2C')t='LCD';else if(base==='Adafruit_SSD1306')t='OLED';else if(OBJCLS[base])t=OBJCLS[base];
- else if(base==='byte'||base==='uint8_t')t='u8';else if(base==='int8_t')t='char';else if(base==='word'||base==='uint16_t')t='uint';else if(base==='int16_t'||base==='short')t=sg==='u'?'uint':'int';else if(base==='uint32_t'||base==='uint64_t')t='ulong';else if(base==='int32_t'||base==='int64_t')t='long';else if(base==='size_t')t='uint';
- else if(base==='char')t=sg==='u'?'u8':'char';else if(len)t=sg==='u'?'ulong':'long';else t=sg==='u'?'uint':'int';
+ else if(base==='byte'||base==='uint8_t')t='u8';else if(base==='int8_t')t='char';else if(base==='word'||base==='uint16_t')t='uint';else if(base==='int16_t'||base==='short')t=sg==='u'?'uint':'int';else if(base==='uint32_t'||base==='uint64_t')t='ulong';else if(base==='int32_t'||base==='int64_t')t='long';else if(base==='size_t')t='uint';else if(this.structs.has(base))t={st:base};
+ else if(base==='char')t=sg==='u'?'u8':'char';else if(len)t=sg==='u'?'ulong':'long';else t=this.int32?(sg==='u'?'ulong':'long'):(sg==='u'?'uint':'int');
  if(base==='LiquidCrystal_I2C')this.i2c=true;
- if(this.is('*')){if(t==='char'){this.p++;t='cstr';if(this.eat('const')){}}else fail('Pointers are not supported in this simulator. Use an array or a variable instead',st)}
- if(this.is('&')&&t!=='String')fail('Reference parameters (&) are not supported yet. Return the value, or use a global variable',st);
- if(this.is('&'))this.p++;
+ while(this.is('*')){this.p++;if(t==='char')t='cstr';else t={ptr:true,el:t};this.eat('const')}
+ if(this.is('&')&&t!=='String'&&!isSt(t))fail('Reference parameters (&) are not supported yet. Pass a pointer (int *x and &value), return the value, or use a global variable',st);
+ if(this.is('&')){this.p++;if(isSt(t))t=Object.assign({},t,{ref:true})}
  return{t,cnst,stat,line:st}};
 P.program=function(){const items=[];while(this.peek().t!=='eof'){
   if(this.eat(';'))continue;
   if(this.is('enum')){items.push(this.enumDecl());continue}
-  if(this.is('struct')||this.is('class')||this.is('typedef')||this.is('union'))fail(`'${this.peek().v}' is not supported in this simulator yet`,this.peek().line);
+  if((this.is('struct')&&this.is('{',2))||(this.is('typedef')&&this.is('struct',1))){items.push(...this.structDef());continue}
+  if(this.is('class')||this.is('typedef')||this.is('union'))fail(`'${this.peek().v}' is not supported in this simulator yet. Use struct`,this.peek().line);
   if(this.is('using')||this.is('namespace')){while(!this.is(';')&&this.peek().t!=='eof')this.p++;this.eat(';');continue}
   const ty=this.type();if(!ty){const x=this.peek();if(x.t==='id'&&this.is('(',1))fail(`'${x.v}' needs a return type, for example: void ${x.v}()`,x.line);fail(`Expected a declaration but found '${x.v}'${x.t==='id'?'. Is the type spelled correctly?':''}`,x.line)}
   const nameTok=this.peek();const name=this.ident('a name');
   if(this.is('(')&&!isObjT(ty.t)){this.p++;const params=this.params();if(this.eat(';')){items.push({k:'proto',name,ret:ty.t,params,line:nameTok.line});continue}const body=this.block();items.push({k:'func',name,ret:ty.t,params,body,line:nameTok.line,end:this.t[this.p-1].line});continue}
   this.p--;items.push(this.declRest(ty));}
  return items};
+P.structDef=function(){const line=this.peek().line;const td=this.eat('typedef');this.expect('struct');let name=null;if(this.peek().t==='id'&&!this.is('{'))name=this.next().v;this.expect('{');const fields=[];
+ while(!this.is('}')){const ty=this.type();if(!ty)fail(`Expected a field type in the struct but found '${this.peek().v}'`,this.peek().line);for(;;){let t=ty.t;while(this.eat('*'))t={ptr:true,el:t};const n=this.ident('a field name');const dims=[];while(this.eat('[')){dims.push(this.expr(true));this.expect(']')}fields.push({name:n,t,dims});if(!this.eat(','))break}this.expect(';')}
+ this.expect('}');const out=[];let alias=null;if(td){alias=this.ident('the struct name');this.expect(';')}else if(!this.is(';')){if(!name)name='_anon'+line;this.structs.add(name);const d={k:'struct',name,fields,line};const ds=this.declRest({t:{st:name},line});return[d,ds]}else this.expect(';');
+ name=name||alias;this.structs.add(name);if(alias)this.structs.add(alias);const res=[{k:'struct',name,fields,line}];if(alias&&alias!==name)res.push({k:'struct',name:alias,fields,line});return res};
 P.enumDecl=function(){const line=this.next().line;if(this.peek().t==='id')this.p++;this.expect('{');const vals=[];while(!this.is('}')){const n=this.ident('an enum name');let e=null;if(this.eat('='))e=this.expr(true);vals.push({name:n,e});this.enums.add(n);if(!this.eat(','))break}this.expect('}');if(this.peek().t==='id'){while(!this.is(';'))this.p++}this.expect(';');return{k:'enum',vals,line}};
 P.params=function(){const ps=[];if(this.eat(')'))return ps;if(this.is('void')&&this.is(')',1)){this.p+=2;return ps}
  for(;;){const ty=this.type();if(!ty)fail(`Expected a parameter type but found '${this.peek().v}'`,this.peek().line);let name='_p'+ps.length;if(this.peek().t==='id')name=this.next().v;let t=ty.t;const dims=[];while(this.eat('[')){if(!this.is(']'))dims.push(this.expr(true));else dims.push(null);this.expect(']')}if(dims.length)t={arr:true,el:t,dims:dims.map(()=>0)};if(this.eat('='))this.expr(true);ps.push({name,type:t});if(!this.eat(','))break}
  this.expect(')');return ps};
 P.declRest=function(ty){const items=[];const line=this.peek().line;
- for(;;){const nl=this.peek().line;const name=this.ident('a variable name');const dims=[];while(this.eat('[')){dims.push(this.is(']')?null:this.expr(true));this.expect(']')}
+ for(;;){const nl=this.peek().line;let xp=0;while(this.eat('*'))xp++;const name=this.ident('a variable name');const dims=[];while(this.eat('[')){dims.push(this.is(']')?null:this.expr(true));this.expect(']')}
   let init=null,ctor=null;if(this.eat('=')){init=this.is('{')?this.initList():this.expr(true)}else if(this.is('(')){this.p++;ctor=[];if(!this.is(')'))for(;;){ctor.push(this.expr(true));if(!this.eat(','))break}this.expect(')')}else if(this.is('{')){init=this.initList()}
-  items.push({name,dims,init,ctor,line:nl});if(!this.eat(','))break}
+  items.push({name,dims,init,ctor,line:nl,xp});if(!this.eat(','))break}
  this.expect(';');return{k:'decl',ty,items,line}};
 P.initList=function(){const line=this.expect('{').line;const items=[];while(!this.is('}')){items.push(this.is('{')?this.initList():this.expr(true));if(!this.eat(','))break}this.expect('}');return{k:'init',items,line}};
 P.block=function(){const l=this.expect('{').line;const body=[];while(!this.is('}')){if(this.peek().t==='eof')fail('A { is never closed with }',l);body.push(this.stmt())}this.next();return{k:'block',body,line:l}};
@@ -136,7 +146,7 @@ P.bin=function(lv){if(lv>=BIN.length)return this.unary();let a=this.bin(lv+1);fo
 P.unary=function(){const x=this.peek();
  if(x.t==='op'&&['-','+','!','~'].includes(x.v)){this.p++;return{k:'un',op:x.v,a:this.unary(),line:x.line}}
  if(x.t==='op'&&(x.v==='++'||x.v==='--')){this.p++;return{k:'pre',op:x.v,a:this.unary(),line:x.line}}
- if(x.t==='op'&&(x.v==='&'||x.v==='*'))fail('Pointers are not supported in this simulator',x.line);
+ if(x.t==='op'&&(x.v==='&'||x.v==='*')){this.p++;return{k:x.v==='&'?'addr':'deref',a:this.unary(),line:x.line}}
  if(x.t==='id'&&x.v==='sizeof'){this.p++;let paren=this.eat('(');let r;if(paren&&this.isType()){const ty=this.type();r={k:'sizeof',type:ty.t,line:x.line}}else{r={k:'sizeof',e:paren?this.expr():this.unary(),line:x.line}}if(paren)this.expect(')');return r}
  if(this.is('(')&&this.isType(1)){let k=1;while(this.isType(k))k++;if(this.is('*',k))k++;if(this.is(')',k)){this.p++;const ty=this.type();this.expect(')');return{k:'cast',type:ty.t,a:this.unary(),line:x.line}}}
  return this.postfix()};
@@ -160,7 +170,7 @@ P.primary=function(){const x=this.next();
  fail(`Unexpected '${x.v}'`,x.line)};
 
 /* ---------------- code generator ---------------- */
-const CONSTS={MLX90640_I2CADDR_DEFAULT:[0x33,'int'],MLX90640_INTERLEAVED:[0,'int'],MLX90640_CHESS:[1,'int'],MLX90640_ADC_16BIT:[0,'int'],MLX90640_ADC_17BIT:[1,'int'],MLX90640_ADC_18BIT:[2,'int'],MLX90640_ADC_19BIT:[3,'int'],MLX90640_0_5_HZ:[0,'int'],MLX90640_1_HZ:[1,'int'],MLX90640_2_HZ:[2,'int'],MLX90640_4_HZ:[3,'int'],MLX90640_8_HZ:[4,'int'],MLX90640_16_HZ:[5,'int'],MLX90640_32_HZ:[6,'int'],MLX90640_64_HZ:[7,'int'],MPU6050_ACCEL_FS_2:[0,'int'],MPU6050_ACCEL_FS_4:[1,'int'],MPU6050_ACCEL_FS_8:[2,'int'],MPU6050_ACCEL_FS_16:[3,'int'],MPU6050_GYRO_FS_250:[0,'int'],MPU6050_GYRO_FS_500:[1,'int'],MPU6050_GYRO_FS_1000:[2,'int'],MPU6050_GYRO_FS_2000:[3,'int'],WHITE:[1,'int'],BLACK:[0,'int'],INVERSE:[2,'int'],SSD1306_WHITE:[1,'int'],SSD1306_BLACK:[0,'int'],SSD1306_INVERSE:[2,'int'],SSD1306_SWITCHCAPVCC:[2,'int'],SSD1306_EXTERNALVCC:[1,'int'],HIGH:[1,'int'],LOW:[0,'int'],INPUT:[0,'int'],OUTPUT:[1,'int'],INPUT_PULLUP:[2,'int'],LED_BUILTIN:[13,'int'],A0:[14,'int'],A1:[15,'int'],A2:[16,'int'],A3:[17,'int'],A4:[18,'int'],A5:[19,'int'],DEC:[10,'int'],HEX:[16,'int'],BIN:[2,'int'],OCT:[8,'int'],PI:[Math.PI,'float'],HALF_PI:[Math.PI/2,'float'],TWO_PI:[Math.PI*2,'float'],DEG_TO_RAD:[Math.PI/180,'float'],RAD_TO_DEG:[180/Math.PI,'float'],EULER:[Math.E,'float'],CHANGE:[1,'int'],FALLING:[2,'int'],RISING:[3,'int'],LSBFIRST:[0,'int'],MSBFIRST:[1,'int'],NULL:[0,'int'],SERIAL:[0,'int'],DISPLAY:[1,'int']};
+const CONSTS={nullptr:[0,'int'],ESP_OK:[0,'int'],ESP_FAIL:[-1,'int'],PIXFORMAT_RGB565:[0,'int'],PIXFORMAT_YUV422:[1,'int'],PIXFORMAT_YUV420:[2,'int'],PIXFORMAT_GRAYSCALE:[3,'int'],PIXFORMAT_JPEG:[4,'int'],PIXFORMAT_RGB888:[5,'int'],FRAMESIZE_96X96:[0,'int'],FRAMESIZE_QQVGA:[1,'int'],FRAMESIZE_QCIF:[2,'int'],FRAMESIZE_HQVGA:[3,'int'],FRAMESIZE_240X240:[4,'int'],FRAMESIZE_QVGA:[5,'int'],FRAMESIZE_CIF:[6,'int'],FRAMESIZE_HVGA:[7,'int'],FRAMESIZE_VGA:[8,'int'],FRAMESIZE_SVGA:[9,'int'],FRAMESIZE_XGA:[10,'int'],FRAMESIZE_HD:[11,'int'],FRAMESIZE_SXGA:[12,'int'],FRAMESIZE_UXGA:[13,'int'],CAMERA_GRAB_WHEN_EMPTY:[0,'int'],CAMERA_GRAB_LATEST:[1,'int'],CAMERA_FB_IN_PSRAM:[0,'int'],CAMERA_FB_IN_DRAM:[1,'int'],LEDC_TIMER_0:[0,'int'],LEDC_TIMER_1:[1,'int'],LEDC_CHANNEL_0:[0,'int'],LEDC_CHANNEL_1:[1,'int'],MLX90640_I2CADDR_DEFAULT:[0x33,'int'],MLX90640_INTERLEAVED:[0,'int'],MLX90640_CHESS:[1,'int'],MLX90640_ADC_16BIT:[0,'int'],MLX90640_ADC_17BIT:[1,'int'],MLX90640_ADC_18BIT:[2,'int'],MLX90640_ADC_19BIT:[3,'int'],MLX90640_0_5_HZ:[0,'int'],MLX90640_1_HZ:[1,'int'],MLX90640_2_HZ:[2,'int'],MLX90640_4_HZ:[3,'int'],MLX90640_8_HZ:[4,'int'],MLX90640_16_HZ:[5,'int'],MLX90640_32_HZ:[6,'int'],MLX90640_64_HZ:[7,'int'],MPU6050_ACCEL_FS_2:[0,'int'],MPU6050_ACCEL_FS_4:[1,'int'],MPU6050_ACCEL_FS_8:[2,'int'],MPU6050_ACCEL_FS_16:[3,'int'],MPU6050_GYRO_FS_250:[0,'int'],MPU6050_GYRO_FS_500:[1,'int'],MPU6050_GYRO_FS_1000:[2,'int'],MPU6050_GYRO_FS_2000:[3,'int'],WHITE:[1,'int'],BLACK:[0,'int'],INVERSE:[2,'int'],SSD1306_WHITE:[1,'int'],SSD1306_BLACK:[0,'int'],SSD1306_INVERSE:[2,'int'],SSD1306_SWITCHCAPVCC:[2,'int'],SSD1306_EXTERNALVCC:[1,'int'],HIGH:[1,'int'],LOW:[0,'int'],INPUT:[0,'int'],OUTPUT:[1,'int'],INPUT_PULLUP:[2,'int'],LED_BUILTIN:[13,'int'],A0:[14,'int'],A1:[15,'int'],A2:[16,'int'],A3:[17,'int'],A4:[18,'int'],A5:[19,'int'],DEC:[10,'int'],HEX:[16,'int'],BIN:[2,'int'],OCT:[8,'int'],PI:[Math.PI,'float'],HALF_PI:[Math.PI/2,'float'],TWO_PI:[Math.PI*2,'float'],DEG_TO_RAD:[Math.PI/180,'float'],RAD_TO_DEG:[180/Math.PI,'float'],EULER:[Math.E,'float'],CHANGE:[1,'int'],FALLING:[2,'int'],RISING:[3,'int'],LSBFIRST:[0,'int'],MSBFIRST:[1,'int'],NULL:[0,'int'],SERIAL:[0,'int'],DISPLAY:[1,'int']};
 const PWM=new Set([3,5,6,9,10,11]);
 function Gen(items,includes,warns){this.items=items;this.out=[];this.scopes=[new Map()];this.funcs=new Map();this.tmp=0;this.warns=warns;this.includes=includes;this.statics=[];this.loopDepth=0;this.switchDepth=0}
 const G=Gen.prototype;
@@ -168,6 +178,9 @@ G.lookup=function(n){for(let i=this.scopes.length-1;i>=0;i--){const s=this.scope
 G.declare=function(n,info,line){const s=this.scopes[this.scopes.length-1];if(s.has(n))fail(`'${n}' is declared twice in the same place`,line);if(CONSTS[n]||n==='Serial')fail(`'${n}' is a reserved Arduino name`,line);s.set(n,info);return info};
 G.t=function(){return'_t'+(this.tmp++)};
 G.conv=function(e,to,line,what){const f=e.type;if(to==='void')return e.code;
+ if(isPtr(to)){if(isPtr(f))return e.code;if(isArr(f))return`RT.ap(${e.code})`;if(e.k==='const'&&e.v===0)return'null';fail(`Expected a pointer (${tname(to)}) for ${what||'this value'}, not ${tname(f)}. Use & to take the address of a variable`,line)}
+ if(isSt(to)){if(isSt(f)&&f.st===to.st)return to.ref?e.code:`RT.cl(${e.code})`;fail(`Expected a ${to.st} for ${what||'this value'}, not ${tname(f)}`,line)}
+ if(isPtr(f)||isSt(f)){if(to==='bool'&&isPtr(f))return`((${e.code})?1:0)`;fail(`Cannot use ${tname(f)} as ${tname(to)}${isPtr(f)?'. Use * to read the value it points to':''}`,line)}
  if(isArr(to)){if(!isArr(f)&&!(f==='cstr'&&to.el==='char'))fail(`Expected an array for ${what||'this value'}, not ${tname(f)}`,line);return e.code}
  if(to==='String'){if(f==='String'||f==='cstr')return e.code;if(isArr(f)&&f.el==='char')return`RT.cs(${e.code})`;if(f==='char')return`String.fromCharCode(${e.code}&255)`;if(isNum(f))return`RT.fmt(${e.code},'${f}')`;fail(`Cannot turn ${tname(f)} into a String`,line)}
  if(to==='cstr'){if(f==='cstr'||f==='String')return e.code;if(isArr(f)&&f.el==='char')return`RT.cs(${e.code})`;fail(`Expected text for ${what||'this value'}, not ${tname(f)}`,line)}
@@ -179,13 +192,26 @@ G.conv=function(e,to,line,what){const f=e.type;if(to==='void')return e.code;
   if(e.k==='const'&&to!=='float'){const v=Number(Function('return '+wrap(to,String(e.v)))());return String(v)}
   return wrap(to,e.code)}
  fail(`Cannot use ${tname(f)} here`,line)};
-G.cond=function(e,line){const r=this.expr(e);if(r.type==='void')fail('A condition uses a function that returns nothing',line);if(r.type==='String')return`(${r.code}).length>0`;return r.code};
+G.cond=function(e,line){const r=this.expr(e);if(r.type==='void')fail('A condition uses a function that returns nothing',line);if(isSt(r.type))fail('A struct cannot be used as a condition',line);if(isPtr(r.type))return`(${r.code}?1:0)`;if(r.type==='String')return`(${r.code}).length>0`;return r.code};
 G.lval=function(e){if(e.k==='id'){const s=this.lookup(e.name);if(!s){fail(`'${e.name}' was not declared in this scope`,e.line)}if(s.kind==='const'||s.cnst)fail(`'${e.name}' is a constant and cannot be changed`,e.line);if(s.kind!=='var')fail(`'${e.name}' cannot be assigned`,e.line);if(isArr(s.type))fail(`A whole array cannot be assigned. Assign one element, like ${e.name}[0] = ...`,e.line);return{get:s.js,set:v=>`${s.js}=${v}`,type:s.type,pre:''}}
- if(e.k==='idx'){const a=this.expr(e.a);if(!isArr(a.type)){if(a.type==='String'){const i=this.expr(e.i);const t=this.t();return{get:`(${a.code}).charCodeAt(${t})`,type:'char',pre:`${t}=${i.code},`,set:v=>`${this.lval(e.a).set(`RT.setCh(${a.code},${t},${v})`)}`}}fail(`'${exprName(e.a)}' is not an array`,e.line)}const i=this.expr(e.i);if(!isInt(i.type))fail('An array index must be a whole number',e.line);const ta=this.t(),ti=this.t();const el=a.type.dims.length>1?{arr:true,el:a.type.el,dims:a.type.dims.slice(1)}:a.type.el;
+ if(e.k==='idx'){const a=this.expr(e.a);if(isPtr(a.type)){const i=this.expr(e.i);if(!isInt(i.type))fail('An index must be a whole number',e.line);const t=this.t(),k=this.t();return{get:`${t}.a[${k}]`,set:v=>`${t}.a[${k}]=${v}`,type:a.type.el,pre:`${t}=${a.code},${k}=RT.pk(${t},${i.code},${e.line}),`}}if(!isArr(a.type)){if(a.type==='String'){const i=this.expr(e.i);const t=this.t();return{get:`(${a.code}).charCodeAt(${t})`,type:'char',pre:`${t}=${i.code},`,set:v=>`${this.lval(e.a).set(`RT.setCh(${a.code},${t},${v})`)}`}}fail(`'${exprName(e.a)}' is not an array`,e.line)}const i=this.expr(e.i);if(!isInt(i.type))fail('An array index must be a whole number',e.line);const ta=this.t(),ti=this.t();const el=a.type.dims.length>1?{arr:true,el:a.type.el,dims:a.type.dims.slice(1)}:a.type.el;
   return{get:`${ta}[${ti}]`,set:v=>`${ta}[${ti}]=${v}`,type:el,pre:`${ta}=${a.code},${ti}=RT.ix(${ta},${i.code},${e.line},${JSON.stringify(exprName(e.a))}),`}}
- if(e.k==='mem')fail('This member cannot be assigned',e.line);
+ if(e.k==='deref'){const a=this.expr(e.a);if(!isPtr(a.type))fail(`'*' needs a pointer, but ${exprName(e.a)} is ${tname(a.type)}`,e.line);const t=this.t(),k=this.t();return{get:`${t}.a[${k}]`,set:v=>`${t}.a[${k}]=${v}`,type:a.type.el,pre:`${t}=${a.code},${k}=RT.pk(${t},0,${e.line}),`}}
+ if(e.k==='mem'){const o=this.memObj(e);const t=this.t();return{get:`${t}.${e.name}`,set:v=>`${t}.${e.name}=${v}`,type:o.ft,pre:`${t}=${o.code},`}}
  fail('The left side of = must be a variable or an array element',e.line)};
-function exprName(e){return e.k==='id'?e.name:e.k==='idx'?exprName(e.a)+'[]':'value'}
+G.addr=function(e){const R=(code,type)=>({code,type});const a=e.a;
+ if(a.k==='id'){const s=this.lookup(a.name);if(!s||s.kind!=='var'){if(s&&s.kind==='const')fail(`'${a.name}' is a constant; its address cannot be taken`,e.line);fail(`'${a.name}' was not declared in this scope`,e.line)}if(isArr(s.type))return R(`RT.ap(${s.js})`,{ptr:true,el:s.type.dims.length>1?{arr:true,el:s.type.el,dims:s.type.dims.slice(1)}:s.type.el});if(isObjT(s.type))return R(s.js,s.type);return R(`RT.box(()=>${s.js},v=>${s.js}=v)`,{ptr:true,el:s.type})}
+ if(a.k==='idx'){const b=this.expr(a.a);const i=this.expr(a.i);if(isPtr(b.type))return R(`RT.padd(${b.code},${i.code},${e.line})`,b.type);if(!isArr(b.type))fail(`'${exprName(a.a)}' is not an array`,e.line);const el=b.type.dims.length>1?{arr:true,el:b.type.el,dims:b.type.dims.slice(1)}:b.type.el;return R(`RT.ai(${b.code},${i.code},${e.line})`,{ptr:true,el})}
+ if(a.k==='mem'){const o=this.memObj(a);const t=this.t();if(isArr(o.ft))return R(`RT.ap(${o.code}.${a.name})`,{ptr:true,el:o.ft.el});return R(`(${t}=${o.code},RT.box(()=>${t}.${a.name},v=>${t}.${a.name}=v))`,{ptr:true,el:o.ft})}
+ if(a.k==='deref'){const b=this.expr(a.a);return R(b.code,b.type)}
+ if(a.k==='id'&&a.name==='Wire')return R('0','int');
+ fail('& needs a variable, an array element or a field',e.line)};
+G.memObj=function(e){const a=this.expr(e.a);let st,code;if(isSt(a.type)){st=a.type.st;code=a.code}else if(isPtr(a.type)&&isSt(a.type.el)){st=a.type.el.st;code=`RT.pdr(${a.code},${e.line})`}else fail(`'${exprName(e.a)}' has no field '${e.name}'`,e.line);
+ const d=this.sdefs[st];const f=d&&d.fields.find(x=>x.name===e.name);if(!f)fail(`${st} has no field '${e.name}'${d?'. Its fields: '+d.fields.map(x=>x.name).slice(0,12).join(', '):''}`,e.line);return{code,ft:f.type}};
+G.dflt=function(t){if(isArr(t))return this.arrInit(t.el,t.dims,null,0,'');if(t==='String'||t==='cstr')return'""';if(isPtr(t))return'null';if(isSt(t))return`S_${t.st}()`;return'0'};
+G.structInit=function(t,init,line){const d=this.sdefs[t.st];if(init.k!=='init'){return this.conv(this.expr(init),t,line)}if(init.items.length>d.fields.length)fail(`Too many values for ${t.st}: it has ${d.fields.length} fields`,line);
+ return`Object.assign(S_${t.st}(),{${init.items.map((it,i)=>{const f=d.fields[i];let v;if(isSt(f.type))v=this.structInit(f.type,it,line);else if(isArr(f.type))v=this.arrInit(f.type.el,f.type.dims,it,line,f.name);else v=this.conv(this.expr(it),f.type,line,'field '+f.name);return`${f.name}:${v}`}).join(',')}})`};
+function exprName(e){return e.k==='id'?e.name:e.k==='idx'?exprName(e.a)+'[]':e.k==='mem'?exprName(e.a)+'.'+e.name:e.k==='deref'?'*'+exprName(e.a):'value'}
 G.expr=function(e){const R=(code,type,extra)=>Object.assign({code,type},extra||{});
  switch(e.k){
  case'num':return R(String(e.v),e.type,{k:'const',v:e.v});
@@ -197,19 +223,21 @@ G.expr=function(e){const R=(code,type,extra)=>Object.assign({code,type},extra||{
   if(/^B[01]{1,8}$/.test(e.name)){const v=parseInt(e.name.slice(1),2);return R(String(v),'int',{k:'const',v})}
   if(e.name==='Serial')return R('RT.ser','Serial');
   const near=this.near(e.name);fail(`'${e.name}' was not declared in this scope${near?`. Did you mean '${near}'?`:''}`,e.line)}
- case'sizeof':{let t=e.type;if(!t){const r=this.expr(e.e);t=r.type}const sz=t=>isArr(t)?t.dims.reduce((a,b)=>a*b,1)*sz(t.el):t==='String'?6:t==='cstr'?2:(INFO[t]||{sz:2}).sz;return R(String(sz(t)),'uint',{k:'const',v:sz(t)})}
- case'cast':{if(e.type==='String'&&e.fn&&e.a.k==='comma'){const v=this.expr(e.a.a),f=this.expr(e.a.b);if(!isNum(v.type))fail('String(value, digits) needs a number',e.line);return R(`RT.fmt(${v.code},'${v.type}',${f.code})`,'String')}const a=this.expr(e.a);if(e.type==='String'){return R(this.conv(a,'String',e.line),'String')}if(!isNum(e.type))fail(`Cannot convert to ${tname(e.type)}`,e.line);if(a.type==='String'||a.type==='cstr')fail(`Cannot convert text to a number with a cast. Use .toInt() on a String`,e.line);return R(this.conv(a,e.type,e.line),e.type)}
+ case'sizeof':{let t=e.type;if(!t){const r=this.expr(e.e);t=r.type}const sz=t=>isPtr(t)?4:isSt(t)?(this.sdefs[t.st]?this.sdefs[t.st].fields.reduce((a,f)=>a+sz(f.type),0):4):isArr(t)?t.dims.reduce((a,b)=>a*b,1)*sz(t.el):t==='String'?6:t==='cstr'?2:(INFO[t]||{sz:2}).sz;return R(String(sz(t)),'uint',{k:'const',v:sz(t)})}
+ case'cast':{if(isPtr(e.type)){const a=this.expr(e.a);if(!isPtr(a.type)&&!isArr(a.type)&&!(a.k==='const'&&a.v===0))fail(`Cannot turn ${tname(a.type)} into a pointer`,e.line);return R(isArr(a.type)?`RT.ap(${a.code})`:a.code,e.type)}if(e.type==='String'&&e.fn&&e.a.k==='comma'){const v=this.expr(e.a.a),f=this.expr(e.a.b);if(!isNum(v.type))fail('String(value, digits) needs a number',e.line);return R(`RT.fmt(${v.code},'${v.type}',${f.code})`,'String')}const a=this.expr(e.a);if(e.type==='String'){return R(this.conv(a,'String',e.line),'String')}if(!isNum(e.type))fail(`Cannot convert to ${tname(e.type)}`,e.line);if(a.type==='String'||a.type==='cstr')fail(`Cannot convert text to a number with a cast. Use .toInt() on a String`,e.line);return R(this.conv(a,e.type,e.line),e.type)}
  case'comma':{const a=this.expr(e.a),b=this.expr(e.b);return R(`(${a.code},${b.code})`,b.type)}
  case'tern':{const c=this.cond(e.c,e.line);const a=this.expr(e.a),b=this.expr(e.b);let t;if(isNum(a.type)&&isNum(b.type))t=common(a.type,b.type);else if(a.type==='String'||b.type==='String')t='String';else if(a.type===b.type)t=a.type;else if((a.type==='cstr'||a.type==='String')&&(b.type==='cstr'||b.type==='String'))t='String';else fail('Both sides of ? : must have the same kind of value',e.line);return R(`((${c})?(${this.conv(a,t,e.line)}):(${this.conv(b,t,e.line)}))`,t)}
  case'un':{const a=this.expr(e.a);if(e.op==='!')return R(`((${a.type==='String'?a.code+'.length':a.code})?0:1)`,'bool');if(!isNum(a.type))fail(`'${e.op}' needs a number`,e.line);
   if(e.op==='+')return R(a.code,promote(a.type));if(e.op==='-'){const t=promote(a.type);if(a.k==='const'&&t!=='float'&&a.v>32767){return R(String(-a.v),'long',{k:'const',v:-a.v})}if(a.k==='const')return R(`(${-a.v})`,t,{k:'const',v:-a.v});return R(wrap(t,`-(${a.code})`),t)}
   if(e.op==='~'){if(a.type==='float')fail("'~' needs a whole number",e.line);const t=promote(a.type);return R(wrap(t,`~(${a.code})`),t)}}
- case'pre':case'post':{const L=this.lval(e.a);if(!isNum(L.type))fail(`'${e.op}' needs a number variable`,e.line);const d=e.op==='++'?'+1':'-1';const nv=wrap(L.type,`${L.get}${d}`);if(e.k==='pre')return R(`(${L.pre}${L.set(nv)})`,L.type);const t=this.t();return R(`(${L.pre}${t}=${L.get},${L.set(nv)},${t})`,L.type)}
+ case'pre':case'post':{const L=this.lval(e.a);if(isPtr(L.type)){const d=e.op==='++'?1:-1;const nv=`RT.padd(${L.get},${d},${e.line})`;if(e.k==='pre')return R(`(${L.pre}${L.set(nv)})`,L.type);const t=this.t();return R(`(${L.pre}${t}=${L.get},${L.set(nv)},${t})`,L.type)}if(!isNum(L.type))fail(`'${e.op}' needs a number variable`,e.line);const d=e.op==='++'?'+1':'-1';const nv=wrap(L.type,`${L.get}${d}`);if(e.k==='pre')return R(`(${L.pre}${L.set(nv)})`,L.type);const t=this.t();return R(`(${L.pre}${t}=${L.get},${L.set(nv)},${t})`,L.type)}
  case'asg':{const L=this.lval(e.a);let b;if(e.op==='='){if(e.b.k==='init')fail('A { } list can only be used when an array is declared',e.line);b=this.expr(e.b);if(L.type==='String'){return R(`(${L.pre}${L.set(this.conv(b,'String',e.line))})`,'String')}return R(`(${L.pre}${L.set(this.conv(b,L.type,e.line,'the assignment'))})`,L.type)}
   const op=e.op.slice(0,-1);const r=this.binop(op,{code:L.get,type:L.type},this.expr(e.b),e.line);return R(`(${L.pre}${L.set(this.conv(r,L.type,e.line))})`,L.type)}
  case'bin':{if(e.op==='&&'||e.op==='||'){const a=this.cond(e.a,e.line),b=this.cond(e.b,e.line);return R(`((${a})${e.op}(${b})?1:0)`,'bool')}return this.binop(e.op,this.expr(e.a),this.expr(e.b),e.line)}
- case'idx':{const a=this.expr(e.a);const i=this.expr(e.i);if(a.type==='String'||a.type==='cstr'){return R(`RT.chAt(${a.code},${i.code})`,'char')}if(!isArr(a.type))fail(`'${exprName(e.a)}' is not an array`,e.line);if(!isInt(i.type))fail('An array index must be a whole number',e.line);const el=a.type.dims.length>1?{arr:true,el:a.type.el,dims:a.type.dims.slice(1)}:a.type.el;return R(`${a.code}[RT.ix(${a.code},${i.code},${e.line},${JSON.stringify(exprName(e.a))})]`,el)}
- case'mem':{const a=this.expr(e.a);if(a.type==='String'&&e.name==='length')fail('length is a function: write .length()',e.line);fail(`'${e.name}' must be called with ( )`,e.line)}
+ case'idx':{const a=this.expr(e.a);const i=this.expr(e.i);if(isPtr(a.type)){if(!isInt(i.type))fail('An index must be a whole number',e.line);return R(`RT.pg(${a.code},${i.code},${e.line})`,a.type.el)}if(a.type==='String'||a.type==='cstr'){return R(`RT.chAt(${a.code},${i.code})`,'char')}if(!isArr(a.type))fail(`'${exprName(e.a)}' is not an array`,e.line);if(!isInt(i.type))fail('An array index must be a whole number',e.line);const el=a.type.dims.length>1?{arr:true,el:a.type.el,dims:a.type.dims.slice(1)}:a.type.el;return R(`${a.code}[RT.ix(${a.code},${i.code},${e.line},${JSON.stringify(exprName(e.a))})]`,el)}
+ case'addr':return this.addr(e);
+ case'deref':{const a=this.expr(e.a);if(!isPtr(a.type))fail(`'*' needs a pointer, but ${exprName(e.a)} is ${tname(a.type)}`,e.line);return R(`RT.pdr(${a.code},${e.line})`,a.type.el)}
+ case'mem':{const a0=this.expr(e.a);if(isSt(a0.type)||(isPtr(a0.type)&&isSt(a0.type.el))){const o=this.memObj(e);return R(`${o.code}.${e.name}`,o.ft)}const a=a0;if(a.type==='String'&&e.name==='length')fail('length is a function: write .length()',e.line);fail(`'${e.name}' must be called with ( )`,e.line)}
  case'call':return this.call(e);
  }
  fail('This expression is not supported',e.line)};
@@ -219,6 +247,13 @@ G.binop=function(op,a,b,line){const R=(code,type)=>({code,type});
  if(op==='+'&&(a.type==='String'||b.type==='String')){return R(`(${this.conv(a,'String',line)}+${this.conv(b,'String',line)})`,'String')}
  if((a.type==='cstr'||b.type==='cstr')&&(op==='+'||op==='-')){if(a.type==='cstr'&&b.type==='cstr')fail('Two texts in quotes cannot be added. Write String("...") + "..." instead',line);const s=a.type==='cstr'?a:b,n=a.type==='cstr'?b:a;if(isInt(n.type)){this.warns.push({line,msg:'Adding a number to a text in quotes does not join them in C++: it skips characters instead. Use String("text") + value, or print them separately'});return R(`(${s.code}).slice(${n.code})`,'cstr')}fail('Cannot add this to a text',line)}
  if(['==','!=','<','>','<=','>='].includes(op)&&(a.type==='String'||b.type==='String'||(a.type==='cstr'&&b.type==='cstr'))){const x=this.conv(a,'String',line),y=this.conv(b,'String',line);const js=op==='=='?'===':op==='!='?'!==':op;return R(`((${x})${js}(${y})?1:0)`,'bool')}
+ if(isPtr(a.type)||isPtr(b.type)){const toP=x=>isArr(x.type)?{code:`RT.ap(${x.code})`,type:{ptr:true,el:x.type.el}}:x;if(op==='-'||['<','>','<=','>='].includes(op)){a=toP(a);b=toP(b)}const P=isPtr(a.type)?a:b,O=P===a?b:a;
+  if(op==='=='||op==='!='){const x=isPtr(a.type)?a.code:(a.k==='const'&&a.v===0?'null':isArr(a.type)?`RT.ap(${a.code})`:null),y=isPtr(b.type)?b.code:(b.k==='const'&&b.v===0?'null':isArr(b.type)?`RT.ap(${b.code})`:null);if(x==null||y==null)fail(`'${op}' compares a pointer with ${tname(O.type)}`,line);return R(`(RT.peq(${x},${y})${op==='=='?'':'?0:1'}${op==='=='?'?1:0':''})`,'bool')}
+  if(['<','>','<=','>='].includes(op)&&isPtr(a.type)&&isPtr(b.type))return R(`((${a.code}).i${op}(${b.code}).i?1:0)`,'bool');
+  if(op==='-'&&isPtr(a.type)&&isPtr(b.type))return R(`((${a.code}).i-(${b.code}).i)`,'long');
+  if((op==='+'||op==='-')&&isInt(O.type)&&(op==='+'||P===a))return R(`RT.padd(${P.code},${op==='-'?'-':''}(${O.code}),${line})`,P.type);
+  fail(`'${op}' cannot be used on pointers`,line)}
+ if(isSt(a.type)||isSt(b.type))fail(`'${op}' cannot be used on a struct. Use its fields`,line);
  if(!isNum(a.type)||!isNum(b.type)){const bad=!isNum(a.type)?a:b;fail(`'${op}' needs numbers, but one side is ${bad.type==='cstr'?'text':bad.type==='void'?'a function that returns nothing':tname(bad.type)}`,line)}
  if(['<<','>>'].includes(op)){if(a.type==='float'||b.type==='float')fail(`'${op}' needs whole numbers`,line);const t=promote(a.type);const x=a.code,y=b.code;if(op==='<<')return R(wrap(t,`(${x})<<(${y})`),t);return R(t==='ulong'?`((${x})>>>(${y}))`:`((${x})>>(${y}))`,t)}
  const t=common(a.type,b.type);const x=this.conv(a,t,line),y=this.conv(b,t,line);
@@ -284,12 +319,19 @@ const BUILTIN={
  shiftOut(e,l){const a=this.args(e,4,4,'shiftOut');return{code:`RT.shiftOut(${a.map(x=>this.num(x,l)).join(',')})`,type:'void'}},
 };
 for(const f of['sin','cos','tan','asin','acos','atan','exp','log','log10','floor','ceil','fabs','round','trunc'])BUILTIN[f]=function(e,l){const[a]=this.args(e,1,1,f);const js=f==='fabs'?'abs':f;if(f==='round')return{code:`Math.round(${this.conv(a,'float',l)})|0`,type:'long'};return{code:`Math.fround(Math.${js}(${this.conv(a,'float',l)}))`,type:'float'}};
+BUILTIN.esp_camera_init=function(e,l){const[a]=this.args(e,1,1,'esp_camera_init');if(!isPtr(a.type)||!isSt(a.type.el)||a.type.el.st!=='camera_config_t')fail('esp_camera_init() needs the address of a camera_config_t: esp_camera_init(&config)',l);return{code:`RT.camInit(${a.code},${l})`,type:'int'}};
+BUILTIN.esp_camera_deinit=function(e,l){this.args(e,0,0,'esp_camera_deinit');return{code:'RT.camDeinit()',type:'int'}};
+BUILTIN.esp_camera_fb_get=function(e,l){this.args(e,0,0,'esp_camera_fb_get');return{code:`(yield* RT.camGet(${l}))`,type:{ptr:true,el:{st:'camera_fb_t'}}}};
+BUILTIN.esp_camera_fb_return=function(e,l){const[a]=this.args(e,1,1,'esp_camera_fb_return');return{code:`RT.camRet(${a.code})`,type:'void'}};
+BUILTIN.esp_camera_sensor_get=function(e,l){this.args(e,0,0,'esp_camera_sensor_get');return{code:'RT.camSens()',type:{ptr:true,el:{st:'sensor_t'}}}};
+BUILTIN.esp_err_to_name=function(e,l){const[a]=this.args(e,1,1,'esp_err_to_name');return{code:`RT.errName(${a.code})`,type:'cstr'}};
 BUILTIN.atan2=function(e,l){const a=this.args(e,2,2,'atan2');return{code:`Math.fround(Math.atan2(${this.conv(a[0],'float',l)},${this.conv(a[1],'float',l)}))`,type:'float'}};
 BUILTIN.fmod=function(e,l){const a=this.args(e,2,2,'fmod');return{code:`Math.fround((${this.conv(a[0],'float',l)})%(${this.conv(a[1],'float',l)}))`,type:'float'}};
 function bitMod(e,l,name,f){if(e.args.length<2)fail(`${name}() takes 2 values`,l);const L=this.lval(e.args[0]);if(!isInt(L.type))fail(`${name}() needs a whole-number variable`,l);const n=this.expr(e.args[1]);return{code:`(${L.pre}${L.set(wrap(L.type,f(L.get,n.code)))})`,type:L.type}}
 const PRINTABLE=t=>isNum(t)||t==='String'||t==='cstr'||(isArr(t)&&t.el==='char');
 G.printArgs=function(e,l,name){if(e.args.length>2)fail(`${name}() takes at most 2 values`,l);if(!e.args.length)return'""';const v=this.expr(e.args[0]);if(!PRINTABLE(v.type))fail(`${name}() cannot print ${v.type==='void'?'a function that returns nothing':tname(v.type)}`,l);const f=e.args[1]?this.expr(e.args[1]).code:'-1';if(isArr(v.type))return`RT.cs(${v.code})`;return`RT.fmt(${v.code},'${v.type}',${f})`};
 G.method=function(obj,m,e,ae){const l=e.line;const R=(code,type)=>({code,type});
+ if(isPtr(obj.type)&&isSt(obj.type.el)&&obj.type.el.st==='sensor_t'){const a=e.args.map(x=>this.expr(x));return R(`RT.camSensor(${JSON.stringify(m)},[${a.slice(1).map(x=>isNum(x.type)?x.code:'0').join(',')}],${l})`,'int')}
  if(obj.type==='Serial'){switch(m){
   case'begin':{const[b]=this.args(e,1,2,'Serial.begin');return R(`RT.serBegin(${b.code})`,'void')}
   case'print':return R(`RT.out(${this.printArgs(e,l,'Serial.print')})`,'uint');
@@ -383,12 +425,12 @@ BUILTIN.strlen=function(e,l){const[a]=this.args(e,1,1,'strlen');return{code:isAr
 G.arrInit=function(type,dims,init,line,name){
  const build=(d,list)=>{const n=dims[d];const out=[];if(d===dims.length-1){
    if(list&&list.k==='str'){if(type!=='char'&&type!=='u8')fail('Text can only set up a char array',line);const s=list.v;if(s.length+1>n)fail(`"${s}" needs ${s.length+1} characters (with the hidden end mark) but ${name} holds ${n}`,line);for(let i=0;i<n;i++)out.push(i<s.length?String(s.charCodeAt(i)):'0');return`[${out.join(',')}]`}
-   const items=list?list.items:[];if(items.length>n)fail(`Too many values for ${name}: it holds ${n}`,line);for(let i=0;i<n;i++){if(i<items.length){if(items[i].k==='init')fail('Too many { } levels',line);out.push(this.conv(this.expr(items[i]),type,line))}else out.push(type==='String'?'""':'0')}return`[${out.join(',')}]`}
+   const items=list?list.items:[];if(items.length>n)fail(`Too many values for ${name}: it holds ${n}`,line);for(let i=0;i<n;i++){if(i<items.length){if(isSt(type)){out.push(this.structInit(type,items[i],line));continue}if(items[i].k==='init')fail('Too many { } levels',line);out.push(this.conv(this.expr(items[i]),type,line))}else out.push(this.dflt(type))}return`[${out.join(',')}]`}
   const items=list?list.items:[];if(items.length>n)fail(`Too many rows for ${name}`,line);for(let i=0;i<n;i++)out.push(build(d+1,items[i]||null));return`[${out.join(',')}]`};
  return build(0,init)};
 G.constVal=function(e,line,what){const r=this.expr(e);if(r.k!=='const'&&isInt(r.type)&&/^[\d\s()+\-*/%|&^~<>]+$/.test(r.code)){try{const v=Function('return '+r.code)();if(Number.isInteger(v))return v}catch(_){}}if(r.k!=='const'||!isInt(r.type)&&r.type!=='float')fail(`${what} must be a fixed number`,line);return r.v};
 G.decl=function(d,global){const ty=d.ty;const out=[];
- for(const it of d.items){const line=it.line;let t=ty.t;
+ for(const it of d.items){const line=it.line;let t=ty.t;for(let q=0;q<(it.xp||0);q++)t=t==='char'?'cstr':{ptr:true,el:t};
   if(t==='void')fail(`'${it.name}' cannot be void`,line);
   if(t==='SHT31'||t==='MLX'||t==='VL53'||t==='CAM'||t==='IMU'){if(it.dims.length)fail('Arrays of objects are not supported',line);const js=(global?'g_':'v_')+it.name;this.declare(it.name,{kind:'var',type:t,js,cnst:true},line);out.push(`${js}=RT.newDev('${t}',${JSON.stringify(it.name)})`);continue}
   if(t==='OLED'){if(it.dims.length)fail('Arrays of objects are not supported',line);const js=(global?'g_':'v_')+it.name;this.declare(it.name,{kind:'var',type:t,js,cnst:true},line);out.push(`${js}=RT.newOLED(${JSON.stringify(it.name)})`);continue}
@@ -401,8 +443,9 @@ G.decl=function(d,global){const ty=d.ty;const out=[];
    const at={arr:true,el:t,dims};const code=this.arrInit(t,dims,it.init,line,it.name);const info={kind:'var',type:at,js:null,cnst:ty.cnst};
    if(ty.stat&&!global){const gname='s_'+(this.statics.length)+'_'+it.name;this.statics.push(`${gname}=${code}`);info.js=gname;this.declare(it.name,info,line);continue}
    info.js=js;this.declare(it.name,info,line);out.push(`${js}=${code}`);continue}
+  if(it.init&&it.init.k==='init'&&isSt(t)){const code=this.structInit(t,it.init,line);this.declare(it.name,{kind:'var',type:t,js},line);out.push(`${js}=${code}`);continue}
   if(it.init&&it.init.k==='init')fail(`'${it.name}' is not an array, so it cannot take { } values`,line);
-  let code;if(it.init){const r=this.expr(it.init);code=this.conv(r,t,line,`'${it.name}'`);if(ty.cnst&&r.k==='const'&&isNum(t)){const v=Number(Function('return '+code)());this.declare(it.name,{kind:'const',type:t,v,js},line);if(global)continue;continue}}else code=t==='String'?'""':t==='cstr'?'""':'0';
+  let code;if(it.init){const r=this.expr(it.init);code=this.conv(r,t,line,`'${it.name}'`);if(ty.cnst&&r.k==='const'&&isNum(t)){const v=Number(Function('return '+code)());this.declare(it.name,{kind:'const',type:t,v,js},line);if(global)continue;continue}}else code=this.dflt(t);
   const info={kind:'var',type:t,js,cnst:ty.cnst};
   if(ty.stat&&!global){const gname='s_'+(this.statics.length)+'_'+it.name;this.statics.push(`${gname}=${code}`);info.js=gname;this.declare(it.name,info,line);continue}
   this.declare(it.name,info,line);out.push(`${js}=${code}`)}
@@ -427,7 +470,10 @@ G.stmt=function(s,ind){const I='  '.repeat(ind);const L=`RT.ln=${s.line};`;
  fail('This statement is not supported',s.line)};
 G.sub=function(s,ind,loop){if(s.k==='block'){this.scopes.push(new Map());const r=s.body.map(x=>this.stmt(x,ind+1)).join('');this.scopes.pop();return`{${loop?TICK:''}\n${r}${'  '.repeat(ind)}}\n`}this.scopes.push(new Map());const r=this.stmt(s,ind+1);this.scopes.pop();return`{${loop?TICK:''}\n${r}${'  '.repeat(ind)}}\n`};
 G.enumVals=function(s){let prev=-1;for(const v of s.vals){const val=v.e?this.constVal(v.e,s.line,'An enum value'):prev+1;this.declare(v.name,{kind:'const',type:'int',v:val},s.line);prev=val}};
-G.program=function(){const out=[];const globals=[];
+G.program=function(){const out=[];const globals=[];this.sdefs=Object.assign({},LIBSTRUCT);const sfns=[];
+ const fty=f=>{let t=f.t;if(f.dims&&f.dims.length)t={arr:true,el:t,dims:f.dims.map(x=>this.constVal(x,0,'An array size in a struct'))};return t};
+ for(const it of this.items)if(it.k==='struct')this.sdefs[it.name]={fields:it.fields.map(f=>({name:f.name,type:fty(f)}))};
+ for(const[n,d]of Object.entries(this.sdefs))sfns.push(`function S_${n}(){return{${d.fields.map(f=>`${f.name}:${this.dflt(f.type)}`).join(',')}}}`);
  for(const it of this.items){if(it.k==='func'){if(this.funcs.has(it.name)&&this.funcs.get(it.name).body)fail(`The function ${it.name}() is defined twice`,it.line);if(BUILTIN[it.name]&&!['yield'].includes(it.name))fail(`${it.name}() is already an Arduino function. Choose another name`,it.line);this.funcs.set(it.name,it)}else if(it.k==='proto'){if(!this.funcs.has(it.name))this.funcs.set(it.name,it)}}
  for(const[n,f]of this.funcs)if(!f.body)fail(`The function ${n}() is declared but never written`,f.line);
  const ginit=[];
@@ -443,16 +489,16 @@ G.program=function(){const out=[];const globals=[];
  for(const n of['setup','loop']){const f=this.funcs.get(n);if(f.params.length)fail(`${n}() must not take any values`,f.line)}
  const gnames=[...this.scopes[0]].filter(([k,v])=>v.kind==='var').map(([k,v])=>({name:k,js:v.js,type:v.type}));
  const gvars=gnames.map(g=>g.js).concat(this.statics.map(s=>s.split('=')[0]));
- const watch=`function watch(){return[${gnames.map(g=>`[${JSON.stringify(g.name)},${JSON.stringify(tname(g.type))},${isObjT(g.type)?'null':g.js}]`).join(',')}]}`;
+ const watch=`function watch(){return[${gnames.map(g=>`[${JSON.stringify(g.name)},${JSON.stringify(tname(g.type))},${isObjT(g.type)||isPtr(g.type)||isSt(g.type)?'null':g.js}]`).join(',')}]}`;
  const ginitTemps=[];for(let i=0;i<gtmp;i++)ginitTemps.push('_t'+i);
- const code=`"use strict";\n${gvars.length?'let '+gvars.join(',')+';':''}\n${this.statics.length?this.statics.map(s=>s+';').join('\n'):''}\nfunction* init(){${ginitTemps.length?'let '+ginitTemps.join(',')+';':''}\n${ginit.join('\n')}\n}\n${fns.join('\n')}\n${watch}\nreturn{init,setup:f_setup,loop:f_loop,watch};`;
+ const code=`"use strict";\n${sfns.join('\n')}\n${gvars.length?'let '+gvars.join(',')+';':''}\n${this.statics.length?this.statics.map(s=>s+';').join('\n'):''}\nfunction* init(){${ginitTemps.length?'let '+ginitTemps.join(',')+';':''}\n${ginit.join('\n')}\n}\n${fns.join('\n')}\n${watch}\nreturn{init,setup:f_setup,loop:f_loop,watch};`;
  return code};
 
-function compile(src){
+function compile(src,opts){
  const warns=[];
- try{const toks=lex(String(src).replace(/\bWire\s*\.\s*(begin|setClock|end)\s*\([^;]*\)\s*;/g,''));const pp=preprocess(toks);const ps=new Parser(pp.toks);const items=ps.program();const g=new Gen(items,pp.includes,warns);g.i2c=!!ps.i2c;const code=g.program();
+ try{const toks=lex(String(src).replace(/\bWire\s*\.\s*(begin|setClock|end)\s*\([^;]*\)\s*;/g,'').replace(/\besp_err_t\b/g,'int'));const pp=preprocess(toks);const ps=new Parser(pp.toks);ps.int32=!!(opts&&opts.int32);const items=ps.program();const g=new Gen(items,pp.includes,warns);g.i2c=!!ps.i2c;const code=g.program();
   let factory;try{factory=new Function('RT',code)}catch(e){return{ok:false,errors:[{line:0,msg:'Internal compiler error: '+e.message}],warnings:warns,code}}
-  const libs=pp.includes.map(i=>i.name);const known=['Servo.h','ESP32Servo.h','LiquidCrystal.h','LiquidCrystal_I2C.h','Adafruit_SSD1306.h','Adafruit_GFX.h','Adafruit_SHT31.h','Adafruit_MLX90640.h','VL53L0X.h','OV2640.h','MPU6050.h','I2Cdev.h','Wire.h','Arduino.h','SPI.h','math.h','stdlib.h','string.h','avr/io.h','avr/interrupt.h'];
+  const libs=pp.includes.map(i=>i.name);const known=['Servo.h','ESP32Servo.h','LiquidCrystal.h','LiquidCrystal_I2C.h','Adafruit_SSD1306.h','Adafruit_GFX.h','Adafruit_SHT31.h','Adafruit_MLX90640.h','VL53L0X.h','OV2640.h','esp_camera.h','esp_err.h','MPU6050.h','I2Cdev.h','Wire.h','Arduino.h','SPI.h','math.h','stdlib.h','string.h','avr/io.h','avr/interrupt.h'];
   for(const i of pp.includes)if(!known.includes(i.name))warns.push({line:i.line,msg:`The library ${i.name} is not simulated. Its functions will not be available`});
   return{ok:true,errors:[],warnings:warns,code,factory,includes:libs}}
  catch(e){if(e instanceof CErr)return{ok:false,errors:[{line:e.line,msg:e.message}],warnings:warns};throw e}}
@@ -541,6 +587,40 @@ class Sim{
   text(){const out=[];for(let r=0;r<this.rows;r++){let s='';for(let c=0;c<this.cols;c++){const k=c-this.shift;s+=k>=0&&k<40?this.buf[r][k]:' '}out.push(s)}return out}};L.clear();this.us-=1600;this.lcds.push(L);return L}
  /* 128 x 64 monochrome OLED: drawing goes to a back buffer; display() shows it */
  /* I2C sensors: each finds its part on the bus when the sketch calls begin() */
+ /* pointers: {a: array or box, i: index} */
+ ap(a){return{a,i:0}}
+ ai(a,i,l){if(i<0||i>a.length)throw new RErr(`Index ${i} is outside the array (0 to ${a.length-1})`,l);return{a,i}}
+ box(g,s){const b={length:1};Object.defineProperty(b,0,{get:g,set:s});return{a:b,i:0}}
+ pk(p,o,l){if(!p)throw new RErr('This pointer is NULL (it points to nothing). On a real board this crashes the program. Check it with if (p) first',l);const k=p.i+o;if(k<0||k>=p.a.length)throw new RErr(`The pointer points outside its array (position ${k}, valid 0 to ${p.a.length-1}). On a real board this corrupts memory`,l);return k}
+ pdr(p,l){return p.a[this.pk(p,0,l)]}
+ pg(p,i,l){return p.a[this.pk(p,i,l)]}
+ padd(p,n,l){if(!p)throw new RErr('Arithmetic on a NULL pointer',l);return{a:p.a,i:p.i+n}}
+ peq(p,q){if(!p||!q)return!p&&!q;return p.a===q.a&&p.i===q.i}
+ cl(o){if(o==null||typeof o!=='object')return o;if(Array.isArray(o))return o.map(x=>this.cl(x));if('a' in o&&'i' in o&&Object.keys(o).length===2)return o;const r={};for(const k in o)r[k]=this.cl(o[k]);return r}
+ /* esp_camera on the OV2640 module */
+ camPart(){return(this.parts||[]).find(p=>p.type==='camera')||null}
+ camInit(cp,l){const c=this.pdr(cp,l);const d=this.camPart();this.us+=300000;if(!d||!d.ok()){this.warn(l,'esp_camera_init: no camera answered. Wire the OV2640 module 3V3, GND, SIOC and SIOD and its data pins to the board');return 0x20001}
+  const want={SIOD:c.pin_sccb_sda>=0?c.pin_sccb_sda:c.pin_sscb_sda,SIOC:c.pin_sccb_scl>=0?c.pin_sccb_scl:c.pin_sscb_scl,VSYNC:c.pin_vsync,HREF:c.pin_href,PCLK:c.pin_pclk,XCLK:c.pin_xclk,D7:c.pin_d7,D6:c.pin_d6,D5:c.pin_d5,D4:c.pin_d4,D3:c.pin_d3,D2:c.pin_d2,D1:c.pin_d1,D0:c.pin_d0,RESET:c.pin_reset,PWDN:c.pin_pwdn};
+  const bad=[];for(const[k,g]of Object.entries(want)){const w=d.pins?d.pins[k]:undefined;if((k==='RESET'||k==='PWDN')&&(g==null||g<0)){continue}if(w==null||w<0){bad.push(`${k} is not wired (config says GPIO ${g})`);continue}if(w!==g)bad.push(`${k} is on GPIO ${w} but the config says ${g}`)}
+  if(bad.length){this.warn(l,'esp_camera_init failed: '+bad.slice(0,4).join('; ')+(bad.length>4?` and ${bad.length-4} more`:''));return 0x20001}
+  if(!(c.xclk_freq_hz>=6000000&&c.xclk_freq_hz<=24000000)){this.warn(l,'xclk_freq_hz should be from 6 to 24 MHz (usually 20000000)');return 0x20001}
+  this.cam={cfg:this.cl(c),fbs:0,sens:{fs:c.frame_size|0,fmt:c.pixel_format|0,q:c.jpeg_quality|0,vflip:0,hmirror:0,bright:0,contrast:0,gray:0}};d.used=true;return 0}
+ camDeinit(){this.cam=null;return 0}
+ *camGet(l){const C=this.cam;if(!C)throw new RErr('esp_camera_fb_get() was called before esp_camera_init() succeeded',l);const d=this.camPart();this.us+=[30,30,35,35,40,50,60,70,90,110,140,170,200,250][C.sens.fs]*1000||50000;if(this.us>=this.until)yield 0;if(!d||!d.ok())return null;
+  if(C.fbs>=Math.max(1,C.cfg.fb_count|0||1)){this.warn(l,'All frame buffers are in use: call esp_camera_fb_return(fb) after each esp_camera_fb_get()');return null}
+  const SZ=[[96,96],[160,120],[176,144],[240,176],[240,240],[320,240],[400,296],[480,320],[640,480],[800,600],[1024,768],[1280,720],[1280,1024],[1600,1200]];const[W,H]=SZ[C.sens.fs]||[320,240];
+  if(C.sens.fmt!==4&&W*H>320*240&&!(C.cfg.fb_location===0)){}
+  const sw=Math.min(W,160),sh=Math.max(1,Math.round(sw*H/W));const img=new Array(sw*sh);for(let y=0;y<sh;y++)for(let x=0;x<sw;x++){const yy=C.sens.vflip?sh-1-y:y,xx=C.sens.hmirror?sw-1-x:x;let c=d.pix(xx,yy,sw,sh);const b=C.sens.bright*20;c=c.map(v=>Math.max(0,Math.min(255,v+b)));if(C.sens.gray){const g=Math.round(0.3*c[0]+0.59*c[1]+0.11*c[2]);c=[g,g,g]}img[y*sw+x]=c}
+  const px=(x,y)=>img[Math.min(sh-1,Math.floor(y*sh/H))*sw+Math.min(sw-1,Math.floor(x*sw/W))];let buf;
+  if(C.sens.fmt===4){const n=Math.max(600,Math.round(W*H*(0.06+0.012*(C.sens.q||12))));buf=new Uint8Array(n);let s=n*2654435761>>>0;for(let i=0;i<n;i++){s=(s*1103515245+12345)>>>0;buf[i]=(s>>16)&255}buf.set([0xFF,0xD8,0xFF,0xE0,0,16,0x4A,0x46,0x49,0x46,0]);buf[n-2]=0xFF;buf[n-1]=0xD9}
+  else if(C.sens.fmt===3){buf=new Uint8Array(W*H);for(let y=0;y<H;y++)for(let x=0;x<W;x++){const c=px(x,y);buf[y*W+x]=Math.round(0.3*c[0]+0.59*c[1]+0.11*c[2])}}
+  else if(C.sens.fmt===5){buf=new Uint8Array(W*H*3);for(let y=0;y<H;y++)for(let x=0;x<W;x++){const c=px(x,y),i=(y*W+x)*3;buf[i]=c[2];buf[i+1]=c[1];buf[i+2]=c[0]}}
+  else{buf=new Uint8Array(W*H*2);for(let y=0;y<H;y++)for(let x=0;x<W;x++){const c=px(x,y),v=((c[0]&0xF8)<<8)|((c[1]&0xFC)<<3)|(c[2]>>3),i=(y*W+x)*2;buf[i]=v>>8;buf[i+1]=v&255}}
+  C.fbs++;d.used=true;return{a:[{buf:{a:buf,i:0},len:buf.length,width:W,height:H,format:C.sens.fmt,_cam:1}],i:0}}
+ camRet(p){if(this.cam&&p&&p.a[0]&&p.a[0]._cam){this.cam.fbs=Math.max(0,this.cam.fbs-1);p.a[0]._cam=0}}
+ camSens(){if(!this.cam)return null;return{a:[{id:0x26}],i:0}}
+ camSensor(m,a,l){const S=this.cam&&this.cam.sens;if(!S)throw new RErr('Call esp_camera_init() before using the sensor settings',l);const v=a[0]|0;switch(m){case'set_framesize':S.fs=Math.max(0,Math.min(13,v));break;case'set_pixformat':S.fmt=v;break;case'set_quality':S.q=v;break;case'set_vflip':S.vflip=v?1:0;break;case'set_hmirror':S.hmirror=v?1:0;break;case'set_brightness':S.bright=Math.max(-2,Math.min(2,v));break;case'set_contrast':case'set_saturation':case'set_special_effect':case'set_whitebal':case'set_awb_gain':case'set_wb_mode':case'set_exposure_ctrl':case'set_aec2':case'set_ae_level':case'set_aec_value':case'set_gain_ctrl':case'set_agc_gain':case'set_gainceiling':case'set_bpc':case'set_wpc':case'set_raw_gma':case'set_lenc':case'set_dcw':case'set_colorbar':if(m==='set_special_effect')S.gray=v===2?1:0;break;default:throw new RErr(`sensor->${m}() is not supported`,l)}return 0}
+ errName(e){return{0:'ESP_OK','-1':'ESP_FAIL',131073:'ESP_ERR_CAMERA_NOT_DETECTED'}[e]||'ESP_ERR_'+e}
  newDev(T,name){const sim=this;const key={SHT31:'sht31',MLX:'mlx90640',VL53:'lidar',CAM:'camera',IMU:'mpu6050'}[T];const label={SHT31:'SHT31',MLX:'MLX90640',VL53:'VL53L0X',CAM:'camera',IMU:'MPU6050'}[T];
   const D={name,T,cfg:{setMode:1,setResolution:2,setRefreshRate:2,setFullScaleAccelRange:0,setFullScaleGyroRange:0},cont:0,to:0,budget:33000,img:null,on:false,
    dev(){return(sim.parts||[]).find(p=>p.type===key)||null},

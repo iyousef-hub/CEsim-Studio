@@ -184,6 +184,19 @@ const BOARDS = {
   'TT gear motor 1:48': { w: 70, d: 22.5, g: 'Motors', note: '70 × 22.5 × 18.8 mm, double D shaft' },
   'N20 gear motor': { w: 34, d: 12, g: 'Motors', note: '12 × 10 × 24 mm, Ø3 D shaft 9 mm' },
   'Coreless motor 8520': { w: 20, d: 8.5, g: 'Motors', note: 'Ø8.5 × 20 mm' },
+  'NEMA 17 stepper motor': { w: 42.3, d: 42.3, g: 'Motors', note: '42.3 × 42.3 × 40 mm, Ø5 D shaft 24 mm, M3 holes 31 mm apart' },
+  'A4988 stepper driver': { w: 20.3, d: 15.2, g: 'Motors', note: 'Module 20.3 × 15.2 mm, two 8-pin headers' },
+  'MG996R servo': { w: 54.5, d: 20, g: 'Motors', note: 'Body 40.7 × 19.7 × 42.9 mm, tabs 54.5 mm' },
+  'FS90R continuous servo': { w: 32.2, d: 12.2, g: 'Motors', note: 'SG90 size, turns all the way round' },
+  'Coin vibration motor': { w: 10, d: 10, g: 'Motors', note: 'Ø10 × 2.7 mm' },
+  'Mini water pump 5 V': { w: 45, d: 24, g: 'Motors', note: 'Ø24 × 45 mm, Ø7.5 outlet' },
+  'Fan 40 mm': { w: 40, d: 40, g: 'Motors', note: '40 × 40 × 10 mm, holes 32 mm apart', holes: [[4, 4], [36, 4], [4, 36], [36, 36]], hr: 1.7 },
+  'Push solenoid 12 V': { w: 30, d: 16, g: 'Motors', note: 'Frame 30 × 16 × 14 mm, plunger Ø6' },
+  'Oscilloscope': { w: 310, d: 130, g: 'Tools', note: 'Bench scope 310 × 130 × 150 mm' },
+  'Function generator': { w: 230, d: 100, g: 'Tools', note: 'Bench generator 230 × 100 × 260 mm' },
+  'Logic probe': { w: 150, d: 18, g: 'Tools', note: 'Pen 150 × 18 mm' },
+  'Digital multimeter': { w: 90, d: 180, g: 'Tools', note: 'Handheld 90 × 180 × 45 mm' },
+  'Bench power supply': { w: 160, d: 260, g: 'Tools', note: '160 × 260 × 110 mm' },
 };
 function buildBoard(model) {
   const G = new THREE.Group();
@@ -303,6 +316,19 @@ function build3dExtra(model, G, box, cyl, holes, header, M) {
     case 'DC motor 775': add(new THREE.CylinderGeometry(21, 21, 66, 48), '#b9c0c8', 33, 21, 21, Math.PI / 2); add(new THREE.CylinderGeometry(2.5, 2.5, 17, 16), '#cfd3d8', -8.5, 21, 21, Math.PI / 2); break;
     case 'TT gear motor 1:48': box(0, 0, 0, 37, 22.5, 18.8, '#f2c21b'); add(new THREE.CylinderGeometry(9.4, 9.4, 33, 40), '#e9ecef', 53.5, 11.25, 9.4, Math.PI / 2); add(new THREE.BoxGeometry(3.7, 5.4, 37), '#fff', 11, 11.25, 9.4, 0, Math.PI / 2, 0); break;
     case 'N20 gear motor': box(0, 0, 0, 15, 12, 10, '#c9ccd1'); box(15, 0, 0, 24, 12, 10, '#d4a83c'); add(new THREE.CylinderGeometry(1.5, 1.5, 9, 16), '#cfd3d8', 28.5, 6, 5, Math.PI / 2); break;
+    case 'NEMA 17 stepper motor': box(0, 0, 0, 42.3, 42.3, 40, '#2a2d33'); box(0, 0, 8, 42.3, 42.3, 32, '#3a3d44'); cyl(21.15, 21.15, 40, 42, 11, '#c9ccd1'); cyl(21.15, 21.15, 42, 66, 2.5, '#d9dde2'); holes([[5.65, 5.65], [36.65, 5.65], [5.65, 36.65], [36.65, 36.65]], 1.5, 40); box(17, -6, 4, 25, 0, 10, '#f2f2f2'); break;
+    case 'A4988 stepper driver': pcbM(20.3, 15.2, '#1d6b2e'); box(6.4, 4, 1.6, 13.9, 11.2, 2.5, '#222'); box(7, 4.5, 2.5, 13.3, 10.7, 3.6, '#c9ccd1'); header(0.27, 1.27, 8, 2.5); header(0.27, 13.97, 8, 2.5); cyl(4, 7.6, 1.6, 3, 1.8, '#c9a227'); break;
+    case 'MG996R servo': box(6.9, 0, 0, 47.6, 19.7, 42.9, '#1d1f24'); box(0, 0, 28, 54.5, 19.7, 30.5, '#1d1f24'); cyl(16.8, 9.85, 42.9, 46, 6.2, '#1d1f24'); cyl(16.8, 9.85, 46, 50, 3, '#c9a227'); break;
+    case 'FS90R continuous servo': box(4.85, 0, 0, 27.35, 12.2, 22.7, '#1d1f24'); box(0, 0, 15.9, 32.2, 12.2, 18.4, '#1d1f24'); cyl(10.8, 6.1, 22.7, 26.7, 5.9, '#1d1f24'); cyl(10.8, 6.1, 26.7, 29.7, 2.4, '#f2f2f2'); break;
+    case 'Coin vibration motor': cyl(5, 5, 0, 2.7, 5, '#c9ccd1'); bar(5, 5, 5, -15, 0.6, 0.5, 1.1, '#d33'); bar(6.5, 5, 6.5, -15, 0.6, 0.5, 1.1, '#2f8bff'); break;
+    case 'Mini water pump 5 V': add(new THREE.CylinderGeometry(12, 12, 38, 40), '#1d1f24', 19, 12, 12, Math.PI / 2); add(new THREE.CylinderGeometry(12, 12, 7, 40), '#f2f2f2', 41.5, 12, 12, Math.PI / 2); add(new THREE.CylinderGeometry(3.75, 3.75, 10, 20), '#f2f2f2', 41.5, 12, 26, 0, Math.PI / 2); break;
+    case 'Fan 40 mm': { box(0, 0, 0, 40, 40, 1.5, '#2a2d33'); box(0, 0, 8.5, 40, 40, 10, '#2a2d33'); for (const [x, y] of [[0, 0], [37, 0], [0, 37], [37, 37]]) box(x, y, 0, x + 3, y + 3, 10, '#2a2d33'); cyl(20, 20, 1.5, 8.5, 7, '#1b1d22'); for (let i = 0; i < 7; i++) { const a = i * 2 * Math.PI / 7; add(new THREE.BoxGeometry(11, 5, 1), '#3a3d44', 20 + Math.cos(a) * 12, 20 + Math.sin(a) * 12, 5, a, 0.5); } holes([[4, 4], [36, 4], [4, 36], [36, 36]], 1.7, 10); break; }
+    case 'Push solenoid 12 V': box(0, 0, 0, 30, 16, 14, '#c9ccd1'); box(4, 1.5, 1.5, 26, 14.5, 12.5, '#b87333'); add(new THREE.CylinderGeometry(3, 3, 42, 24), '#d9dde2', 15, 8, 7, Math.PI / 2); break;
+    case 'Oscilloscope': box(0, 0, 0, 310, 130, 150, '#d9dde3'); box(12, -0.5, 25, 190, 0.5, 135, '#0a1a12'); for (let i = 0; i < 12; i++) cyl(210 + (i % 4) * 24, -2, 40 + Math.floor(i / 4) * 30, 45 + Math.floor(i / 4) * 30, 7, '#555').rotation.set(0, 0, 0); for (let i = 0; i < 4; i++) add(new THREE.CylinderGeometry(4, 4, 10, 16), '#c9a227', 215 + i * 22, -5, 18); break;
+    case 'Function generator': box(0, 0, 0, 230, 100, 260, '#d9dde3'); box(12, -0.5, 150, 140, 0.5, 220, '#132015'); for (let i = 0; i < 8; i++) box(12 + (i % 4) * 32, -3, 60 + Math.floor(i / 4) * 40, 36 + (i % 4) * 32, 0, 85 + Math.floor(i / 4) * 40, '#9aa0a7'); add(new THREE.CylinderGeometry(14, 14, 10, 32), '#555', 185, -5, 190); add(new THREE.CylinderGeometry(5, 5, 10, 16), '#c9a227', 185, -5, 60); break;
+    case 'Logic probe': add(new THREE.CylinderGeometry(9, 7, 120, 32), '#1f5fae', 60, 9, 9, Math.PI / 2); add(new THREE.ConeGeometry(4, 20, 16), '#c9ccd1', 130, 9, 9, -Math.PI / 2); for (let i = 0; i < 3; i++) add(new THREE.SphereGeometry(2.4, 16, 12), ['#ff3b30', '#30d158', '#ffd60a'][i], 20 + i * 10, 9, 17.5); break;
+    case 'Digital multimeter': box(0, 0, 0, 90, 180, 45, '#f2b705'); box(8, 110, 45, 82, 165, 46, '#c7d6a3'); cyl(45, 70, 45, 52, 22, '#2a2a2a'); for (let i = 0; i < 4; i++) cyl(15 + i * 20, 18, 45, 50, 4, ['#222', '#d33', '#d33', '#d33'][i]); break;
+    case 'Bench power supply': box(0, 0, 0, 160, 260, 110, '#2a2d33'); box(10, -0.5, 55, 150, 0.5, 100, '#132015'); for (let i = 0; i < 2; i++) add(new THREE.CylinderGeometry(9, 9, 8, 32), '#c9ccd1', 40 + i * 80, -4, 35); for (let i = 0; i < 3; i++) add(new THREE.CylinderGeometry(5, 5, 12, 16), ['#d33', '#222', '#30d158'][i], 40 + i * 40, -6, 12); break;
     case 'Coreless motor 8520': add(new THREE.CylinderGeometry(4.25, 4.25, 20, 32), '#c9ccd1', 10, 4.25, 4.25, Math.PI / 2); break;
   }
 }
@@ -788,7 +814,7 @@ $('#wpSel').addEventListener('change', e => { const [w, h] = e.target.value.spli
 (() => { const ws = $('#wpSel'); const v = SET.gridW + 'x' + SET.gridH; if (![...ws.options].some(o => o.value === v)) ws.add(new Option(SET.gridW + '×' + SET.gridH, v)); ws.value = v; })();
 document.querySelectorAll('[data-shape]').forEach(b => b.addEventListener('click', () => addPrimitive(b.dataset.shape, { hole: b.dataset.hole === '1' })));
 function listBoards(q) { q = (q || '').trim().toLowerCase(); const grp = {}; for (const k of Object.keys(BOARDS)) { const g = BOARDS[k].g || 'Boards'; if (q && !(k + ' ' + g + ' ' + BOARDS[k].note).toLowerCase().includes(q)) continue; (grp[g] = grp[g] || []).push(k); }
-  $('#boards').innerHTML = `<input id="bq3" type="search" placeholder="Search boards, sensors, drone parts, motors" value="${q.replace(/"/g, '')}" style="height:28px;border:1px solid var(--line);border-radius:4px;padding:0 8px;font:12px var(--font);margin-bottom:4px">` + ['Boards', 'Sensors', 'Drone', 'Motors'].filter(g => grp[g]).map(g => `<div class="muted" style="margin:6px 0 2px;font-weight:600">${g}</div>` + grp[g].map(k => `<button class="bl" data-board="${k}"><b>${k}</b><span>${BOARDS[k].w} × ${BOARDS[k].d} mm</span></button>`).join('')).join('') + (Object.keys(grp).length ? '' : '<div class="muted">Nothing matches</div>');
+  $('#boards').innerHTML = `<input id="bq3" type="search" placeholder="Search boards, sensors, drone parts, motors" value="${q.replace(/"/g, '')}" style="height:28px;border:1px solid var(--line);border-radius:4px;padding:0 8px;font:12px var(--font);margin-bottom:4px">` + ['Boards', 'Sensors', 'Drone', 'Motors', 'Tools'].filter(g => grp[g]).map(g => `<div class="muted" style="margin:6px 0 2px;font-weight:600">${g}</div>` + grp[g].map(k => `<button class="bl" data-board="${k}"><b>${k}</b><span>${BOARDS[k].w} × ${BOARDS[k].d} mm</span></button>`).join('')).join('') + (Object.keys(grp).length ? '' : '<div class="muted">Nothing matches</div>');
   const i = $('#bq3'); i.oninput = () => { const pos = i.selectionStart; listBoards(i.value); const j = $('#bq3'); j.focus(); j.setSelectionRange(pos, pos); }; }
 listBoards('');
 $('#boards').addEventListener('click', e => { const b = e.target.closest('[data-board]'); if (b) addBoard(b.dataset.board); });
