@@ -259,6 +259,10 @@ The Raspberry Pi group has the **Pi 1 B+, Pi 2 B, Pi 3 B, Pi 3 B+, Pi 4 B, Pi 40
 
 New parts: RGB LED, PIR motion sensor, tilt switch and joystick. In the Arduino tool: joystick, soil moisture, gas, flex, water level, microphone, touch, sound, IR, reed and Hall sensors.
 
+## Breadboard parts panel
+
+The parts list is on the right, with a search box (press / or Ctrl+F) and a Details tab for the selected part. Parts and boards are drawn like the real ones, and the zoom moves in small smooth steps.
+
 ## Drawing and selecting
 
 - Drag from a pin to draw a wire. Right-click while drawing to drop a resistor, capacitor, LED or another quick part at the wire end.
