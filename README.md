@@ -254,11 +254,34 @@ Every part in the library exports. Logic gates (AND, OR, NAND, NOR, XOR, XNOR, N
 
 ## Arduino boards and Raspberry Pi on the breadboard
 
-The Boards group has the **Uno R3, Uno R4, Leonardo, Nano, Nano Every, Nano 33 IoT, Nano 33 BLE, Micro, Pro Mini, MKR WiFi 1010, Mega 2560 and Due**, each with its own pins, voltage, analog inputs and PWM pins, plus the **Pico W** and **Pico 2**. The Arduino tool can switch its board between the Uno, Uno R4, Leonardo, Nano, Nano Every, Pro Mini and Mega.
+The Boards group has the **Uno R3, Uno R4, Leonardo, Nano, Nano Every, Nano 33 IoT, Nano 33 BLE, Micro, Pro Mini, MKR WiFi 1010, Mega 2560, Due, ESP32 and ESP32-S3 DevKitC-1**, each with its own pins, voltage, analog inputs and PWM pins, plus the **Pico W** and **Pico 2**. The Arduino tool can switch its board between the Uno, Uno R4, Leonardo, Nano, Nano Every, Pro Mini and Mega.
 
 The Raspberry Pi group has the **Pi 1 B+, Pi 2 B, Pi 3 B, Pi 3 B+, Pi 4 B, Pi 400, Pi 5, Pi Zero and Pi Zero 2 W** with the 40-pin header. They run a **Python program**: RPi.GPIO (BCM or BOARD numbers, pull-up and pull-down, PWM, edge events) and gpiozero (LED, PWMLED, Button, Buzzer, MotionSensor, RGBLED, TrafficLights, Servo), with time, random and math. print goes to the Output panel.
 
 New parts: RGB LED, PIR motion sensor, tilt switch and joystick. In the Arduino tool: joystick, soil moisture, gas, flex, water level, microphone, touch, sound, IR, reed and Hall sensors.
+
+## Sensors, drone parts and motors
+
+**Sensors** on the breadboard, each with its own library in the sketch:
+
+| Part | Wiring | Sketch |
+|---|---|---|
+| SHT31-D temperature and humidity | VIN, GND, SCL, SDA | `Adafruit_SHT31`: begin(0x44), readTemperature(), readHumidity() |
+| MLX90640 thermal camera (32 × 24) | VIN, GND, SCL, SDA | `Adafruit_MLX90640`: begin(), setMode(), setRefreshRate(), getFrame(frame) |
+| LiDAR VL53L0X | VCC, GND, SCL, SDA | `VL53L0X`: init(), startContinuous(), readRangeContinuousMillimeters() |
+| RGB camera OV2640 | 3V3, GND, SIOC, SIOD | `OV2640`: begin(), capture(), red(x, y), green(x, y), blue(x, y), brightness() on an 80 × 60 picture |
+| Gyro and accelerometer MPU6050 | VCC, GND, SCL, SDA | `MPU6050`: initialize(), testConnection(), getAccelerationX() … getRotationZ() |
+| Microphone MAX4466 | OUT to an analog pin | analogRead(); quiet room, tone, voice, claps or music |
+| Piezo disc | red to an analog pin, 1 MΩ across it | click it to knock |
+| Vibration sensor SW-420 | DO to a pin | digitalRead(); click it to shake |
+
+You set what each sensor senses in Details: temperature and humidity, the warm object for the thermal camera, the distance, the ball the camera sees, the tilt, the sound. Wrong I2C wires (SDA and SCL swapped) give a warning, and begin() returns false.
+
+**Drone parts:** brushless motors (0802 Tiny Whoop, 1404, 2207, 2306, 2212, 2814, 4114) with their props, ESCs from 6 to 60 A, LiPo batteries from 1S to 6S, the MPU6050 and drone frames (Tiny Whoop, 3-inch, 5-inch, F450, S550 hexacopter, X8 octocopter). The ESC reads servo pulses: send 1000 µs for 2 seconds to arm it, then 1000 to 2000 µs for the throttle. Swapping two motor wires reverses the motor. Each motor shows its rpm, thrust and current; the frame adds up the weight of the parts and the thrust, and lifts off when the thrust is more than the weight. Warnings show a LiPo below 3.5 V per cell, more current than the C rating or the ESC allows, and a motor on too many cells.
+
+**Motors:** the DC motor can be a 130 hobby motor, TT gear motor (1:48), N20 gear motor (1:100), coreless 8520, 370 or 775 motor, and the L298N driver runs two DC motors with direction and PWM speed.
+
+**3D models:** every new board, sensor, drone part and motor is also in **Boards and modules** in the 3D tool, made to the real dimensions, with a search box. Use them to design a case or a drone mount around them.
 
 ## Breadboard parts panel
 

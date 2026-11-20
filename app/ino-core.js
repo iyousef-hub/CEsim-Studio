@@ -52,7 +52,8 @@ const INFO={char:{b:8,s:1,sz:1},u8:{b:8,s:0,sz:1},int:{b:16,s:1,sz:2},uint:{b:16
 const isInt=t=>typeof t==='string'&&INFO[t]&&t!=='float';
 const isNum=t=>typeof t==='string'&&!!INFO[t];
 const isArr=t=>t&&typeof t==='object'&&t.arr;
-const TNAME={char:'char',u8:'byte',int:'int',uint:'unsigned int',long:'long',ulong:'unsigned long',bool:'bool',float:'float',String:'String',cstr:'text',void:'void',Servo:'Servo',LCD:'LiquidCrystal',OLED:'Adafruit_SSD1306'};
+const OBJCLS={Adafruit_SHT31:'SHT31',Adafruit_MLX90640:'MLX',VL53L0X:'VL53',OV2640:'CAM',MPU6050:'IMU'};const isObjT=t=>t==='Servo'||t==='LCD'||t==='OLED'||t==='SHT31'||t==='MLX'||t==='VL53'||t==='CAM'||t==='IMU';
+const TNAME={char:'char',u8:'byte',int:'int',uint:'unsigned int',long:'long',ulong:'unsigned long',bool:'bool',float:'float',String:'String',cstr:'text',void:'void',Servo:'Servo',LCD:'LiquidCrystal',OLED:'Adafruit_SSD1306',SHT31:'Adafruit_SHT31',MLX:'Adafruit_MLX90640',VL53:'VL53L0X',CAM:'OV2640',IMU:'MPU6050'};
 const tname=t=>isArr(t)?tname(t.el)+'[]':TNAME[t]||String(t);
 function promote(t){return t==='char'||t==='u8'||t==='bool'?'int':t}
 function common(a,b){if(a==='float'||b==='float')return'float';a=promote(a);b=promote(b);if(a===b)return a;const A=INFO[a],B=INFO[b];if(A.b!==B.b)return A.b>B.b?a:b;return A.s?b:a}
@@ -60,7 +61,7 @@ function wrap(t,c){switch(t){case'char':return`((${c})<<24>>24)`;case'u8':return
 function fits(f,t){if(f===t)return true;if(f==='bool')return isInt(t);const F=INFO[f],T=INFO[t];if(!F||!T||t==='float'||f==='float')return false;return F.b<T.b&&(T.s||!F.s)}
 
 /* ---------------- parser ---------------- */
-const TYPEKW=new Set(['void','int','char','long','short','unsigned','signed','float','double','bool','boolean','byte','word','String','uint8_t','int8_t','uint16_t','int16_t','uint32_t','int32_t','uint64_t','int64_t','size_t','const','static','volatile','Servo','LiquidCrystal','LiquidCrystal_I2C','Adafruit_SSD1306','unsigned_long','inline','constexpr']);
+const TYPEKW=new Set(['void','int','char','long','short','unsigned','signed','float','double','bool','boolean','byte','word','String','uint8_t','int8_t','uint16_t','int16_t','uint32_t','int32_t','uint64_t','int64_t','size_t','const','static','volatile','Servo','LiquidCrystal','LiquidCrystal_I2C','Adafruit_SSD1306','Adafruit_SHT31','Adafruit_MLX90640','VL53L0X','OV2640','MPU6050','unsigned_long','inline','constexpr']);
 function Parser(toks){this.t=toks;this.p=0;this.enums=new Set();this.warns=[]}
 const P=Parser.prototype;
 P.peek=function(k){return this.t[this.p+(k||0)]};
@@ -77,10 +78,10 @@ P.type=function(){const st=this.peek().line;let sg=null,len=0,base=null,cnst=fal
  for(;;){const x=this.peek();if(x.t!=='id')break;const v=x.v;
   if(v==='const'||v==='constexpr'){cnst=true}else if(v==='static'){stat=true}else if(v==='volatile'||v==='inline'){}
   else if(v==='unsigned'){sg='u'}else if(v==='signed'){sg='s'}else if(v==='long'){len++}else if(v==='short'){base=base||'short'}
-  else if(['void','int','char','float','double','bool','boolean','byte','word','String','uint8_t','int8_t','uint16_t','int16_t','uint32_t','int32_t','uint64_t','int64_t','size_t','Servo','LiquidCrystal','LiquidCrystal_I2C','Adafruit_SSD1306'].includes(v)){if(base&&base!=='short'||(base==='short'&&v!=='int'))break;base=v}
+  else if(['void','int','char','float','double','bool','boolean','byte','word','String','uint8_t','int8_t','uint16_t','int16_t','uint32_t','int32_t','uint64_t','int64_t','size_t','Servo','LiquidCrystal','LiquidCrystal_I2C','Adafruit_SSD1306','Adafruit_SHT31','Adafruit_MLX90640','VL53L0X','OV2640','MPU6050'].includes(v)){if(base&&base!=='short'||(base==='short'&&v!=='int'))break;base=v}
   else break;this.p++;any=true}
  if(!any)return null;let t;
- if(base==='float'||base==='double')t='float';else if(base==='void')t='void';else if(base==='bool'||base==='boolean')t='bool';else if(base==='String')t='String';else if(base==='Servo')t='Servo';else if(base==='LiquidCrystal'||base==='LiquidCrystal_I2C')t='LCD';else if(base==='Adafruit_SSD1306')t='OLED';
+ if(base==='float'||base==='double')t='float';else if(base==='void')t='void';else if(base==='bool'||base==='boolean')t='bool';else if(base==='String')t='String';else if(base==='Servo')t='Servo';else if(base==='LiquidCrystal'||base==='LiquidCrystal_I2C')t='LCD';else if(base==='Adafruit_SSD1306')t='OLED';else if(OBJCLS[base])t=OBJCLS[base];
  else if(base==='byte'||base==='uint8_t')t='u8';else if(base==='int8_t')t='char';else if(base==='word'||base==='uint16_t')t='uint';else if(base==='int16_t'||base==='short')t=sg==='u'?'uint':'int';else if(base==='uint32_t'||base==='uint64_t')t='ulong';else if(base==='int32_t'||base==='int64_t')t='long';else if(base==='size_t')t='uint';
  else if(base==='char')t=sg==='u'?'u8':'char';else if(len)t=sg==='u'?'ulong':'long';else t=sg==='u'?'uint':'int';
  if(base==='LiquidCrystal_I2C')this.i2c=true;
@@ -95,7 +96,7 @@ P.program=function(){const items=[];while(this.peek().t!=='eof'){
   if(this.is('using')||this.is('namespace')){while(!this.is(';')&&this.peek().t!=='eof')this.p++;this.eat(';');continue}
   const ty=this.type();if(!ty){const x=this.peek();if(x.t==='id'&&this.is('(',1))fail(`'${x.v}' needs a return type, for example: void ${x.v}()`,x.line);fail(`Expected a declaration but found '${x.v}'${x.t==='id'?'. Is the type spelled correctly?':''}`,x.line)}
   const nameTok=this.peek();const name=this.ident('a name');
-  if(this.is('(')&&!(ty.t==='Servo'||ty.t==='LCD'||ty.t==='OLED')){this.p++;const params=this.params();if(this.eat(';')){items.push({k:'proto',name,ret:ty.t,params,line:nameTok.line});continue}const body=this.block();items.push({k:'func',name,ret:ty.t,params,body,line:nameTok.line,end:this.t[this.p-1].line});continue}
+  if(this.is('(')&&!isObjT(ty.t)){this.p++;const params=this.params();if(this.eat(';')){items.push({k:'proto',name,ret:ty.t,params,line:nameTok.line});continue}const body=this.block();items.push({k:'func',name,ret:ty.t,params,body,line:nameTok.line,end:this.t[this.p-1].line});continue}
   this.p--;items.push(this.declRest(ty));}
  return items};
 P.enumDecl=function(){const line=this.next().line;if(this.peek().t==='id')this.p++;this.expect('{');const vals=[];while(!this.is('}')){const n=this.ident('an enum name');let e=null;if(this.eat('='))e=this.expr(true);vals.push({name:n,e});this.enums.add(n);if(!this.eat(','))break}this.expect('}');if(this.peek().t==='id'){while(!this.is(';'))this.p++}this.expect(';');return{k:'enum',vals,line}};
@@ -159,7 +160,7 @@ P.primary=function(){const x=this.next();
  fail(`Unexpected '${x.v}'`,x.line)};
 
 /* ---------------- code generator ---------------- */
-const CONSTS={WHITE:[1,'int'],BLACK:[0,'int'],INVERSE:[2,'int'],SSD1306_WHITE:[1,'int'],SSD1306_BLACK:[0,'int'],SSD1306_INVERSE:[2,'int'],SSD1306_SWITCHCAPVCC:[2,'int'],SSD1306_EXTERNALVCC:[1,'int'],HIGH:[1,'int'],LOW:[0,'int'],INPUT:[0,'int'],OUTPUT:[1,'int'],INPUT_PULLUP:[2,'int'],LED_BUILTIN:[13,'int'],A0:[14,'int'],A1:[15,'int'],A2:[16,'int'],A3:[17,'int'],A4:[18,'int'],A5:[19,'int'],DEC:[10,'int'],HEX:[16,'int'],BIN:[2,'int'],OCT:[8,'int'],PI:[Math.PI,'float'],HALF_PI:[Math.PI/2,'float'],TWO_PI:[Math.PI*2,'float'],DEG_TO_RAD:[Math.PI/180,'float'],RAD_TO_DEG:[180/Math.PI,'float'],EULER:[Math.E,'float'],CHANGE:[1,'int'],FALLING:[2,'int'],RISING:[3,'int'],LSBFIRST:[0,'int'],MSBFIRST:[1,'int'],NULL:[0,'int'],SERIAL:[0,'int'],DISPLAY:[1,'int']};
+const CONSTS={MLX90640_I2CADDR_DEFAULT:[0x33,'int'],MLX90640_INTERLEAVED:[0,'int'],MLX90640_CHESS:[1,'int'],MLX90640_ADC_16BIT:[0,'int'],MLX90640_ADC_17BIT:[1,'int'],MLX90640_ADC_18BIT:[2,'int'],MLX90640_ADC_19BIT:[3,'int'],MLX90640_0_5_HZ:[0,'int'],MLX90640_1_HZ:[1,'int'],MLX90640_2_HZ:[2,'int'],MLX90640_4_HZ:[3,'int'],MLX90640_8_HZ:[4,'int'],MLX90640_16_HZ:[5,'int'],MLX90640_32_HZ:[6,'int'],MLX90640_64_HZ:[7,'int'],MPU6050_ACCEL_FS_2:[0,'int'],MPU6050_ACCEL_FS_4:[1,'int'],MPU6050_ACCEL_FS_8:[2,'int'],MPU6050_ACCEL_FS_16:[3,'int'],MPU6050_GYRO_FS_250:[0,'int'],MPU6050_GYRO_FS_500:[1,'int'],MPU6050_GYRO_FS_1000:[2,'int'],MPU6050_GYRO_FS_2000:[3,'int'],WHITE:[1,'int'],BLACK:[0,'int'],INVERSE:[2,'int'],SSD1306_WHITE:[1,'int'],SSD1306_BLACK:[0,'int'],SSD1306_INVERSE:[2,'int'],SSD1306_SWITCHCAPVCC:[2,'int'],SSD1306_EXTERNALVCC:[1,'int'],HIGH:[1,'int'],LOW:[0,'int'],INPUT:[0,'int'],OUTPUT:[1,'int'],INPUT_PULLUP:[2,'int'],LED_BUILTIN:[13,'int'],A0:[14,'int'],A1:[15,'int'],A2:[16,'int'],A3:[17,'int'],A4:[18,'int'],A5:[19,'int'],DEC:[10,'int'],HEX:[16,'int'],BIN:[2,'int'],OCT:[8,'int'],PI:[Math.PI,'float'],HALF_PI:[Math.PI/2,'float'],TWO_PI:[Math.PI*2,'float'],DEG_TO_RAD:[Math.PI/180,'float'],RAD_TO_DEG:[180/Math.PI,'float'],EULER:[Math.E,'float'],CHANGE:[1,'int'],FALLING:[2,'int'],RISING:[3,'int'],LSBFIRST:[0,'int'],MSBFIRST:[1,'int'],NULL:[0,'int'],SERIAL:[0,'int'],DISPLAY:[1,'int']};
 const PWM=new Set([3,5,6,9,10,11]);
 function Gen(items,includes,warns){this.items=items;this.out=[];this.scopes=[new Map()];this.funcs=new Map();this.tmp=0;this.warns=warns;this.includes=includes;this.statics=[];this.loopDepth=0;this.switchDepth=0}
 const G=Gen.prototype;
@@ -170,7 +171,7 @@ G.conv=function(e,to,line,what){const f=e.type;if(to==='void')return e.code;
  if(isArr(to)){if(!isArr(f)&&!(f==='cstr'&&to.el==='char'))fail(`Expected an array for ${what||'this value'}, not ${tname(f)}`,line);return e.code}
  if(to==='String'){if(f==='String'||f==='cstr')return e.code;if(isArr(f)&&f.el==='char')return`RT.cs(${e.code})`;if(f==='char')return`String.fromCharCode(${e.code}&255)`;if(isNum(f))return`RT.fmt(${e.code},'${f}')`;fail(`Cannot turn ${tname(f)} into a String`,line)}
  if(to==='cstr'){if(f==='cstr'||f==='String')return e.code;if(isArr(f)&&f.el==='char')return`RT.cs(${e.code})`;fail(`Expected text for ${what||'this value'}, not ${tname(f)}`,line)}
- if(to==='Servo'||to==='LCD'||to==='OLED'){if(f!==to)fail(`Expected a ${tname(to)}`,line);return e.code}
+ if(isObjT(to)){if(f!==to)fail(`Expected a ${tname(to)}`,line);return e.code}
  if(isNum(to)){if(f==='void')fail(`${what?what[0].toUpperCase()+what.slice(1):'This'} uses a function that returns nothing (void)`,line);
   if(f==='String'||f==='cstr'||isArr(f))fail(`Cannot use ${f==='cstr'?'text':tname(f)} as a number${what?' for '+what:''}${f==='String'?'. Use .toInt()':''}`,line);
   if(isNum(f)&&fits(f,to))return e.code;
@@ -328,6 +329,23 @@ G.method=function(obj,m,e,ae){const l=e.line;const R=(code,type)=>({code,type});
   case'c_str':this.args(e,0,0,'c_str');return R(S,'cstr');
   case'isEmpty':return R(`((${S}).length?0:1)`,'bool');
   }fail(`String.${m}() is not supported`,l)}
+ if(obj.type==='SHT31'||obj.type==='MLX'||obj.type==='VL53'||obj.type==='CAM'||obj.type==='IMU'){const O=obj.code;const A=(a,b,nm)=>this.args(e,a,b,nm).map(x=>this.num(x,l));const T=obj.type;
+  const nm=x=>`${tname(T)}.${x}()`;
+  if(T==='SHT31')switch(m){case'begin':this.args(e,0,1,'begin');return R(`${O}.begin()`,'bool');case'readTemperature':this.args(e,0,0,m);return R(`${O}.rd('temp',${l})`,'float');case'readHumidity':this.args(e,0,0,m);return R(`${O}.rd('hum',${l})`,'float');
+   case'heater':{A(1,1,m);return R('0','void')}case'isHeaterEnabled':return R('0','bool');case'reset':return R('0','void');case'readStatus':return R('0','uint')}
+  if(T==='MLX')switch(m){case'begin':this.args(e,0,2,'begin');return R(`${O}.begin()`,'bool');case'setMode':case'setResolution':case'setRefreshRate':{A(1,1,m);return R(`${O}.set('${m}',${this.num(this.args(e,1,1,m)[0],l)})`,'void')}
+   case'getMode':return R(`${O}.cfg.setMode`,'int');case'getResolution':return R(`${O}.cfg.setResolution`,'int');case'getRefreshRate':return R(`${O}.cfg.setRefreshRate`,'int');
+   case'getFrame':{const[a]=this.args(e,1,1,'getFrame');if(!isArr(a.type)||a.type.el!=='float')fail('getFrame() needs a float array of 768 values, for example: float frame[32*24];',l);return R(`(yield* ${O}.getFrame(${a.code},${l}))`,'int')}}
+  if(T==='VL53')switch(m){case'init':this.args(e,0,1,'init');return R(`${O}.begin()`,'bool');case'setTimeout':A(1,1,m);return R('0','void');case'getTimeout':return R('500','uint');case'setAddress':A(1,1,m);return R('0','void');
+   case'startContinuous':this.args(e,0,1,m);return R(`${O}.cont=1`,'void');case'stopContinuous':return R(`${O}.cont=0`,'void');case'setMeasurementTimingBudget':{const a=A(1,1,m);return R(`(${O}.budget=Math.max(20000,${a[0]}),1)`,'bool')}case'setSignalRateLimit':case'setVcselPulsePeriod':this.args(e,1,2,m);return R('1','bool');
+   case'readRangeContinuousMillimeters':case'readRangeSingleMillimeters':this.args(e,0,0,m);return R(`(yield* ${O}.range(${l}))`,'uint');case'timeoutOccurred':return R(`${O}.to`,'bool')}
+  if(T==='CAM')switch(m){case'begin':this.args(e,0,0,'begin');return R(`${O}.begin()`,'bool');case'capture':this.args(e,0,0,m);return R(`(yield* ${O}.capture(${l}))`,'bool');case'width':return R('80','int');case'height':return R('60','int');
+   case'red':case'green':case'blue':{const a=A(2,2,m);return R(`${O}.px(${a[0]},${a[1]},${['red','green','blue'].indexOf(m)},${l})`,'int')}case'brightness':return R(`${O}.bright()`,'int')}
+  if(T==='IMU'){const ax={getAccelerationX:'ax',getAccelerationY:'ay',getAccelerationZ:'az',getRotationX:'gx',getRotationY:'gy',getRotationZ:'gz'}[m];if(ax){this.args(e,0,0,m);return R(`${O}.imu('${ax}',${l})`,'int')}
+   switch(m){case'initialize':case'begin':this.args(e,0,1,m);return R(`${O}.begin()`,m==='begin'?'bool':'void');case'testConnection':return R(`(${O}.on?1:0)`,'bool');case'getTemperature':return R(`${O}.imu('t',${l})`,'int');
+    case'setFullScaleAccelRange':case'setFullScaleGyroRange':case'setDLPFMode':case'setXAccelOffset':case'setYAccelOffset':case'setZAccelOffset':case'setXGyroOffset':case'setYGyroOffset':case'setZGyroOffset':A(1,1,m);return R(m==='setFullScaleAccelRange'||m==='setFullScaleGyroRange'?`${O}.set('${m}',${this.num(this.args(e,1,1,m)[0],l)})`:'0','void');
+    case'CalibrateAccel':case'CalibrateGyro':this.args(e,0,1,m);return R('0','void')}}
+  fail(`${nm(m)} is not supported`,l)}
  if(obj.type==='OLED'){const O=obj.code;const A=(a,b,nm)=>this.args(e,a,b,nm).map(x=>this.num(x,l));switch(m){
   case'begin':return R(`${O}.begin()`,'bool');case'display':return R(`${O}.show()`,'void');case'clearDisplay':return R(`${O}.clear()`,'void');
   case'setTextSize':{const a=A(1,2,'setTextSize');return R(`${O}.ts=Math.max(1,(${a[0]})|0)`,'void')}case'setTextColor':{const a=A(1,2,'setTextColor');return R(`${O}.tc=(${a[0]})?1:0`,'void')}
@@ -344,7 +362,7 @@ G.method=function(obj,m,e,ae){const l=e.line;const R=(code,type)=>({code,type});
  if(obj.type==='Servo'){const O=obj.code;switch(m){
   case'attach':{const a=this.args(e,1,3,'attach');return R(`${O}.attach(${a[0].code},${l})`,'uint')}
   case'write':{const[a]=this.args(e,1,1,'write');return R(`${O}.write(${this.num(a,l)})`,'void')}
-  case'writeMicroseconds':{const[a]=this.args(e,1,1,'writeMicroseconds');return R(`${O}.write(Math.round(((${a.code})-544)*180/1856))`,'void')}
+  case'writeMicroseconds':{const[a]=this.args(e,1,1,'writeMicroseconds');return R(`${O}.wus(${this.num(a,l)})`,'void')}case'readMicroseconds':return R(`${O}.us`,'int');
   case'read':this.args(e,0,0,'read');return R(`${O}.angle`,'int');
   case'attached':return R(`(${O}.pin>=0?1:0)`,'bool');
   case'detach':return R(`${O}.detach()`,'void');
@@ -368,10 +386,11 @@ G.arrInit=function(type,dims,init,line,name){
    const items=list?list.items:[];if(items.length>n)fail(`Too many values for ${name}: it holds ${n}`,line);for(let i=0;i<n;i++){if(i<items.length){if(items[i].k==='init')fail('Too many { } levels',line);out.push(this.conv(this.expr(items[i]),type,line))}else out.push(type==='String'?'""':'0')}return`[${out.join(',')}]`}
   const items=list?list.items:[];if(items.length>n)fail(`Too many rows for ${name}`,line);for(let i=0;i<n;i++)out.push(build(d+1,items[i]||null));return`[${out.join(',')}]`};
  return build(0,init)};
-G.constVal=function(e,line,what){const r=this.expr(e);if(r.k!=='const'||!isInt(r.type)&&r.type!=='float')fail(`${what} must be a fixed number`,line);return r.v};
+G.constVal=function(e,line,what){const r=this.expr(e);if(r.k!=='const'&&isInt(r.type)&&/^[\d\s()+\-*/%|&^~<>]+$/.test(r.code)){try{const v=Function('return '+r.code)();if(Number.isInteger(v))return v}catch(_){}}if(r.k!=='const'||!isInt(r.type)&&r.type!=='float')fail(`${what} must be a fixed number`,line);return r.v};
 G.decl=function(d,global){const ty=d.ty;const out=[];
  for(const it of d.items){const line=it.line;let t=ty.t;
   if(t==='void')fail(`'${it.name}' cannot be void`,line);
+  if(t==='SHT31'||t==='MLX'||t==='VL53'||t==='CAM'||t==='IMU'){if(it.dims.length)fail('Arrays of objects are not supported',line);const js=(global?'g_':'v_')+it.name;this.declare(it.name,{kind:'var',type:t,js,cnst:true},line);out.push(`${js}=RT.newDev('${t}',${JSON.stringify(it.name)})`);continue}
   if(t==='OLED'){if(it.dims.length)fail('Arrays of objects are not supported',line);const js=(global?'g_':'v_')+it.name;this.declare(it.name,{kind:'var',type:t,js,cnst:true},line);out.push(`${js}=RT.newOLED(${JSON.stringify(it.name)})`);continue}
   if(t==='Servo'||t==='LCD'){if(it.dims.length)fail('Arrays of objects are not supported',line);const js=(global?'g_':'v_')+it.name;this.declare(it.name,{kind:'var',type:t,js,cnst:true},line);
    if(t==='Servo')out.push(`${js}=RT.newServo(${JSON.stringify(it.name)})`);else{const a=(it.ctor||[]).map(x=>this.expr(x).code);out.push(`${js}=RT.newLCD(${JSON.stringify(it.name)},[${a.join(',')}],${this.i2c?1:0})`)}continue}
@@ -424,16 +443,16 @@ G.program=function(){const out=[];const globals=[];
  for(const n of['setup','loop']){const f=this.funcs.get(n);if(f.params.length)fail(`${n}() must not take any values`,f.line)}
  const gnames=[...this.scopes[0]].filter(([k,v])=>v.kind==='var').map(([k,v])=>({name:k,js:v.js,type:v.type}));
  const gvars=gnames.map(g=>g.js).concat(this.statics.map(s=>s.split('=')[0]));
- const watch=`function watch(){return[${gnames.map(g=>`[${JSON.stringify(g.name)},${JSON.stringify(tname(g.type))},${g.type==='Servo'||g.type==='LCD'||g.type==='OLED'?'null':g.js}]`).join(',')}]}`;
+ const watch=`function watch(){return[${gnames.map(g=>`[${JSON.stringify(g.name)},${JSON.stringify(tname(g.type))},${isObjT(g.type)?'null':g.js}]`).join(',')}]}`;
  const ginitTemps=[];for(let i=0;i<gtmp;i++)ginitTemps.push('_t'+i);
  const code=`"use strict";\n${gvars.length?'let '+gvars.join(',')+';':''}\n${this.statics.length?this.statics.map(s=>s+';').join('\n'):''}\nfunction* init(){${ginitTemps.length?'let '+ginitTemps.join(',')+';':''}\n${ginit.join('\n')}\n}\n${fns.join('\n')}\n${watch}\nreturn{init,setup:f_setup,loop:f_loop,watch};`;
  return code};
 
 function compile(src){
  const warns=[];
- try{const toks=lex(String(src));const pp=preprocess(toks);const ps=new Parser(pp.toks);const items=ps.program();const g=new Gen(items,pp.includes,warns);g.i2c=!!ps.i2c;const code=g.program();
+ try{const toks=lex(String(src).replace(/\bWire\s*\.\s*(begin|setClock|end)\s*\([^;]*\)\s*;/g,''));const pp=preprocess(toks);const ps=new Parser(pp.toks);const items=ps.program();const g=new Gen(items,pp.includes,warns);g.i2c=!!ps.i2c;const code=g.program();
   let factory;try{factory=new Function('RT',code)}catch(e){return{ok:false,errors:[{line:0,msg:'Internal compiler error: '+e.message}],warnings:warns,code}}
-  const libs=pp.includes.map(i=>i.name);const known=['Servo.h','LiquidCrystal.h','LiquidCrystal_I2C.h','Adafruit_SSD1306.h','Adafruit_GFX.h','Wire.h','Arduino.h','SPI.h','math.h','stdlib.h','string.h','avr/io.h','avr/interrupt.h'];
+  const libs=pp.includes.map(i=>i.name);const known=['Servo.h','ESP32Servo.h','LiquidCrystal.h','LiquidCrystal_I2C.h','Adafruit_SSD1306.h','Adafruit_GFX.h','Adafruit_SHT31.h','Adafruit_MLX90640.h','VL53L0X.h','OV2640.h','MPU6050.h','I2Cdev.h','Wire.h','Arduino.h','SPI.h','math.h','stdlib.h','string.h','avr/io.h','avr/interrupt.h'];
   for(const i of pp.includes)if(!known.includes(i.name))warns.push({line:i.line,msg:`The library ${i.name} is not simulated. Its functions will not be available`});
   return{ok:true,errors:[],warnings:warns,code,factory,includes:libs}}
  catch(e){if(e instanceof CErr)return{ok:false,errors:[{line:e.line,msg:e.message}],warnings:warns};throw e}}
@@ -512,7 +531,7 @@ class Sim{
  detachInt(n){delete this.ints[n===0?2:3]}
  checkInts(){for(const k in this.ints){const p=+k;const v=this.level(p);const old=this.lastIn[p];this.lastIn[p]=v;if(old===v)continue;const m=this.ints[k].mode;if(m===1||(m===2&&!v)||(m===3&&v)){const g=this.ints[k].fn();const svl=this.ln;let r;let guard=0;while(!(r=g.next()).done&&guard++<100000){}this.ln=svl}}}
  /* objects */
- newServo(name){const s={name,pin:-1,angle:90,sim:this,attach(p,l){p=this.sim.pinOk(p,l);this.pin=p;this.sim.pins[p].mode=1;this.sim.pins[p].servo=this;this.sim.emit('pins');return 1},write(a){a=a|0;if(a>180){a=Math.round((a-544)*180/1856)}this.angle=Math.max(0,Math.min(180,a));this.sim.emit('pins')},detach(){this.pin=-1}};this.servos.push(s);return s}
+ newServo(name){const s={name,pin:-1,angle:90,us:1500,sim:this,attach(p,l){p=this.sim.pinOk(p,l);this.pin=p;this.sim.pins[p].mode=1;this.sim.pins[p].servo=this;this.sim.emit('pins');return 1},write(a){a=a|0;if(a>180){a=Math.round((a-544)*180/1856)}this.angle=Math.max(0,Math.min(180,a));this.us=Math.round(this.angle*1856/180+544);this.sim.emit('pins')},wus(u){u=Math.max(500,Math.min(2500,u|0));this.us=u;this.angle=Math.max(0,Math.min(180,Math.round((u-544)*180/1856)));this.sim.emit('pins')},detach(){this.pin=-1}};this.servos.push(s);return s}
  newLCD(name,args,i2c){const cols=i2c?args[1]||16:16,rows=i2c?args[2]||2:2;const L={name,args,i2c,cols,rows,buf:[],cx:0,cy:0,on:true,light:!i2c,sim:this,shift:0,
   begin(c,r){this.cols=c|0||16;this.rows=r|0||2;this.clear();this.on=true;this.light=true;this.sim.us+=2000},clear(){this.buf=Array.from({length:4},()=>Array(40).fill(' '));this.cx=0;this.cy=0;this.shift=0;this.sim.us+=1600;this.sim.emit('lcd')},
   setCursor(c,r){this.cx=Math.max(0,c|0);this.cy=Math.max(0,Math.min(this.rows-1,r|0))},
@@ -521,6 +540,21 @@ class Sim{
   cmd(c){if(c==='init'){this.clear();this.on=true}if(c==='backlight')this.light=true;if(c==='noBacklight')this.light=false;if(c==='display')this.on=true;if(c==='noDisplay')this.on=false;this.sim.emit('lcd')},
   text(){const out=[];for(let r=0;r<this.rows;r++){let s='';for(let c=0;c<this.cols;c++){const k=c-this.shift;s+=k>=0&&k<40?this.buf[r][k]:' '}out.push(s)}return out}};L.clear();this.us-=1600;this.lcds.push(L);return L}
  /* 128 x 64 monochrome OLED: drawing goes to a back buffer; display() shows it */
+ /* I2C sensors: each finds its part on the bus when the sketch calls begin() */
+ newDev(T,name){const sim=this;const key={SHT31:'sht31',MLX:'mlx90640',VL53:'lidar',CAM:'camera',IMU:'mpu6050'}[T];const label={SHT31:'SHT31',MLX:'MLX90640',VL53:'VL53L0X',CAM:'camera',IMU:'MPU6050'}[T];
+  const D={name,T,cfg:{setMode:1,setResolution:2,setRefreshRate:2,setFullScaleAccelRange:0,setFullScaleGyroRange:0},cont:0,to:0,budget:33000,img:null,on:false,
+   dev(){return(sim.parts||[]).find(p=>p.type===key)||null},
+   begin(){const d=this.dev();sim.us+=T==='MLX'?80000:T==='CAM'?120000:2000;this.on=!!(d&&d.ok());if(d&&this.on)d.used=true;return this.on?1:0},
+   need(l){const d=this.dev();if(!this.on||!d)throw new RErr(`${name}: the ${label} did not answer. Call ${name}.${T==='VL53'?'init':'begin'}() in setup() and check that it returns true (power and the SDA and SCL wires)`,l);if(!d.ok())return null;return d},
+   rd(k,l){const d=this.need(l);sim.us+=15500;if(!d)return NaN;return k==='temp'?d.temp():d.hum()},
+   set(k,v){this.cfg[k]=v|0},
+   imu(k,l){const d=this.need(l);sim.us+=400;if(!d)return 0;const v=d.imu(k);if(k==='t')return Math.round((v-36.53)*340);const sc=k[0]==='a'?16384/(1<<(this.cfg.setFullScaleAccelRange&3)):131/(1<<(this.cfg.setFullScaleGyroRange&3));return Math.max(-32768,Math.min(32767,Math.round(v*sc)))},
+   *getFrame(a,l){if(a.length<768)throw new RErr(`getFrame() needs an array of 768 floats (32 x 24), but it holds ${a.length}`,l);const d=this.need(l);const hz=[0.5,1,2,4,8,16,32,64][this.cfg.setRefreshRate]||2;sim.us+=Math.round(2e6/hz);if(!d){if(sim.us>=sim.until)yield 0;return-8}d.frame(a);if(sim.us>=sim.until)yield 0;return 0},
+   *range(l){const d=this.need(l);sim.us+=this.budget;if(sim.us>=sim.until)yield 0;if(!d){this.to=1;return 65535}this.to=0;return d.mm()},
+   *capture(l){const d=this.need(l);sim.us+=60000;if(sim.us>=sim.until)yield 0;if(!d)return 0;const W=80,H=60,im=new Uint8Array(W*H*3);for(let y=0;y<H;y++)for(let x=0;x<W;x++){const c=d.pix(x,y,W,H);const i=(y*W+x)*3;im[i]=c[0];im[i+1]=c[1];im[i+2]=c[2]}this.img=im;return 1},
+   px(x,y,c,l){if(!this.img)throw new RErr(`${name}: call ${name}.capture() before reading pixels`,l);x|=0;y|=0;if(x<0||y<0||x>=80||y>=60)throw new RErr(`Pixel (${x}, ${y}) is outside the picture (0 to 79, 0 to 59)`,l);return this.img[(y*80+x)*3+c]},
+   bright(){if(!this.img)return 0;let s=0;for(let i=0;i<this.img.length;i++)s+=this.img[i];return Math.round(s/this.img.length)}};
+  return D}
  newOLED(name){const W=128,H=64;const O={name,h:H,buf:new Uint8Array(W*H),shown:new Uint8Array(W*H),txt:[],txtShown:[],cx:0,cy:0,ts:1,tc:1,inv:0,on:false,sim:this,
   begin(){this.on=true;this.sim.us+=20000;return 1},clear(){this.buf.fill(0);this.txt=[];this.cx=0;this.cy=0},show(){this.shown=this.buf.slice();this.txtShown=this.txt.slice();this.sim.us+=2500;this.sim.emit('oled')},
   setCursor(x,y){this.cx=x|0;this.cy=y|0},px(x,y,c){x|=0;y|=0;if(x<0||y<0||x>=W||y>=H)return;if(c===2)this.buf[y*W+x]^=1;else this.buf[y*W+x]=c?1:0},

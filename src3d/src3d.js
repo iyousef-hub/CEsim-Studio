@@ -142,10 +142,48 @@ const BOARDS = {
   'Arduino Mega 2560': { w: 101.6, d: 53.34, holes: [[13.97, 2.54], [15.24, 50.8], [66.04, 7.62], [66.04, 35.56], [90.17, 50.8], [96.52, 2.54]], hr: 1.6, note: 'Uno hole pattern plus (90.17,50.8) (96.52,2.54)' },
   'ESP32 DevKit V1': { w: 51.5, d: 28.3, note: 'Micro-USB on the short edge' },
   'Raspberry Pi 4 B': { w: 85, d: 56, holes: [[3.5, 3.5], [61.5, 3.5], [3.5, 52.5], [61.5, 52.5]], hr: 1.35, note: 'Holes Ø2.7 at (3.5,3.5) (61.5,3.5) (3.5,52.5) (61.5,52.5)' },
-  'HC-SR04 ultrasonic': { w: 45, d: 20, note: 'Transducers Ø16 × 12 mm' },
-  'SG90 micro servo': { w: 32.2, d: 12.2, note: 'Body 22.5 × 12.2 × 22.7, tabs at 15.9 mm' },
+  'HC-SR04 ultrasonic': { w: 45, d: 20, g: 'Sensors', note: 'Transducers Ø16 × 12 mm' },
+  'SG90 micro servo': { w: 32.2, d: 12.2, g: 'Motors', note: 'Body 22.5 × 12.2 × 22.7, tabs at 15.9 mm' },
   'LCD 16x2 module': { w: 80, d: 36, holes: [[2.5, 2.5], [77.5, 2.5], [2.5, 33.5], [77.5, 33.5]], hr: 1.5, note: 'Holes Ø3 at 2.5 mm from each corner' },
   'Breadboard 400': { w: 82.5, d: 55, note: '400 tie points' },
+  'ESP32-S3 DevKitC-1': { w: 62.74, d: 25.4, g: 'Boards', note: '62.74 × 25.4 mm, two 22-pin headers 22.86 mm apart, two USB ports on the short edge' },
+  'MLX90640 thermal camera': { w: 25.7, d: 17.7, g: 'Sensors', note: 'Breakout 25.7 × 17.7 mm, TO39 sensor can on top (55° version, 16 mm tall)' },
+  'SHT31-D temperature and humidity': { w: 17.78, d: 12.7, g: 'Sensors', note: 'Breakout 17.78 × 12.7 mm, sensor 2.5 × 2.5 mm' },
+  'VL53L0X LiDAR (GY-530)': { w: 25, d: 10.7, g: 'Sensors', note: 'Module 25 × 10.7 mm, sensor 4.4 × 2.4 mm' },
+  'OV2640 camera module': { w: 32, d: 32, g: 'Sensors', note: 'Board 32 × 32 mm, M12 lens holder 14 × 14 mm' },
+  'MPU6050 gyro (GY-521)': { w: 21.2, d: 16.4, g: 'Sensors', note: 'Module 21.2 × 16.4 mm, holes Ø3 at the top corners' },
+  'Piezo disc 27 mm': { w: 27, d: 27, g: 'Sensors', note: 'Brass disc Ø27 mm, ceramic Ø20 mm, 0.5 mm thick' },
+  'SW-420 vibration sensor': { w: 32, d: 14, g: 'Sensors', note: 'Module 32 × 14 mm with a hole Ø3' },
+  'MAX4466 microphone': { w: 20, d: 13.8, g: 'Sensors', note: 'Board 20 × 13.8 mm, electret capsule Ø9.7 mm' },
+  'LiPo 4S 1500 mAh': { w: 75, d: 35, g: 'Drone', note: 'Pack about 75 × 35 × 37 mm, XT60 plug and balance lead, about 180 g' },
+  'ESC 35 A': { w: 50, d: 22, g: 'Drone', note: 'Shrink-wrapped ESC 50 × 22 × 7 mm' },
+  'ESC 4-in-1 30 × 30': { w: 36, d: 36, g: 'Drone', note: 'Stack board 36 × 36 mm, holes 30.5 × 30.5 mm (M3)' },
+  'Flight controller F405 30 × 30': { w: 36, d: 36, g: 'Drone', note: 'Stack board 36 × 36 mm, holes 30.5 × 30.5 mm (M3)' },
+  'Brushless motor 0802': { w: 12, d: 12, g: 'Drone', note: 'Ø12 × 8 mm bell, 1 mm shaft' },
+  'Brushless motor 1404': { w: 18, d: 18, g: 'Drone', note: 'Ø18 × 15 mm, M5 prop shaft' },
+  'Brushless motor 2207': { w: 27.9, d: 27.9, g: 'Drone', note: 'Ø27.9 × 18.9 mm, M5 shaft, 4 × M3 on 16 × 16 mm' },
+  'Brushless motor 2306': { w: 28.8, d: 28.8, g: 'Drone', note: 'Ø28.8 × 18.4 mm, M5 shaft, 4 × M3 on 16 × 16 mm' },
+  'Brushless motor 2212': { w: 28, d: 28, g: 'Drone', note: 'Ø28 × 26 mm, prop adapter M6' },
+  'Brushless motor 2814': { w: 35, d: 35, g: 'Drone', note: 'Ø35 × 30 mm' },
+  'Brushless motor 4114': { w: 46, d: 46, g: 'Drone', note: 'Ø46 × 26 mm, heavy lift' },
+  'Propeller 31 mm (Tiny Whoop)': { w: 31, d: 31, g: 'Drone', note: '4-blade 31 mm, 1 mm shaft' },
+  'Propeller 3 inch': { w: 76.2, d: 76.2, g: 'Drone', note: '3-blade 76.2 mm' },
+  'Propeller 5 inch': { w: 127, d: 127, g: 'Drone', note: '3-blade 5 × 4.3 × 3, 127 mm' },
+  'Propeller 10 inch': { w: 254, d: 254, g: 'Drone', note: '2-blade 1045, 254 mm' },
+  'Propeller 15 inch': { w: 381, d: 381, g: 'Drone', note: '2-blade 1550, 381 mm' },
+  'Drone frame Tiny Whoop 65 mm': { w: 82, d: 82, g: 'Drone', note: '65 mm motor to motor, ducted' },
+  'Drone frame 3-inch (130 mm)': { w: 110, d: 110, g: 'Drone', note: '130 mm motor to motor, 20 × 20 stack' },
+  'Drone frame 5-inch (220 mm)': { w: 168, d: 168, g: 'Drone', note: '220 mm motor to motor, 5 mm carbon arms, 30.5 × 30.5 stack' },
+  'Drone frame F450': { w: 345, d: 345, g: 'Drone', note: '450 mm motor to motor, plates with power distribution' },
+  'Drone frame S550 hexacopter': { w: 502, d: 576, g: 'Drone', note: '550 mm motor to motor, 6 arms' },
+  'Drone frame X8 octocopter': { w: 950, d: 950, g: 'Drone', note: '1000 mm motor to motor, 8 arms' },
+  'L298N motor driver': { w: 43, d: 43, g: 'Motors', note: '43 × 43 × 27 mm, holes Ø3 at 3 mm from the corners', holes: [[3, 3], [40, 3], [3, 40], [40, 40]], hr: 1.5 },
+  'DC motor 130': { w: 25, d: 20, g: 'Motors', note: 'Body 25 × 20 × 15 mm, Ø2 shaft' },
+  'DC motor 370': { w: 30, d: 24.4, g: 'Motors', note: 'Ø24.4 × 30 mm' },
+  'DC motor 775': { w: 66, d: 42, g: 'Motors', note: 'Ø42 × 66 mm, Ø5 shaft' },
+  'TT gear motor 1:48': { w: 70, d: 22.5, g: 'Motors', note: '70 × 22.5 × 18.8 mm, double D shaft' },
+  'N20 gear motor': { w: 34, d: 12, g: 'Motors', note: '12 × 10 × 24 mm, Ø3 D shaft 9 mm' },
+  'Coreless motor 8520': { w: 20, d: 8.5, g: 'Motors', note: 'Ø8.5 × 20 mm' },
 };
 function buildBoard(model) {
   const G = new THREE.Group();
@@ -195,9 +233,80 @@ function buildBoard(model) {
       for (let c = 0; c < 25; c++) for (let r = 0; r < 4; r++) { if (k >= 400) break; const y = [2, 4.54, 50.5, 53][r]; mtx.makeTranslation(8 + c * 2.54 + Math.floor(c / 5) * 1.2, y, 8.55); dots.setMatrixAt(k++, mtx); }
       dots.count = k; G.add(dots); box(0, 26.2, 8.5, 82.5, 28.8, 8.6, '#d9d9d2');
       break; }
+    default: build3dExtra(model, G, box, cyl, holes, header, M);
   }
   return G;
 }
+/* models of the sensors, drone parts and motors (mm, z up) */
+function build3dExtra(model, G, box, cyl, holes, header, M) {
+  const add = (geo, c, x, y, z, rz = 0, rx = 0, ry = 0) => { const m = new THREE.Mesh(geo, M(c)); m.position.set(x, y, z); m.rotation.set(rx, ry, rz); G.add(m); return m; };
+  const tube = (x, y, z1, z2, r, c, open) => { const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, z2 - z1, 48, 1, !!open).rotateX(Math.PI / 2), new THREE.MeshStandardMaterial({ color: c, roughness: .5, side: THREE.DoubleSide })); m.position.set(x, y, (z1 + z2) / 2); G.add(m); return m; };
+  const bar = (x1, y1, x2, y2, w, z1, z2, c) => { const L = Math.hypot(x2 - x1, y2 - y1); return add(new THREE.BoxGeometry(L, w, z2 - z1), c, (x1 + x2) / 2, (y1 + y2) / 2, (z1 + z2) / 2, Math.atan2(y2 - y1, x2 - x1)); };
+  const pcbM = (w, d, c, t = 1.6) => box(0, 0, 0, w, d, t, c);
+  const bldcM = (D, H, sh) => { const r = D / 2; cyl(r, r, 0, H * 0.3, r * 0.92, '#2a2d33'); cyl(r, r, H * 0.3, H, r, '#d14b3c'); cyl(r, r, H * 0.3 + H * 0.2, H * 0.3 + H * 0.45, r * 1.002, '#1b1d22'); cyl(r, r, H, H + 0.6, r * 0.55, '#c9ccd1'); cyl(r, r, H, H + sh, Math.max(0.5, D * 0.09), '#b9bec6'); for (let i = 0; i < 3; i++) bar(r, r, r + (i - 1) * 2, -12, 1, 0.5, 1.5, ['#222', '#444', '#666'][i]); };
+  const prop = (D, n, chord, c) => { const R = D / 2; cyl(R, R, 0, D > 60 ? 6 : 4, D > 60 ? 6 : 2.5, c); for (let i = 0; i < n; i++) { const a = i * 2 * Math.PI / n; const b = add(new THREE.BoxGeometry(R - 3, chord, 1.2), c, R + Math.cos(a) * (R / 2 + 1), R + Math.sin(a) * (R / 2 + 1), 3, a, 0.25); b.geometry.translate(0, 0, 0); } };
+  const frameM = (n, arm, w, t, plate, c, ducts) => { const C = arm + 15; for (let i = 0; i < n; i++) { const a = (i + 0.5) * 2 * Math.PI / n; const x = C + Math.cos(a) * arm, y = C + Math.sin(a) * arm; bar(C, C, x, y, w, 0, t, c); cyl(x, y, 0, t + 0.4, w * 0.75, c); if (ducts) { tube(x, y, 0, 12, ducts, '#2b2b2b', true); } }
+    box(C - plate / 2, C - plate / 2, 0, C + plate / 2, C + plate / 2, t, c); if (plate > 30) { [[1, 1], [1, -1], [-1, 1], [-1, -1]].forEach(([sx, sy]) => cyl(C + sx * plate * 0.35, C + sy * plate * 0.35, t, t + plate * 0.55, 2.5, '#d4a83c')); box(C - plate / 2, C - plate / 2, t + plate * 0.55, C + plate / 2, C + plate / 2, t + plate * 0.55 + 2, c); } };
+  switch (model) {
+    case 'ESP32-S3 DevKitC-1':
+      pcbM(62.74, 25.4, '#1d1f24'); box(44.2, 3.6, 1.6, 63.7, 21.8, 2.4, '#1b4fa0'); box(45.5, 4.9, 2.4, 59.5, 20.5, 5.0, '#c9ccd1');
+      box(-1.2, 3.2, 1.6, 4.6, 10.8, 4.4, '#c9ccd1'); box(-1.2, 14.6, 1.6, 4.6, 22.2, 4.4, '#c9ccd1'); box(8, 3, 1.6, 11.5, 6.5, 3.6, '#ddd'); box(8, 18.9, 1.6, 11.5, 22.4, 3.6, '#ddd');
+      box(20, 11, 1.6, 22, 13, 2.4, '#f2f2f2'); box(14, 9, 1.6, 19, 14, 2.6, '#1d1d1d');
+      header(3.2, 1.27, 22, 2.5); header(3.2, 24.13, 22, 2.5); box(3.2, 0.6, -6, 59.1, 1.9, 0, '#d4af37'); box(3.2, 23.5, -6, 59.1, 24.8, 0, '#d4af37'); break;
+    case 'MLX90640 thermal camera':
+      pcbM(25.7, 17.7, '#1d1f24'); holes([[2.5, 2.5], [23.2, 2.5], [2.5, 15.2], [23.2, 15.2]], 1.25, 1.6); cyl(12.85, 9.5, 1.6, 8.2, 4.6, '#c9ccd1'); cyl(12.85, 9.5, 8.2, 8.5, 2.2, '#222'); header(6.5, 1.3, 5, 2.5); box(0.5, 6, 1.6, 4, 11.5, 3, '#eee'); box(21.7, 6, 1.6, 25.2, 11.5, 3, '#eee'); break;
+    case 'SHT31-D temperature and humidity':
+      pcbM(17.78, 12.7, '#1a1a8c'); box(7.64, 6.1, 1.6, 10.14, 8.6, 2.5, '#e9eaec'); header(1.9, 1.27, 7, 2.5); holes([[2.54, 10.2], [15.24, 10.2]], 1.2, 1.6); break;
+    case 'VL53L0X LiDAR (GY-530)':
+      pcbM(25, 10.7, '#5b2a86'); box(10.3, 4.2, 1.6, 14.7, 6.6, 2.6, '#111'); cyl(11.4, 5.4, 2.6, 2.7, 0.7, '#4a1d1d'); cyl(13.6, 5.4, 2.6, 2.7, 0.7, '#26262e'); header(3.9, 1.27, 6, 2.5); holes([[2, 8.5], [23, 8.5]], 1.4, 1.6); break;
+    case 'OV2640 camera module':
+      pcbM(32, 32, '#0f6d3a'); holes([[2.5, 2.5], [29.5, 2.5], [2.5, 29.5], [29.5, 29.5]], 1.2, 1.6); box(9, 9, 1.6, 23, 23, 8, '#1b1b1b'); cyl(16, 16, 8, 14, 6.2, '#2b2b2b'); cyl(16, 16, 14, 14.3, 4.5, '#24406b'); header(4.6, 1.27, 9, 2.5); header(4.6, 30.73, 9, 2.5); break;
+    case 'MPU6050 gyro (GY-521)':
+      pcbM(21.2, 16.4, '#1f5fae'); holes([[2.5, 13.9], [18.7, 13.9]], 1.5, 1.6); box(8.6, 7, 1.6, 12.6, 11, 2.5, '#1d1d1d'); header(0.44, 1.27, 8, 2.5); break;
+    case 'Piezo disc 27 mm':
+      cyl(13.5, 13.5, 0, 0.2, 13.5, '#d4a83c'); cyl(13.5, 13.5, 0.2, 0.45, 10, '#e9eef3'); cyl(13.5, 13.5, 0.45, 0.5, 8.5, '#c9ccd1'); bar(13.5, 13.5, 13.5, -14, 0.8, 0.5, 1.3, '#d33'); bar(5, 13.5, 3, -14, 0.8, 0.2, 1, '#222'); break;
+    case 'SW-420 vibration sensor':
+      pcbM(32, 14, '#1f5fae'); holes([[28.5, 7]], 1.5, 1.6); add(new THREE.CylinderGeometry(2.5, 2.5, 9.5, 32), '#c9ccd1', 21, 7, 4.1, Math.PI / 2); box(10, 3, 1.6, 15, 7, 3, '#1d1d1d'); box(10, 8.5, 1.6, 16.5, 13, 7.5, '#2f6fd6'); header(-0.5, 4.46, 1, 2.5); header(-0.5, 7, 1, 2.5); header(-0.5, 9.54, 1, 2.5); break;
+    case 'MAX4466 microphone':
+      pcbM(20, 13.8, '#1d1f24'); cyl(13.5, 6.9, 1.6, 5.1, 4.85, '#c9ccd1'); cyl(13.5, 6.9, 5.1, 5.15, 4, '#222'); box(3, 8.5, 1.6, 7, 12.5, 4.2, '#2f6fd6'); header(2, 1.27, 3, 2.5); break;
+    case 'LiPo 4S 1500 mAh':
+      box(0, 0, 0, 75, 35, 37, '#20242a'); box(4, -0.1, 8, 71, 0.2, 29, '#ffcc00'); bar(75, 10, 95, 10, 2.4, 17, 19.5, '#d33'); bar(75, 14, 95, 14, 2.4, 17, 19.5, '#222'); box(95, 7.9, 14, 110.8, 16.1, 23, '#e3c21b'); bar(75, 25, 92, 30, 4.5, 30, 31.5, '#eee'); box(92, 26, 29, 99, 34, 33, '#f2f2f2'); break;
+    case 'ESC 35 A':
+      box(0, 0, 0, 50, 22, 7, '#3f68c9'); ['#d33', '#222'].forEach((c, i) => bar(0, 7 + i * 8, -25, 7 + i * 8, 3, 2, 5, c)); for (let i = 0; i < 3; i++) bar(50, 5 + i * 6, 70, 5 + i * 6, 2, 2.5, 4.5, '#3a3a3a'); bar(0, 11, -18, 11, 1.5, 4, 5, '#f2f2f2'); break;
+    case 'ESC 4-in-1 30 × 30':
+      pcbM(36, 36, '#1d1f24'); holes([[2.75, 2.75], [33.25, 2.75], [2.75, 33.25], [33.25, 33.25]], 1.6, 1.6); for (const [x, y] of [[8, 8], [28, 8], [8, 28], [28, 28]]) box(x - 3, y - 3, 1.6, x + 3, y + 3, 2.6, '#222'); cyl(18, 18, 1.6, 9, 4, '#3a3a3a'); box(14, -6, 0, 22, 2, 8, '#e3c21b'); break;
+    case 'Flight controller F405 30 × 30':
+      pcbM(36, 36, '#1d1f24'); holes([[2.75, 2.75], [33.25, 2.75], [2.75, 33.25], [33.25, 33.25]], 1.6, 1.6); box(14, 14, 1.6, 21, 21, 2.8, '#222'); box(24, 10, 1.6, 27, 13, 2.6, '#333'); box(-1, 15, 1.6, 6, 22, 4.6, '#c9ccd1'); add(new THREE.ConeGeometry(2, 3, 3), '#fff', 18, 30, 2.4); break;
+    case 'Brushless motor 0802': bldcM(12, 8, 2); break;
+    case 'Brushless motor 1404': bldcM(18, 15, 10); break;
+    case 'Brushless motor 2207': bldcM(27.9, 18.9, 12); break;
+    case 'Brushless motor 2306': bldcM(28.8, 18.4, 12); break;
+    case 'Brushless motor 2212': bldcM(28, 26, 14); break;
+    case 'Brushless motor 2814': bldcM(35, 30, 15); break;
+    case 'Brushless motor 4114': bldcM(46, 26, 16); break;
+    case 'Propeller 31 mm (Tiny Whoop)': prop(31, 4, 5, '#ff6a3d'); break;
+    case 'Propeller 3 inch': prop(76.2, 3, 9, '#2f8bff'); break;
+    case 'Propeller 5 inch': prop(127, 3, 13, '#ff6a3d'); break;
+    case 'Propeller 10 inch': prop(254, 2, 22, '#1d1f24'); break;
+    case 'Propeller 15 inch': prop(381, 2, 34, '#1d1f24'); break;
+    case 'Drone frame Tiny Whoop 65 mm': frameM(4, 32.5, 6, 2, 26, '#2b2b2b', 16.5); break;
+    case 'Drone frame 3-inch (130 mm)': frameM(4, 65, 9, 3, 32, '#1d1f24'); break;
+    case 'Drone frame 5-inch (220 mm)': frameM(4, 110, 12, 5, 40, '#1d1f24'); break;
+    case 'Drone frame F450': frameM(4, 225, 26, 6, 135, '#f2f2f2'); break;
+    case 'Drone frame S550 hexacopter': frameM(6, 275, 26, 6, 160, '#1d1f24'); break;
+    case 'Drone frame X8 octocopter': frameM(8, 500, 22, 6, 220, '#1d1f24'); break;
+    case 'L298N motor driver':
+      pcbM(43, 43, '#b3261e'); holes([[3, 3], [40, 3], [3, 40], [40, 40]], 1.5, 1.6); box(10, 22, 1.6, 33, 37, 27, '#2a2a2a'); box(13, 17, 1.6, 30, 22, 9, '#1d1d1d');
+      for (const [x, y] of [[0, 8], [0, 18], [37, 8], [37, 18]]) box(x, y, 1.6, x + 6, y + 8, 12, '#2f6fd6'); box(14, 0, 1.6, 30, 6, 12, '#2f6fd6'); header(9, 40, 6, 6); cyl(8, 30, 1.6, 12, 4, '#1b1b1b'); break;
+    case 'DC motor 130': box(0, 2.5, 0, 25, 17.5, 15, '#b9c0c8'); cyl(-2, 10, 6, 9, 3, '#e9ecef'); add(new THREE.CylinderGeometry(1, 1, 9, 16), '#cfd3d8', -4.5, 10, 7.5, Math.PI / 2); break;
+    case 'DC motor 370': add(new THREE.CylinderGeometry(12.2, 12.2, 30, 48), '#b9c0c8', 15, 12.2, 12.2, Math.PI / 2); add(new THREE.CylinderGeometry(1, 1, 10, 16), '#cfd3d8', -5, 12.2, 12.2, Math.PI / 2); break;
+    case 'DC motor 775': add(new THREE.CylinderGeometry(21, 21, 66, 48), '#b9c0c8', 33, 21, 21, Math.PI / 2); add(new THREE.CylinderGeometry(2.5, 2.5, 17, 16), '#cfd3d8', -8.5, 21, 21, Math.PI / 2); break;
+    case 'TT gear motor 1:48': box(0, 0, 0, 37, 22.5, 18.8, '#f2c21b'); add(new THREE.CylinderGeometry(9.4, 9.4, 33, 40), '#e9ecef', 53.5, 11.25, 9.4, Math.PI / 2); add(new THREE.BoxGeometry(3.7, 5.4, 37), '#fff', 11, 11.25, 9.4, 0, Math.PI / 2, 0); break;
+    case 'N20 gear motor': box(0, 0, 0, 15, 12, 10, '#c9ccd1'); box(15, 0, 0, 24, 12, 10, '#d4a83c'); add(new THREE.CylinderGeometry(1.5, 1.5, 9, 16), '#cfd3d8', 28.5, 6, 5, Math.PI / 2); break;
+    case 'Coreless motor 8520': add(new THREE.CylinderGeometry(4.25, 4.25, 20, 32), '#c9ccd1', 10, 4.25, 4.25, Math.PI / 2); break;
+  }
+}
+
 
 /* ---------------- document ---------------- */
 let objs = []; let sel = new Set(); const roots = new Map(); let undoStack = [], redoStack = []; let docName = 'Untitled';
@@ -678,7 +787,10 @@ $('#viewSel').addEventListener('change', e => { const v = e.target.value; e.targ
 $('#wpSel').addEventListener('change', e => { const [w, h] = e.target.value.split('x').map(Number); SET.gridW = w; SET.gridH = h; applySettings(); });
 (() => { const ws = $('#wpSel'); const v = SET.gridW + 'x' + SET.gridH; if (![...ws.options].some(o => o.value === v)) ws.add(new Option(SET.gridW + '×' + SET.gridH, v)); ws.value = v; })();
 document.querySelectorAll('[data-shape]').forEach(b => b.addEventListener('click', () => addPrimitive(b.dataset.shape, { hole: b.dataset.hole === '1' })));
-$('#boards').innerHTML = Object.keys(BOARDS).map(k => `<button class="bl" data-board="${k}"><b>${k}</b><span>${BOARDS[k].w} × ${BOARDS[k].d} mm</span></button>`).join('');
+function listBoards(q) { q = (q || '').trim().toLowerCase(); const grp = {}; for (const k of Object.keys(BOARDS)) { const g = BOARDS[k].g || 'Boards'; if (q && !(k + ' ' + g + ' ' + BOARDS[k].note).toLowerCase().includes(q)) continue; (grp[g] = grp[g] || []).push(k); }
+  $('#boards').innerHTML = `<input id="bq3" type="search" placeholder="Search boards, sensors, drone parts, motors" value="${q.replace(/"/g, '')}" style="height:28px;border:1px solid var(--line);border-radius:4px;padding:0 8px;font:12px var(--font);margin-bottom:4px">` + ['Boards', 'Sensors', 'Drone', 'Motors'].filter(g => grp[g]).map(g => `<div class="muted" style="margin:6px 0 2px;font-weight:600">${g}</div>` + grp[g].map(k => `<button class="bl" data-board="${k}"><b>${k}</b><span>${BOARDS[k].w} × ${BOARDS[k].d} mm</span></button>`).join('')).join('') + (Object.keys(grp).length ? '' : '<div class="muted">Nothing matches</div>');
+  const i = $('#bq3'); i.oninput = () => { const pos = i.selectionStart; listBoards(i.value); const j = $('#bq3'); j.focus(); j.setSelectionRange(pos, pos); }; }
+listBoards('');
 $('#boards').addEventListener('click', e => { const b = e.target.closest('[data-board]'); if (b) addBoard(b.dataset.board); });
 on('#alignbtn-close', () => $('#alignpop').style.display = 'none');
 

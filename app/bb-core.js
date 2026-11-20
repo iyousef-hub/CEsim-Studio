@@ -75,6 +75,13 @@ defBoard('mega',{layout:megaLayout(16),title:'Arduino Mega 2560 board',name:'Meg
 defBoard('due',{layout:megaLayout(12,['DAC0','DAC1']),title:'Arduino Due board',name:'Due',vl:3.3,count:66,gpioOf:dA(54),adc:{bits:10,vref:3.3,pins:range(54,65),alias:p=>p>=0&&p<=11?p+54:p},pwm:new Set(range(2,13)),i2c:{sda:20,scl:21},led:13,consts:anaConsts(12,54,{LED_BUILTIN:13,SDA:20,SCL:21}),
  look:{color:'#1f5fae',label:'DUE',chip:'SAM3X8E'},ex:{led:9,servo:9,trig:7,echo:8,ain:'A0',bits:1023,vr:3.3,buz:8,stp:[22,24,26,28],rel:30},hint:'. Use 0 to 53, or A0 to A11'});
 }
+/* ESP32-S3 DevKitC-1: two 22-pin headers, GPIO numbers as printed on the board */
+function addS3(){const J1=['3V3','3V3','RST','IO4','IO5','IO6','IO7','IO15','IO16','IO17','IO18','IO8','IO3','IO46','IO9','IO10','IO11','IO12','IO13','IO14','5V','GND'],J3=['GND','TX','RX','IO1','IO2','IO42','IO41','IO40','IO39','IO38','IO37','IO36','IO35','IO0','IO45','IO48','IO47','IO21','IO20','IO19','GND','GND'];
+ defBoard('esp32s3',{layout:[...colP(0,J1),...colP(10,J3)],title:'ESP32-S3 DevKitC-1 board',name:'ESP32-S3',vl:3.3,count:49,gpioOf:n=>{const m=n.match(/^IO(\d+)$/);if(m)return+m[1];return{TX:43,RX:44}[n]??null},
+  adc:{bits:12,vref:3.3,pins:range(1,20),alias:p=>p},pwm:null,i2c:{sda:8,scl:9},led:48,
+  consts:Object.assign(Object.fromEntries(range(0,19).map(i=>['A'+i,i+1])),{LED_BUILTIN:48,RGB_BUILTIN:48,SDA:8,SCL:9,TX:43,RX:44}),
+  blink:'// Blink the RGB LED of the ESP32-S3 DevKitC-1 (GPIO 48). Wire GPIO 4 through 220 ohm to an LED for an outside LED\nvoid setup() {\n  pinMode(LED_BUILTIN, OUTPUT);\n  pinMode(4, OUTPUT);\n  Serial.begin(115200);\n}\n\nvoid loop() {\n  digitalWrite(LED_BUILTIN, HIGH);\n  digitalWrite(4, HIGH);\n  delay(500);\n  digitalWrite(LED_BUILTIN, LOW);\n  digitalWrite(4, LOW);\n  delay(500);\n}\n',
+  look:{color:'#1d1f24',label:'ESP32-S3',chip:'ESP32-S3'},ex:{led:4,servo:5,trig:6,echo:7,ain:1,bits:4095,vr:3.3,buz:15,stp:[10,11,12,13],rel:16},hint:'. Use the GPIO numbers printed on the board (0 to 21, 35 to 48)'})}
 /* Raspberry Pi: the 40-pin header (odd pins in the lower row, pin 1 on the left), programs in Python */
 const PI_HDR=['3V3','5V','GPIO2','5V','GPIO3','GND','GPIO4','GPIO14','GND','GPIO15','GPIO17','GPIO18','GPIO27','GND','GPIO22','GPIO23','3V3','GPIO24','GPIO10','GND','GPIO9','GPIO25','GPIO11','GPIO8','GND','GPIO7','GPIO0','GPIO1','GPIO5','GND','GPIO6','GPIO12','GPIO13','GND','GPIO19','GPIO16','GPIO26','GPIO20','GND','GPIO21'];
 const PI_LAY=PI_HDR.map((n,i)=>[n,[Math.floor(i/2),i%2?0:1]]);
@@ -87,7 +94,7 @@ function addPis(){for(const[k,title,label,chip]of PI_MODELS)defBoard(k,{layout:P
  /* Pico W and Pico 2: the Pico pins, sketches in Arduino C */
  const PL=PICO_PINS.map((n,i)=>[n,[i<20?0:7,i<20?i:39-i]]);
  for(const[k,title,label,chip]of[['picow','Raspberry Pi Pico W board','PICO W','RP2040'],['pico2','Raspberry Pi Pico 2 board','PICO 2','RP2350']])defBoard(k,{layout:PL,title,name:title.replace(/ board$/,'').replace(/^Raspberry Pi /,''),vl:3.3,count:30,gpioOf:n=>{const m=n.match(/^GP(\d+)$/);return m?+m[1]:null},adc:{bits:10,vref:3.3,pins:[26,27,28],alias:p=>p>=0&&p<=2?p+26:p},pwm:null,i2c:{sda:4,scl:5},led:25,consts:{LED_BUILTIN:25,A0:26,A1:27,A2:28,SDA:4,SCL:5},blink:PICO_BLINK,look:{color:'#1f7a3f',label,chip},ex:{led:15,servo:16,trig:2,echo:3,ain:26,bits:1023,vr:3.3,buz:14,stp:[10,11,12,13],rel:22},hint:'. Use GP0 to GP28'})}
-const BOARD_KEYS=['uno','unor4','leonardo','nano','nanoevery','nano33iot','nano33ble','micro','promini','mkr1010','mega','due','esp32','pico','picow','pico2','pi1bplus','pi2b','pi3b','pi3bplus','pi4b','pi400','pi5','pizero','pizero2w'];
+const BOARD_KEYS=['uno','unor4','leonardo','nano','nanoevery','nano33iot','nano33ble','micro','promini','mkr1010','mega','due','esp32','esp32s3','pico','picow','pico2','pi1bplus','pi2b','pi3b','pi3bplus','pi4b','pi400','pi5','pizero','pizero2w'];
 /* the sketch is written for the board: its pin names become numbers, and calls the board does not need are dropped */
 function boardSource(type,src){const m=MCU[type];let s=String(src||'');if(type!=='uno'){for(const[k,v]of Object.entries(m.consts))s=s.replace(new RegExp('\\b'+k+'\\b','g'),String(v));s=s.replace(/\b(analogReadResolution|analogWriteResolution|analogSetAttenuation|analogWriteFreq|analogWriteRange)\s*\([^;]*\)\s*;/g,'')}return s.replace(/&\s*Wire\b/g,'0')}
 const LIB={
@@ -119,7 +126,7 @@ const LIB={
  pir:{name:'PIR motion sensor (HC-SR501)',legs:[[0,0],[1,0],[2,0]],props:{on:false},pins:['VCC','OUT','GND']},
  tilt:{name:'Tilt switch (SW-520D)',legs:[[0,0],[2,0]],props:{on:false},pins:['1','2']},
  joystick:{name:'Joystick module (KY-023)',legs:[[0,0],[1,0],[2,0],[3,0],[4,0]],props:{x:0.5,y:0.5,pressed:false},pins:['GND','+5V','VRx','VRy','SW']},
- motor:{name:'DC motor (5 V)',legs:[[0,0],[2,0]],props:{},pins:['+','−'],offboard:true,module:true},
+ motor:{name:'DC motor',legs:[[0,0],[2,0]],props:{kind:'hobby'},pins:['+','−'],offboard:true,module:true},
  servo:{name:'Servo motor (SG90)',legs:[[0,0],[1,0],[2,0]],props:{},pins:['GND (brown)','V+ (red)','Signal (orange)'],offboard:true,module:true},
  stepper:{name:'Stepper motor 28BYJ-48 with ULN2003 driver',legs:[[0,0],[1,0],[2,0],[3,0],[5,0],[6,0]],props:{},pins:['IN1','IN2','IN3','IN4','+5V','GND'],offboard:true,module:true},
  relay:{name:'Relay module (5 V, active high)',legs:[[0,0],[1,0],[2,0],[0,5],[1,5],[2,5]],props:{},pins:['IN','VCC','GND','NO','COM','NC'],offboard:true,module:true},
@@ -127,11 +134,24 @@ const LIB={
  oled:{name:'OLED 0.96" 128×64 (I2C)',legs:[[0,0],[1,0],[2,0],[3,0]],props:{},pins:['GND','VCC','SCL','SDA'],offboard:true,module:true},
  ultrasonic:{name:'Ultrasonic distance sensor HC-SR04',legs:[[0,0],[1,0],[2,0],[3,0]],props:{cm:50},pins:['VCC','Trig','Echo','GND'],offboard:true,module:true},
  tempsensor:{name:'Temperature sensor (LM35 or TMP36)',legs:[[0,0],[1,0],[2,0]],props:{temp:25,model:'LM35'},pins:['+Vs','Vout','GND']},
+ sht31:{name:'Temperature and humidity sensor SHT31-D (I2C)',legs:[[0,0],[1,0],[2,0],[3,0]],props:{temp:25,hum:50},pins:['VIN','GND','SCL','SDA'],offboard:true,module:true,i2c:true},
+ mlx90640:{name:'Thermal camera MLX90640 (32×24, I2C)',legs:[[0,0],[1,0],[2,0],[3,0]],props:{amb:24,obj:36,ox:0.5,oy:0.5,size:0.3},pins:['VIN','GND','SCL','SDA'],offboard:true,module:true,i2c:true},
+ lidar:{name:'LiDAR distance sensor VL53L0X (I2C)',legs:[[0,0],[1,0],[2,0],[3,0]],props:{mm:500},pins:['VCC','GND','SCL','SDA'],offboard:true,module:true,i2c:true},
+ camera:{name:'RGB camera OV2640 (I2C control)',legs:[[0,0],[1,0],[2,0],[3,0]],props:{color:'red',ox:0.5,oy:0.5,size:0.25,light:0.8},pins:['3V3','GND','SIOC','SIOD'],offboard:true,module:true,i2c:true},
+ piezo:{name:'Piezoelectric disc (knock sensor)',legs:[[0,0],[2,0]],props:{strength:0.6},pins:['+ (red)','− (black)']},
+ vibration:{name:'Vibration sensor module (SW-420)',legs:[[0,0],[1,0],[2,0]],props:{on:false},pins:['VCC','GND','DO']},
+ mic:{name:'Microphone module (MAX4466)',legs:[[0,0],[1,0],[2,0]],props:{sound:'tone',level:0.5,freq:440},pins:['OUT','GND','VCC']},
+ mpu6050:{name:'Gyro and accelerometer MPU6050 (I2C)',legs:[[0,0],[1,0],[2,0],[3,0]],props:{roll:0,pitch:0,yawRate:0,temp:25},pins:['VCC','GND','SCL','SDA'],offboard:true,module:true,i2c:true},
+ lipo:{name:'LiPo battery (drone)',legs:[[0,0],[2,0]],props:{cells:4,mah:1500,c:100},pins:['+ (red)','− (black)'],offboard:true},
+ esc:{name:'Brushless ESC (electronic speed controller)',legs:[[0,0],[1,0],[2,0],[3,0],[5,0],[6,0],[7,0]],props:{amps:35},pins:['BAT +','BAT −','Signal','Signal GND','A','B','C'],offboard:true,module:true},
+ bldc:{name:'Brushless drone motor',legs:[[0,0],[1,0],[2,0]],props:{model:'2207',dir:'CW'},pins:['A','B','C'],offboard:true,module:true},
+ frame:{name:'Drone frame',legs:[],props:{kind:'quad5',payload:0},pins:[],offboard:true,module:true},
+ l298n:{name:'Motor driver L298N (two DC motors)',legs:[[0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[7,0],[8,0],[9,0],[0,-9],[1,-9],[8,-9],[9,-9]],props:{},pins:['ENA','IN1','IN2','IN3','IN4','ENB','+12V','GND','+5V','OUT1','OUT2','OUT3','OUT4'],offboard:true,module:true},
  buzzer:{name:'Buzzer',legs:[[0,0],[2,0]],props:{kind:'active'},pins:['+','−']},
  voltmeter:{name:'Voltmeter',flex:true,legs:2,span:3,probes:true,props:{},pins:['red +','black −']},
  ammeter:{name:'Ammeter',flex:true,legs:2,span:3,probes:true,props:{},pins:['red (in)','black (out)']},
 };
-addBoards();addPis();
+addBoards();addPis();addS3();
 const GATES={7400:{f:(a,b)=>!(a&&b),n:4},7402:{f:(a,b)=>!(a||b),n:4,nor:true},7404:{f:a=>!a,n:6,not:true},7408:{f:(a,b)=>a&&b,n:4},7432:{f:(a,b)=>a||b,n:4},7486:{f:(a,b)=>a!==b,n:4}};
 // pin numbers (1-based) of each gate: [in1,in2,out]
 function gatePins(ic){if(ic==='7404')return[[1,2],[3,4],[5,6],[9,8],[11,10],[13,12]].map(([i,o])=>[i,null,o]);if(ic==='7402')return[[2,3,1],[5,6,4],[8,9,10],[11,12,13]];return[[1,2,3],[4,5,6],[9,10,8],[12,13,11]]}
@@ -141,6 +161,31 @@ const LED_RGB={red:'#ff3b30',yellow:'#ffd60a',green:'#34c759',orange:'#ff9500',b
 function legsOf(p){const L=LIB[p.type];if(L.flex)return p.legs.map(l=>l.slice());const r=((p.rot||0)%360+360)%360;return L.legs.map(([dx,dy])=>{let x=dx*P,y=dy*P;for(let k=0;k<r/90;k++){const t=x;x=-y;y=t}return[p.pos[0]+x,p.pos[1]+y]})}
 function newPart(type,at){const L=LIB[type];const p={id:'p'+Math.random().toString(36).slice(2,8),type,props:JSON.parse(JSON.stringify(L.props||{}))};if(L.flex){const span=L.span||1;p.legs=[[at[0],at[1]],[at[0]+span*P,at[1]]];if(L.probes)p.pos=[at[0]+span*P/2,at[1]-60]}else{p.pos=[at[0],at[1]];p.rot=0}return p}
 
+/* ---------- motors and drone parts ---------- */
+const DCM={hobby:{name:'130 hobby motor (3 to 6 V)',R:10,kt:0.005,gear:1,J:2.5e-7,b:5e-8},tt:{name:'TT gear motor 1:48 (yellow, robot car)',R:7.5,kt:0.0045,gear:48,J:3e-7,b:6e-8},n20:{name:'N20 gear motor 1:100 (6 V)',R:25,kt:0.004,gear:100,J:1e-7,b:3e-8},coreless:{name:'Coreless 8520 (micro drone, 3.7 V)',R:1.6,kt:0.0012,gear:1,J:2e-8,b:4e-9},m775:{name:'775 motor (12 V, high torque)',R:1.2,kt:0.011,gear:1,J:4e-6,b:1e-6},m370:{name:'370 motor (6 V)',R:4,kt:0.006,gear:1,J:6e-7,b:1.2e-7}};
+/* brushless motors: kv, prop, rated cells, thrust and current at full throttle */
+const BLDC={'0802':{name:'0802 19000 KV · Tiny Whoop, 31 mm prop, 1S',kv:19000,prop:'31 mm',cells:1,thrust:24,amps:4,w:2},'1404':{name:'1404 3800 KV · 3-inch, 4S',kv:3800,prop:'3 inch',cells:4,thrust:420,amps:14,w:9},'2207':{name:'2207 1950 KV · 5-inch freestyle, 6S',kv:1950,prop:'5 inch',cells:6,thrust:1550,amps:45,w:32},'2306':{name:'2306 2450 KV · 5-inch racing, 4S',kv:2450,prop:'5 inch',cells:4,thrust:1500,amps:40,w:31},'2212':{name:'2212 920 KV · F450 frame, 10-inch, 3S',kv:920,prop:'10 inch',cells:3,thrust:850,amps:15,w:55},'2814':{name:'2814 700 KV · long range 10-inch, 4S',kv:700,prop:'10 inch',cells:4,thrust:1700,amps:30,w:90},'4114':{name:'4114 400 KV · heavy lift 15-inch, 6S',kv:400,prop:'15 inch',cells:6,thrust:3800,amps:25,w:150}};
+const FRAMES={whoop:{name:'Tiny Whoop 65 mm (ducted)',arms:4,w:5,size:65},quad3:{name:'3-inch quad X (130 mm)',arms:4,w:45,size:130},quad5:{name:'5-inch quad X freestyle (220 mm)',arms:4,w:110,size:220},f450:{name:'F450 quad X (450 mm)',arms:4,w:280,size:450},hex550:{name:'S550 hexacopter (550 mm)',arms:6,w:480,size:550},octo:{name:'X8 octocopter (1000 mm)',arms:8,w:1600,size:1000}};
+function lipoV(p,st){const n=+p.props.cells||3,cap=+p.props.mah||1500;const soc=Math.max(0,1-((st&&st.used)||0)/cap);return n*(3.45+0.75*soc)}
+function pinAtNode(sim,node){for(const m of sim.els)if(m.mcu)for(const[g,li]of m.mcu.gpio)if(m.nodes[li]===node)return{e:m,g};return null}
+/* ---------- what the sensors see ---------- */
+/* MLX90640: 24 rows x 32 columns of temperatures, a warm object on a background */
+function thermFrame(pr,out){const amb=+pr.amb,obj=+pr.obj,cx=(+pr.ox)*31,cy=(+pr.oy)*23,r=Math.max(0.6,(+pr.size)*16);out=out||new Array(768);
+ for(let y=0;y<24;y++)for(let x=0;x<32;x++){const d=Math.hypot(x-cx,(y-cy)*1.05)/r;const k=Math.exp(-Math.pow(d,4));out[y*32+x]=amb+(obj-amb)*k+(Math.random()-0.5)*0.25+(y/23-0.5)*0.4}return out}
+/* OV2640 picture: a coloured ball in front of a wall and a table */
+const CAM_COL={red:[220,40,35],green:[40,170,70],blue:[40,90,220],yellow:[240,200,40],orange:[245,130,30],purple:[140,60,190],white:[240,240,240],black:[25,25,25]};
+function camPixel(pr,x,y,W,H){const u=x/(W-1),v=y/(H-1);const lt=0.15+0.85*Math.max(0,Math.min(1,+pr.light));let c;
+ if(v>0.72){const k=0.75+0.25*((Math.floor(u*12)+Math.floor(v*30))%2);c=[150*k,105*k,70*k]}else{c=[205-40*v,200-40*v,190-35*v]}
+ const r=Math.max(0.02,+pr.size)*0.5,dx=(u-(+pr.ox))*W/H,dy=v-(+pr.oy),d=Math.hypot(dx,dy);
+ if(d<r){const b=CAM_COL[pr.color]||CAM_COL.red;const sh=0.65+0.35*Math.max(0,1-Math.hypot(dx+r*0.35,dy+r*0.35)/(r*1.4));c=b.map(q=>q*sh)}else if(d<r*1.25&&v>(+pr.oy)){c=c.map(q=>q*(0.7+0.3*(d-r)/(r*0.25)))}
+ return c.map(q=>Math.max(0,Math.min(255,Math.round(q*lt+(Math.random()-0.5)*6))))}
+/* microphone waveform, -1 to 1 */
+function micWave(pr,t){const f=Math.max(20,+pr.freq||440);switch(pr.sound){
+ case'tone':return Math.sin(2*Math.PI*f*t);
+ case'voice':{const syl=Math.max(0,Math.sin(2*Math.PI*2.6*t))*(t%2<1.4?1:0.05);return syl*(0.6*Math.sin(2*Math.PI*170*t)+0.3*Math.sin(2*Math.PI*340*t+1)+0.15*Math.sin(2*Math.PI*690*t+2))}
+ case'clap':{const k=t%1;return k<0.12?Math.exp(-k/0.025)*(Math.random()*2-1):(Math.random()*2-1)*0.01}
+ case'music':{const notes=[262,330,392,523],n=notes[Math.floor(t*4)%4];return 0.6*Math.sin(2*Math.PI*n*t)+0.25*Math.sin(2*Math.PI*n*2*t)}
+ default:return(Math.random()*2-1)*0.02}}
 /* ---------------- netlist ---------------- */
 function connectivity(doc){const parent=new Map();const find=k=>{let r=k;while(parent.has(r)&&parent.get(r)!==r)r=parent.get(r);let c=k;while(parent.has(c)&&parent.get(c)!==r){const n=parent.get(c);parent.set(c,r);c=n}return r};const add=k=>{if(!parent.has(k))parent.set(k,k)};const union=(a,b)=>{add(a);add(b);const ra=find(a),rb=find(b);if(ra!==rb)parent.set(ra,rb)};
  const ptNode=(x,y)=>{const k=key(x,y);const h=HOLES.get(k);if(h){union('pt:'+k,'strip:'+h.strip);return'pt:'+k}add('pt:'+k);return'pt:'+k};
@@ -159,7 +204,7 @@ class Sim{
   for(const p of doc.parts){const L=LIB[p.type];const legs=con.partLegs.get(p.id);const nodes=legs.map(nid);const pts=legsOf(p);
    if(!L.offboard){pts.forEach((pt,i)=>{if(!con.inHole(pt[0],pt[1])){const k='pt:'+key(pt[0],pt[1]);const r=con.find(k);let used=0;for(const w of doc.wires)if(key(w.a[0],w.a[1])===key(pt[0],pt[1])||key(w.b[0],w.b[1])===key(pt[0],pt[1]))used++;if(!used)this.floating.push({part:p.id,leg:i})}})}
    const e={p,nodes,type:p.type};
-   if(p.type==='battery'||p.type==='supply'){e.rint=internal();if(this.refNode==null)this.refNode=nodes[1]}
+   if(p.type==='battery'||p.type==='supply'||p.type==='lipo'){e.rint=internal();if(this.refNode==null)this.refNode=nodes[1]}
    if(p.type==='led'||p.type==='pled'||p.type==='diode')e.mid=internal();if(p.type==='rgbled'){e.mids=[internal(),internal(),internal()];e.subs=[{},{},{}]}
    if(p.type==='ne555')e.n1=internal();
    if(LIB[p.type].mcu){e.mcu=MCU[LIB[p.type].mcu];e.gndN=nodes[e.mcu.gnd[0]];this.unoStart(e)}
@@ -167,13 +212,13 @@ class Sim{
    if(p.type==='seg7')e.mids=Array.from({length:8},internal);
    this.els.push(e)}
   this.n=n;if(this.refNode==null){const m=this.els.find(x=>x.mcu);this.refNode=m?m.gndN:0}this.linkModules();
-  this.vsrc=this.els.filter(e=>e.type==='battery'||e.type==='supply'||e.type==='ammeter');this.vsrc.forEach((e,i)=>e.vi=n+i);this.N=n+this.vsrc.length;
+  this.vsrc=this.els.filter(e=>e.type==='battery'||e.type==='supply'||e.type==='lipo'||e.type==='ammeter');this.vsrc.forEach((e,i)=>e.vi=n+i);this.N=n+this.vsrc.length;
   this.x=new Float64Array(this.N);this.xprev=new Float64Array(this.N);
   for(const e of this.els){const s=this.state[e.p.id]=this.state[e.p.id]||{};if(e.p.type==='ne555')s.q=0;if(LIB[e.p.type].ic)s.out=[]}
   this.dc()}
  V(i){return i===this.refNode?0:this.x[i]-this.x[this.refNode]}
  dc(){/* initial operating point: capacitors open, a few hundred settling steps */const dt0=this.dt;this.dcMode=true;for(let k=0;k<4;k++)this.solve(1e9);this.dcMode=false;this.xprev.set(this.x);this.dt=dt0}
- step(n){for(let i=0;i<n;i++){for(const e of this.els)if(e.rt)this.unoRun(e);for(const e of this.els)if(e.type==='servo'||e.type==='stepper'||e.type==='motor')this.mech(e);this.solve(this.dt);this.updateLogic();this.afterStep();this.xprev.set(this.x);this.t+=this.dt}}
+ step(n){for(let i=0;i<n;i++){for(const e of this.els)if(e.rt)this.unoRun(e);for(const e of this.els)if(e.type==='servo'||e.type==='stepper'||e.type==='motor'||e.type==='esc'||e.type==='l298n')this.mech(e);this.solve(this.dt);this.updateLogic();this.afterStep();this.xprev.set(this.x);this.t+=this.dt}}
  solve(dt){const N=this.N;let x=this.x;for(let it=0;it<60;it++){const G=Array.from({length:N},()=>new Float64Array(N));const I=new Float64Array(N);this.stamp(G,I,x,dt);
    for(let i=0;i<this.n;i++)G[i][i]+=1e-9;const r=this.ref=this.refNode;for(let j=0;j<N;j++){G[r][j]=0}G[r][r]=1;I[r]=0;
    const xn=gauss(G,I);if(!xn)return;let conv=true;for(let i=0;i<N;i++){if(!isFinite(xn[i]))return;if(Math.abs(xn[i]-x[i])>1e-4+1e-3*Math.abs(xn[i]))conv=false}x.set(xn);this.limited=false;if(conv&&it>0)break}}
@@ -200,13 +245,13 @@ class Sim{
      const cIc=Ic-gmf*vbe+(gmr+gbc)*vbc,cIb=Ib-gbe*vbe-gbc*vbc,cIe=-(cIc+cIb);
      for(const[t,c0,d]of[['C',cIc,dIc],['B',cIb,dIb],['E',cIe,dIe]]){const k=nodeOf[t];for(const j of['C','B','E'])G[k][nodeOf[j]]+=d[j];I[k]-=c0}
      st.ic=Ic;st.ib=Ib;break}
-    case'battery':case'supply':{const vi=e.vi;const Rin=e.type==='battery'?1.5:0.05;/* source between + and internal node, internal R to - */G[nd[0]][vi]+=1;G[e.rint][vi]-=1;G[vi][nd[0]]+=1;G[vi][e.rint]-=1;I[vi]+=+p.props.volts||0;cond(e.rint,nd[1],1/Rin);break}
+    case'lipo':case'battery':case'supply':{const vi=e.vi;const Rin=e.type==='battery'?1.5:e.type==='lipo'?0.004*(+p.props.cells||3):0.05;/* source between + and internal node, internal R to - */G[nd[0]][vi]+=1;G[e.rint][vi]-=1;G[vi][nd[0]]+=1;G[vi][e.rint]-=1;I[vi]+=e.type==='lipo'?lipoV(p,st):(+p.props.volts||0);cond(e.rint,nd[1],1/Rin);break}
     case'ammeter':{const vi=e.vi;G[nd[0]][vi]+=1;G[nd[1]][vi]-=1;G[vi][nd[0]]+=1;G[vi][nd[1]]-=1;break}
     case'voltmeter':cond(nd[0],nd[1],1e-7);break;
     case'__mcu':{const M=e.mcu,GND=e.gndN;const src=(k,V,g)=>{if(k===GND)return;cond(k,GND,g);cur(GND,k,g*V)};if(M.v5>=0)src(nd[M.v5],5,10);if(M.v33>=0)src(nd[M.v33],3.3,10);
      const rt=e.rt;for(const[g,li]of M.gpio){const k=nd[li];const s=rt&&rt.state!=='error'?rt.pins[g]:null;if(!s||s.mode===0){cond(k,GND,1e-8);continue}
       if(s.mode===2){src(k,M.vl,1/M.pull);continue}if(s.mode===3){src(k,0,1/M.pull);continue}let V=s.v?M.vl:0;if(s.tone)V=M.vl/2;else if(s.pwm>=0)V=M.vl*s.pwm/255;src(k,V,1/M.rout)}break}
-    case'motor':{/* winding 10 ohm and a back EMF that grows with speed */const g=1/10,E=0.005*e.w;cond(nd[0],nd[1],g);cur(nd[1],nd[0],g*E);break}
+    case'motor':{/* winding resistance and a back EMF that grows with speed */const K=DCM[p.props.kind]||DCM.hobby;const g=1/K.R,E=K.kt*e.w;cond(nd[0],nd[1],g);cur(nd[1],nd[0],g*E);break}
     case'servo':cond(nd[1],nd[0],1/250);cond(nd[2],nd[0],1e-7);break;
     case'stepper':{const V=x[nd[4]]-x[nd[5]];for(let k=0;k<4;k++){cond(nd[k],nd[5],1/10000);if(V>3.5&&x[nd[k]]-x[nd[5]]>2)cond(nd[4],nd[5],1/60)}break}
     case'relay':{cond(nd[0],nd[2],1/10000);if(e.on)cond(nd[1],nd[2],1/70);else cond(nd[1],nd[2],1/20000);cond(nd[4],nd[3],e.on?20:1e-12);cond(nd[4],nd[5],e.on?1e-12:20);break}
@@ -214,6 +259,16 @@ class Sim{
     case'oled':cond(nd[1],nd[0],1/1000);cond(nd[2],nd[0],1e-7);cond(nd[3],nd[0],1e-7);break;
     case'ultrasonic':cond(nd[0],nd[3],1/350);cond(nd[1],nd[3],1e-6);{const on=e.echoHigh&&x[nd[0]]-x[nd[3]]>4;const g=1/100;cond(nd[2],nd[3],on?g:1e-7);if(on)cur(nd[3],nd[2],g*5)}break;
     case'tempsensor':{const V=x[nd[0]]-x[nd[2]];cond(nd[0],nd[2],1/50000);const lm=p.props.model!=='TMP36';const ok=lm?V>3.8:V>2.6;const t=+p.props.temp||0;const vo=ok?Math.max(0,lm?t*0.01:0.5+t*0.01):0;const g=1/100;cond(nd[1],nd[2],g);cur(nd[2],nd[1],g*vo);break}
+    case'sht31':case'mlx90640':case'lidar':case'camera':cond(nd[0],nd[1],1/(p.type==='mlx90640'?1000:p.type==='camera'?400:4000));cond(nd[2],nd[1],1e-7);cond(nd[3],nd[1],1e-7);break;
+    case'piezo':{const g=1/20000;cond(nd[0],nd[1],g);let vo=0;if(st.tap!=null&&!this.dcMode){const k=this.t-st.tap;if(k>=0&&k<0.25)vo=(+p.props.strength||0.5)*9*Math.exp(-k/0.012)*Math.cos(2*Math.PI*330*k)}st.vo=vo;if(vo)cur(nd[1],nd[0],g*vo);break}
+    case'vibration':{const on=!!p.props.on&&(Math.sin(this.t*2*Math.PI*35)>-0.6);cond(nd[2],on?nd[0]:nd[1],1/100);cond(nd[2],on?nd[1]:nd[0],1e-9);cond(nd[0],nd[1],1/8000);break}
+    case'mic':{const V=x[nd[2]]-x[nd[1]];cond(nd[2],nd[1],1/12000);const g=1/150;let vo=0;if(V>2.3){const lv=Math.max(0,Math.min(1,+p.props.level));vo=V/2+(this.dcMode?0:lv*0.97*(V/2)*Math.max(-1,Math.min(1,micWave(p.props,this.t))))}cond(nd[0],nd[1],g);cur(nd[1],nd[0],g*vo);break}
+    case'mpu6050':cond(nd[0],nd[1],1/5000);cond(nd[2],nd[1],1e-7);cond(nd[3],nd[1],1e-7);break;
+    case'esc':{cond(nd[0],nd[1],1/20000);cond(nd[1],nd[3],50);cond(nd[2],nd[3],1e-6);const V=x[nd[0]]-x[nd[1]];const I=e.iBat||0;if(I>0&&V>1)cond(nd[0],nd[1],I/V);break}
+    case'l298n':{const[ENA,IN1,IN2,IN3,IN4,ENB,V12,GND,V5,O1,O2,O3,O4]=nd;cond(V12,GND,1/20000);for(const k of[ENA,IN1,IN2,IN3,IN4,ENB])cond(k,GND,1e-5);const vs=x[V12]-x[GND];
+     /* the on-board regulator gives 5 V when the supply is above 7 V */if(vs>7){cond(V5,GND,1/2);cur(GND,V5,5/2)}else cond(V5,GND,1e-6);
+     const lv=k=>x[k]-x[GND]>2.3;const ch=[[ENA,IN1,IN2,O1,O2,0],[ENB,IN3,IN4,O3,O4,1]];for(const[en,a,b,oa,ob,j]of ch){const d=e.duty?e.duty[j]:(lv(en)?1:0);const on=d>0.01;const vh=Math.max(0,vs-1.4)*d;
+      for(const[o,i]of[[oa,a],[ob,b]]){if(!on){cond(o,GND,1e-6);continue}const g=1/1.5;cond(o,GND,g);cur(GND,o,g*(lv(i)?vh:0))}}break}
     case'buzzer':cond(nd[0],nd[1],1/120);break;
     case'ne555':{const[GND,TRIG,OUT,RST,CTRL,THRES,DISCH,VCC]=nd;cond(VCC,CTRL,1/5000);cond(CTRL,e.n1,1/5000);cond(e.n1,GND,1/5000);cond(VCC,GND,1/10000);cond(RST,VCC,1/50000);
      const pw=st.powered;if(pw){const lev=st.q?Math.max(0,(x[VCC]-x[GND])-1.7):0.1;const g=1/10;cond(OUT,GND,g);cur(GND,OUT,g*lev)}if(pw&&!st.q)cond(DISCH,GND,1/10);break}
@@ -230,6 +285,7 @@ class Sim{
    if(e.type==='diode')st.i=(x[e.mid]-x[nd[1]])*20;
    if(e.type==='seg7'){st.seg=e.mids.map(m=>Math.max(0,(x[m]-x[nd[2]])/15))}
    if(e.type==='resistor'){const v=x[nd[0]]-x[nd[1]],R=+p.props.ohms||1;st.i=v/R;st.p=v*v/R;if(st.p>0.25)this.addWarn(p.id,'hot',`A ${fmtOhm(R)} resistor dissipates ${st.p.toFixed(2)} W, more than its 0.25 W rating. It gets very hot`);}
+   if(e.type==='lipo'){const i=-x[e.vi];st.i=i;st.v=x[nd[0]]-x[nd[1]];st.used=(st.used||0)+Math.max(0,i)*dt/3.6;const cap=+p.props.mah||1500,lim=cap*(+p.props.c||75)/1000;if(i>lim)this.addWarn(p.id,'c',`The LiPo gives ${i.toFixed(0)} A, more than its ${lim.toFixed(0)} A limit (${cap} mAh × ${p.props.c||75}C). It heats up and swells`);if(i>400)this.addWarn(p.id,'short','Short circuit on the LiPo battery. This can start a fire');if(lipoV(p,st)/(+p.props.cells||3)<3.5)this.addWarn(p.id,'low',`The LiPo is nearly empty (${(lipoV(p,st)/(+p.props.cells||3)).toFixed(2)} V per cell). Land and charge it; below 3.3 V per cell the cells are damaged`)}
    if(e.type==='battery'||e.type==='supply'){const i=-x[e.vi];st.i=i;st.v=x[nd[0]]-x[nd[1]];if(i>(e.type==='battery'?1.5:2)){this.addWarn(p.id,'short',`Short circuit: the ${e.type==='battery'?'battery':'power supply'} gives ${i.toFixed(1)} A. Check for a wire or part that connects + to − directly`)}}
    if(e.type==='ammeter')st.i=x[e.vi];
    if(e.type==='voltmeter')st.v=x[nd[0]]-x[nd[1]];
@@ -241,6 +297,10 @@ class Sim{
    if(e.type==='lcd'||e.type==='oled'){st.powered=x[nd[1]]-x[nd[0]]>(e.type==='lcd'?4:2.8);st.dev=null;if(st.powered&&e.bus&&e.bus.rt){const r=e.bus.rt;st.dev=e.type==='lcd'?(r.lcds||[]).find(L=>L.i2c)||null:(r.oleds||[])[0]||null}}
    if(e.type==='ultrasonic'){st.powered=x[nd[0]]-x[nd[3]]>4;st.echo=!!e.echoHigh}
    if(e.type==='tempsensor'){st.v=x[nd[1]]-x[nd[2]]}
+   if(LIB[e.type].i2c){st.powered=x[nd[0]]-x[nd[1]]>2.5;st.linked=!!e.dev;st.used=!!(e.dev&&e.dev.used)}
+   if(e.type==='mic'){st.v=x[nd[0]]-x[nd[1]];st.powered=x[nd[2]]-x[nd[1]]>2.3}
+   if(e.type==='vibration'){st.v=x[nd[2]]-x[nd[1]]}
+   if(e.type==='piezo'){st.v=x[nd[0]]-x[nd[1]]}
    if(e.type==='buzzer'){const v=x[nd[0]]-x[nd[1]];st.i=v/120;let f=0;if(e.tonePin){const s=e.tonePin.e.rt&&e.tonePin.e.rt.pins[e.tonePin.g];if(s&&s.mode===1&&s.tone)f=s.tone}st.on=f>0||(p.props.kind!=='passive'&&v>2);st.freq=f||(p.props.kind!=='passive'?2700:0);st.vol=Math.min(1,Math.abs(v)/5)}
    if(e.type==='ecap'){const v=x[nd[0]]-x[nd[1]];st.v=v;if(v<-1)this.addWarn(p.id,'rev','An electrolytic capacitor is connected backwards (its − leg is at the higher voltage). It can be damaged')}
    if(e.type==='capacitor')st.v=x[nd[0]]-x[nd[1]];
@@ -267,9 +327,29 @@ class Sim{
   for(const e of this.els){const nd=e.nodes;
    if(e.type==='servo')e.sig=pinAt(nd[2]);if(e.type==='buzzer')e.tonePin=pinAt(nd[0]);
    if(e.type==='lcd'||e.type==='oled'){const sda=pinAt(nd[e.type==='lcd'?2:3]),scl=pinAt(nd[e.type==='lcd'?3:2]);e.bus=sda&&scl&&sda.e===scl.e&&sda.g===sda.e.mcu.i2c.sda&&scl.g===sda.e.mcu.i2c.scl?sda.e:null;if(sda&&scl&&!e.bus)this.addWarn(e.p.id,'i2c',`Wire SDA and SCL of the display to the ${sda.e.mcu.name} I2C pins: SDA ${sda.e.mcu.i2c.sda}, SCL ${sda.e.mcu.i2c.scl}`)}
+   if(LIB[e.type].i2c){const scl=pinAt(nd[2]),sda=pinAt(nd[3]);const bus=sda&&scl&&sda.e===scl.e&&sda.g===sda.e.mcu.i2c.sda&&scl.g===sda.e.mcu.i2c.scl?sda.e:null;e.dev=null;
+    if(sda&&scl&&!bus){const sw=sda.e===scl.e&&sda.g===sda.e.mcu.i2c.scl&&scl.g===sda.e.mcu.i2c.sda;this.addWarn(e.p.id,'i2c',sw?`SDA and SCL of the ${LIB[e.type].name.split(' (')[0]} are swapped. SDA goes to ${sda.e.mcu.name} pin ${sda.e.mcu.i2c.sda}, SCL to pin ${sda.e.mcu.i2c.scl}`:`Wire SDA and SCL of the ${LIB[e.type].name.split(' (')[0]} to the ${sda.e.mcu.name} I2C pins: SDA ${sda.e.mcu.i2c.sda}, SCL ${sda.e.mcu.i2c.scl}`)}
+    if(bus&&bus.rt){const self=this,pr=e.p.props;const pt={type:e.type,src:e,props:pr,used:false,ok:()=>self.x&&self.x[nd[0]]-self.x[nd[1]]>2.5,
+      temp:()=>+pr.temp+(Math.random()-0.5)*0.1,hum:()=>Math.max(0,Math.min(100,+pr.hum+(Math.random()-0.5)*0.4)),mm:()=>{const m=+pr.mm;return m>2000?8190:Math.max(20,Math.round(m+(Math.random()-0.5)*6))},
+      frame:a=>thermFrame(pr,a),pix:(x,y,W,H)=>camPixel(pr,x,y,W,H),imu:k=>{const r=(+pr.roll||0)*Math.PI/180,pp=(+pr.pitch||0)*Math.PI/180,n=()=>(Math.random()-0.5)*0.004;switch(k){case'ax':return-Math.sin(pp)+n();case'ay':return Math.sin(r)*Math.cos(pp)+n();case'az':return Math.cos(r)*Math.cos(pp)+n();case'gx':case'gy':return(Math.random()-0.5)*0.3;case'gz':return(+pr.yawRate||0)+(Math.random()-0.5)*0.3;case't':return+pr.temp||25}return 0}};if(!bus.rt.parts)bus.rt.parts=[];bus.rt.parts.push(pt);e.dev=pt}}
+   if(e.type==='esc'){e.sig=pinAt(nd[2]);e.motor=null;const ph=[nd[4],nd[5],nd[6]];for(const m of this.els){if(m.type!=='bldc')continue;const mn=m.nodes;if(ph.every(k=>mn.includes(k))&&new Set(mn).size===3){e.motor=m;const perm=ph.map(k=>mn.indexOf(k));const inv=(perm[0]>perm[1])+(perm[0]>perm[2])+(perm[1]>perm[2]);m.rev=inv%2===1;m.escE=e}}
+    if(!e.sig)this.addWarn(e.p.id,'nosig','Wire the ESC Signal to a board pin and Signal GND to the board GND')}
    if(e.type==='ultrasonic'){const tr=pinAt(nd[1]),ec=pinAt(nd[2]);if(tr&&ec&&tr.e===ec.e&&tr.e.rt){const pt={type:'ultrasonic',trig:tr.g,echo:ec.g,value:+e.p.props.cm||50,src:e};tr.e.rt.parts.push(pt);e.us=pt}}}}
+ /* ESC: reads servo pulses (1000 to 2000 µs), arms after a low signal, spins its brushless motor */
+ escStep(e){const x=this.x,nd=e.nodes,dt=this.dt,st=this.state[e.p.id];const V=x[nd[0]]-x[nd[1]];st.vbat=V;let us=null;
+  if(e.sig&&e.sig.e.rt){const s=e.sig.e.rt.pins[e.sig.g];if(s&&s.servo&&s.servo.pin!=null&&s.servo.us!=null)us=s.servo.us;else if(s&&s.servo)us=Math.round(s.servo.angle*1856/180+544);else if(s&&s.mode===1&&(s.v||s.pwm>0)){if(!e.badSig){e.badSig=1;this.addWarn(e.p.id,'sig','The ESC signal needs servo pulses from 1000 to 2000 µs: use the Servo library (esc.attach(pin); esc.writeMicroseconds(1000);), not digitalWrite or analogWrite')}}}
+  st.us=us;const pw=V>5;if(!pw){e.armed=false;e.lowT=0}
+  if(pw&&!e.armed){if(us!=null&&us<=1060){e.lowT=(e.lowT||0)+dt;if(e.lowT>1.0){e.armed=true;st.beeps=(st.beeps||0)+1}}else{e.lowT=0;if(us!=null&&us>1100&&this.t>2)this.addWarn(e.p.id,'arm','The ESC did not arm: send 1000 µs (zero throttle) for 2 seconds after the battery is connected, then raise the throttle')}}
+  st.armed=!!e.armed;const thr=e.armed&&us!=null?Math.max(0,Math.min(1,(us-1040)/960)):0;st.thr=thr;
+  const m=e.motor;let I=0.05;if(m){const B=BLDC[m.p.props.model]||BLDC['2207'];const rpmMax=B.kv*B.cells*3.9*0.82;const tgt=B.kv*Math.max(0,V)*thr*0.82;const ms=this.state[m.p.id];ms.rpm=(ms.rpm||0)+(tgt-(ms.rpm||0))*Math.min(1,dt/0.08);const r=ms.rpm/rpmMax;ms.thrust=B.thrust*r*r;ms.amps=B.amps*r*r*r;ms.ang=((ms.ang||0)+ms.rpm*6*dt*(m.rev?-1:1))%360;ms.rev=m.rev;ms.esc=e.p.id;I+=ms.amps;
+   if(ms.amps>(+e.p.props.amps||35)*1.05)this.addWarn(e.p.id,'amp',`The motor draws ${ms.amps.toFixed(0)} A, more than the ${e.p.props.amps} A ESC can give. Use a bigger ESC or a smaller prop`);
+   if(V>B.cells*4.25+0.5)this.addWarn(m.p.id,'volt',`The ${B.name.split(' ·')[0]} motor is made for ${B.cells}S (${(B.cells*4.2).toFixed(1)} V) but gets ${V.toFixed(1)} V. It spins too fast and overheats`)}
+  else if(thr>0)this.addWarn(e.p.id,'nomotor','Connect the ESC outputs A, B and C to the three wires of a brushless motor');
+  e.iBat=I;st.iBat=I}
  mech(e){const p=e.p,x=this.x,nd=e.nodes,dt=this.dt;
-  if(e.type==='motor'){const i=(x[nd[0]]-x[nd[1]]-0.005*e.w)/10;const J=2.5e-7,kt=0.005,b=5e-8;e.w+=dt*(kt*i-b*e.w)/J;e.th+=e.w*dt}
+  if(e.type==='motor'){const K=DCM[p.props.kind]||DCM.hobby;const i=(x[nd[0]]-x[nd[1]]-K.kt*e.w)/K.R;e.w+=dt*(K.kt*i-K.b*e.w)/K.J;e.th+=e.w*dt/K.gear}
+  if(e.type==='esc')this.escStep(e);
+  if(e.type==='l298n'){const pins=[0,5].map(k=>pinAtNode(this,e.nodes[k]));e.duty=pins.map((q,j)=>{if(!q)return null;const s=q.e.rt&&q.e.rt.pins[q.g];if(!s||s.mode!==1)return null;return s.pwm>=0?s.pwm/255:(s.v?1:0)});if(e.duty.every(d=>d==null))e.duty=null;else e.duty=e.duty.map((d,j)=>d==null?(x[e.nodes[j?5:0]]-x[e.nodes[7]]>2.3?1:0):d)}
   if(e.type==='servo'){let tgt=e.ang??90;if(e.sig&&e.sig.e.rt){const s=e.sig.e.rt.pins[e.sig.g];if(s&&s.servo)tgt=s.servo.angle}const pw=x[nd[1]]-x[nd[0]]>4;if(e.ang==null)e.ang=90;if(pw){const d=tgt-e.ang,mx=600*dt;e.ang+=Math.max(-mx,Math.min(mx,d))}}
   if(e.type==='stepper'){const on=[0,1,2,3].map(k=>x[nd[k]]-x[nd[5]]>2);const pw=x[nd[4]]-x[nd[5]]>3.5;if(!pw)return;const pat=on.map(b=>b?1:0).join('');const T={'1000':0,'1100':1,'0100':2,'0110':3,'0010':4,'0011':5,'0001':6,'1001':7};const k=T[pat];if(k==null)return;if(e.idx>=0&&k!==e.idx){let d=k-e.idx;if(d>4)d-=8;if(d<-4)d+=8;e.ang+=d*360/4096}e.idx=k}
   if(e.type==='ultrasonic'&&e.us)e.us.value=+p.props.cm||0}
@@ -289,7 +369,7 @@ function bands(R){R=Math.max(1,Math.round(+R));let e=0;let v=R;while(v>=100){v/=
 /* export to the Circuit tool's netlist format */
 function toNetlist(doc,title){const con=connectivity(doc);const names=new Map();let k=1;const nm=leg=>{const r=con.find(leg);if(!names.has(r))names.set(r,'n'+(k++));return names.get(r)};
  // ground: battery/supply negative
- const src=doc.parts.find(p=>p.type==='battery'||p.type==='supply');if(src){const r=con.find(con.partLegs.get(src.id)[1]);names.set(r,'0')}else{const u=doc.parts.find(p=>LIB[p.type]&&LIB[p.type].mcu);if(u)names.set(con.find(con.partLegs.get(u.id)[MCU[LIB[u.type].mcu].gnd[0]]),'0')}
+ const src=doc.parts.find(p=>p.type==='battery'||p.type==='supply'||p.type==='lipo');if(src){const r=con.find(con.partLegs.get(src.id)[1]);names.set(r,'0')}else{const u=doc.parts.find(p=>LIB[p.type]&&LIB[p.type].mcu);if(u)names.set(con.find(con.partLegs.get(u.id)[MCU[LIB[u.type].mcu].gnd[0]]),'0')}
  const L=[`* ${title||'Breadboard circuit'}, exported from the Breadboard`,'* One part per line: NAME node node ... VALUE'];const cnt={};const id=pfx=>{cnt[pfx]=(cnt[pfx]||0)+1;return pfx+cnt[pfx]};const skipped=[];
  for(const p of doc.parts){const n=con.partLegs.get(p.id).map(nm);switch(p.type){
   case'resistor':L.push(`${id('R')} ${n[0]} ${n[1]} ${engNum(p.props.ohms)}`);break;
@@ -324,6 +404,6 @@ function toPcb(doc){const con=connectivity(doc);const par=new Map();const f=k=>{
   let value='';if(p.type==='resistor')value=fmtOhm(p.props.ohms).replace(' ','');else if(p.type==='capacitor'||p.type==='ecap')value=fmtF(p.props.farads).replace(' ','');else if(p.type==='led')value='LED '+p.props.color;else if(p.type==='pled')value='Power LED '+p.props.color;else if(p.type==='ldr')value='LDR';else if(p.type==='pot')value=fmtOhm(p.props.ohms).replace(' ','');else if(p.type==='battery'||p.type==='supply')value=p.props.volts+'V in';else if(LIB[p.type].ic)value='74LS'+LIB[p.type].ic.slice(2);else if(p.type==='ne555')value='NE555';else if(p.type==='npn')value='2N2222';else if(p.type==='switch')value='slide switch';else if(p.type==='seg7')value='7-seg CC';else if(p.type==='diode')value='1N4007';
   comps.push({ref,fp:m[0],value,x:0,y:0,rot:0});const legs=con.partLegs.get(p.id);legs.forEach((l,i)=>{if((use.get(root(l))||0)<2)return;nets[ref+'.'+(m[1]?m[1][i]:String(i+1))]=nm(l)})}
  return{comps,nets,skipped}}
-const api={MCU,BOARD_KEYS,boardSource,ESP32_BLINK,PICO_BLINK,UNO_PINS,UNO_BLINK,P,COLS,ROWS,ROWY,RAILS,RAIL_N,colX,railX,HOLES,holeXY,key,LIB,GATES,gatePins,LED_RGB,LED_VF,legsOf,newPart,connectivity,Sim,fmtOhm,fmtF,parseValue,bands,toNetlist,toPcb,stripLabel,engNum,ldrOhms};
+const api={MCU,BOARD_KEYS,boardSource,ESP32_BLINK,PICO_BLINK,UNO_PINS,UNO_BLINK,P,COLS,ROWS,ROWY,RAILS,RAIL_N,colX,railX,HOLES,holeXY,key,LIB,GATES,gatePins,LED_RGB,LED_VF,legsOf,newPart,connectivity,Sim,fmtOhm,fmtF,parseValue,bands,toNetlist,toPcb,stripLabel,engNum,ldrOhms,thermFrame,camPixel,CAM_COL,micWave,DCM,BLDC,FRAMES,lipoV};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;else root.BB=api;
 })(typeof window!=='undefined'?window:globalThis);
