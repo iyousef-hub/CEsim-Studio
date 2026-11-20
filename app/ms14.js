@@ -266,6 +266,11 @@ function map(c,info){const p=c.p||{},t=c.t;const two=(k,a,b)=>[k,[a,b]];
   case "netlabel":return{key:"ONPAGE_CONNECTOR",pins:["1"],net:1};
   case "xmm":return{key:"XMM",pins:["1","2"]};
   case "xwm":return{key:"XWM",pins:["1","2","3","4"]};
+  case "xbp":return{key:"XBP",pins:["1","2","3","4"],extra:"xbp",instEdit:q=>setInst(q,{NI_EWB_HORZ_INITIAL_VALUE:num(p.fmin||10),NI_EWB_HORZ_FINAL_VALUE:num(p.fmax||1e5),NI_EWB_VERT_INITIAL_LOG_VALUE:-40,NI_EWB_VERT_FINAL_LOG_VALUE:10})};
+  case "xla":return{key:"XLA",pins:["1","2","3","4","5","6","7","8"]};
+  case "xwg":return{key:"XWG",pins:["1","2","3","4","5","6","7","8"]};
+  case "cd4060":return{key:"4060BD_5V",pins:["RS","RTC","CTC","MR",null,null,"O3","O4","O5","O6","O7","O8","O9","O11","O12","O13"]};
+  case "xtal":case "resonator":return{key:"HC-49/U_11MHz",pins:["X1","X2"],value:eng(num(p.freq))+"Hz"};
   case "xfg":{/* sawtooth: a triangle with 99 % duty; pulse: a square shifted up; noise, sweep and arbitrary have no match and go as a sine */
    const wv=p.wave;const w={sine:0,triangle:1,square:2,sawtooth:1,pulse:2}[wv]||0;const amp=num(p.amp),off=num(p.offset);
    return{key:"XFG",pins:["1","2","3"],instEdit:q=>setInst(q,{NI_EWB_WAVE_MODE:w,NI_EWB_FREQUENCY_VALUE:num(p.freq),NI_EWB_AMPLITUDE_VALUE:wv==="pulse"?amp/2:amp,NI_EWB_OFFSET_VALUE:wv==="pulse"?off+amp/2:off,NI_EWB_DEPUTY_CYCLE_VALUE:wv==="sawtooth"?99:num(p.duty||50)})}}
@@ -325,7 +330,9 @@ async function exportDoc(doc,H){doc=pruneWires(doc,H);const T=await templates();
  const sn=v=>Math.round(v/G)*G;
  let minx=1e9,miny=1e9;for(const c of doc.comps){const b=H.bbox(c);minx=Math.min(minx,b[0]);miny=Math.min(miny,b[1])}for(const w of doc.wires)for(const q of w.pts){minx=Math.min(minx,q.x);miny=Math.min(miny,q.y)}
  if(!isFinite(minx)){minx=0;miny=0}
- const X=x=>sn((x-minx)*S+90),Y=y=>sn((y-miny)*S+90);
+ /* instrument symbols stand far above their pins, so leave room for them at the top of the sheet */
+ const TOP=doc.comps.some(c=>/^x(sc|bp|fg|la|wg|wm|mm)$/.test(c.t))?480:90;
+ const X=x=>sn((x-minx)*S+90),Y=y=>sn((y-miny)*S+TOP);
  const used=new Set(),refOf={},msPin={};// msPin["x,y"] -> [{ref,pin}]
  const K=(x,y)=>x+","+y;
  let auto=0;
@@ -333,7 +340,7 @@ async function exportDoc(doc,H){doc=pruneWires(doc,H);const T=await templates();
   let ref=c.t==="gnd"?"G"+(++auto):c.t==="netlabel"?String(c.p.name||"NET"):String(c.label||"").replace(/[^\w+-]/g,"")||((L.prefix||"U")+(++auto));
   if(c.t!=="gnd"&&c.t!=="netlabel"){while(used.has(ref.toUpperCase()))ref=ref+"_"+(++auto);used.add(ref.toUpperCase())}
   const local=B.localPins(m.key);const idx=[],lp=[],tp=[];
-  m.pins.forEach((nm,i)=>{if(nm==null)return;const nmx=nm in local?nm:Object.keys(local)[0];const pp=H.pinPos(c,i);idx.push([i,nmx]);lp.push(local[nmx]);tp.push([(pp.x-minx)*S+90,(pp.y-miny)*S+90])});
+  m.pins.forEach((nm,i)=>{if(nm==null)return;const nmx=nm in local?nm:Object.keys(local)[0];const pp=H.pinPos(c,i);idx.push([i,nmx]);lp.push(local[nmx]);tp.push([(pp.x-minx)*S+90,(pp.y-miny)*S+TOP])});
   {const cn=H.conn.get(c.id)||[];const lost=m.pins.map((nm,i)=>nm==null&&cn[i]?L.pins[i][2]:null).filter(Boolean);if(lost.length)warn.push((c.label||c.t)+": pins "+lost.join(", ")+" are left out (only gate 1 of the chip is exported)")}
   const o=orient(lp,tp);const x=sn(o.off[0]),y=sn(o.off[1]);
   const pins=B.add(m.key,ref,x,y,o.M,{params:m.params,strings:m.strings,value:m.value,model:m.model,edit:m.edit,edit2:m.edit2,instEdit:m.instEdit,display:c.t==="netlabel"?ref:undefined});
@@ -421,8 +428,10 @@ function revMap(key,fam,tpl,P,q){const v=i=>P.val(i),gate=(t,pins)=>({t,pins});
  for(const g in GATEMS)if(GATEMS[g][0]===key)return gate(g,GATEMS[g].slice(1));
  for(const g in GATECMOS)if(GATECMOS[g][0]===key)return{t:g,pins:GATECMOS[g].slice(1),p:{family:"4000"}};
  for(const t in CHIPMS)if(CHIPMS[t][0]===key)return{t,chip:CHIPMS[t][1]};
+ {const xm=/^HC-49\/US?_([\d.]+)MHz$/i.exec(key);if(xm)return{t:"xtal",pins:["X1","X2"],p:{freq:xm[1]+"M"}}}
  switch(key){
   case "GROUND":return{t:"gnd",pins:["1"]};
+  case "HC-49/U_11MHz":return{t:"xtal",pins:["X1","X2"],p:{freq:"11M"}};
   case "VCC":return{t:"vcc",pins:["VCC"],p:{voltage:si(v(0)||5)}};
   case "DC_POWER":return{t:"dcv",pins:["1","2"],p:{voltage:si(v(1))}};
   case "DC_CURRENT":return{t:"idc",pins:["1","2"],p:{current:si(v(1))}};
@@ -477,6 +486,10 @@ function revMap(key,fam,tpl,P,q){const v=i=>P.val(i),gate=(t,pins)=>({t,pins});
   case "ONPAGE_CONNECTOR":case "GLOBAL_CONNECTOR":return{t:"netlabel",pins:["1"],net:1};
   case "XMM":return{t:"xmm",pins:["1","2"]};
   case "XWM":return{t:"xwm",pins:["1","2","3","4"]};
+  case "XBP":{const I=q.inst||{};return{t:"xbp",pins:["1","2","3","4"],p:{fmin:si(I.NI_EWB_HORZ_INITIAL_VALUE??10),fmax:si(I.NI_EWB_HORZ_FINAL_VALUE??1e5)}}}
+  case "XLA":return{t:"xla",pins:["1","2","3","4","5","6","7","8"]};
+  case "XWG":return{t:"xwg",pins:["1","2","3","4","5","6","7","8"]};
+  case "4060BD_5V":case "4060BP_5V":case "4060BT_5V":return{t:"cd4060",pins:["RS","RTC","CTC","MR",null,null,"O3","O4","O5","O6","O7","O8","O9","O11","O12","O13"]};
   case "XFG":{const I=q.inst||{};return{t:"xfg",pins:["1","2","3"],p:{wave:WAVES[+I.NI_EWB_WAVE_MODE]||"sine",freq:si(I.NI_EWB_FREQUENCY_VALUE??1000),amp:si(I.NI_EWB_AMPLITUDE_VALUE??1),offset:si(I.NI_EWB_OFFSET_VALUE??0),duty:si(I.NI_EWB_DEPUTY_CYCLE_VALUE??50)}}}
   case "XSC":{const I=q.inst||{};return{t:"xsc",pins:["1","2","4"],p:{tb:si(I.NI_EWB_TIMEBASE_SCALE_VALUE??1e-3),va:si(I.NI_EWB_A_CHANNEL_SCALE_VALUE??1),vb:si(I.NI_EWB_B_CHANNEL_SCALE_VALUE??1)}}}
  }
@@ -522,7 +535,7 @@ function readDoc(bytes){const xml=typeof bytes==="string"?bytes:unpack(bytes);co
   const pl=at.getElementsByTagName("CiaParamList")[0];const arr=tag=>{const g=pl&&kids(pl,tag)[0];return g?[...g.getElementsByTagName("Item")].map(i=>i.getAttribute("Value")):[]};
   const dbl=arr("doubles"),par=arr("parameters").map(mstr);
   const P={val:i=>{const s=par[i];if(s!=null&&s!==""){const x=num(s);if(isFinite(x)&&(x!==0||/^[-+]?0/.test(s)))return x}const d=+dbl[i];return isFinite(d)?d:0}};
-  let fam=str[0]||"",key=str[1]||"";if(!key&&/^XFG/i.test(ref))key="XFG";if(!key&&/^XSC/i.test(ref))key="XSC";if(!key&&/^XMM/i.test(ref))key="XMM";if(!key&&/^XWM/i.test(ref))key="XWM";
+  let fam=str[0]||"",key=str[1]||"";if(!key&&/^XFG/i.test(ref))key="XFG";if(!key&&/^XSC/i.test(ref))key="XSC";if(!key&&/^XMM/i.test(ref))key="XMM";if(!key&&/^XWM/i.test(ref))key="XWM";if(!key&&/^XBP/i.test(ref))key="XBP";if(!key&&/^XLA/i.test(ref))key="XLA";if(!key&&/^XWG/i.test(ref))key="XWG";
   const myPorts={};const pe=kids(e,"Ports")[0];if(pe)for(const it of pe.getElementsByTagName("Item")){const pt=ports[it.getAttribute("CiID")];if(pt)myPorts[pt.name.toUpperCase()]={...pt,id:it.getAttribute("CiID")}}
   const m=revMap(key,fam,tpl,P,{inst:inst[ref],all:str.join(" ")});
   if(!m){if(key||fam)skip.push(ref+" ("+(key||fam)+")");continue}

@@ -182,7 +182,8 @@ Transistor models can carry the Gummel-Poon parameters (Early voltages, knee cur
 
 - The drawing is kept: every part sits where it is in CEsim, turned and mirrored the same way, with the same wires, junctions and ground symbols. Labels stay upright on turned parts.
 - Every part keeps its own name and model: 2N3904, IRF540N, 1N4742A, TL072, LM7812 and every other part number in the library is written with the model CEsim simulates it with, so both give the same readings.
-- Settings are kept: source amplitude, frequency and offset, transformer ratio, potentiometer position and key, and the function generator and oscilloscope settings.
+- Settings are kept: source amplitude, frequency and offset, transformer ratio, potentiometer position and key, and the function generator, oscilloscope and Bode plotter settings.
+- Instruments are kept: the Bode plotter, logic analyzer and word generator are written as real instruments, wired to the same nets. The CD4060 counter and the quartz crystal export too.
 - All Workbook labs export this way, and their readings match the ones in CEsim.
 
 Every part in the library exports. Logic gates (AND, OR, NAND, NOR, XOR, XNOR, NOT, buffer) become 74xx gates, or 4000-series gates when the gate is set to the CD4000 family. All 56 chips export with their supply pins on the VCC and GND nets (74xx) or the VDD and VSS nets (4000 series), and each pin is joined to the matching pin of the Multisim part. From chips with several sections, section 1 is exported. JFETs, SCR, TRIAC, DIAC and optocouplers keep their own names and models. The message after saving lists any connected pins that were left out.
