@@ -280,6 +280,20 @@ function disasm(isa,w){const d=decode(isa,w);if(!d.m)return'?';const r=n=>regNam
  if(isa==='mips'){const m=d.m;if(m==='nop'||m==='syscall'||m==='break')return m;if(['sll','srl','sra'].includes(m))return`${m} ${r(d.rd)}, ${r(d.rt)}, ${d.sh}`;if(['sllv','srlv','srav'].includes(m))return`${m} ${r(d.rd)}, ${r(d.rt)}, ${r(d.rs)}`;if(m==='jr')return`jr ${r(d.rs)}`;if(m==='jalr')return`jalr ${r(d.rd)}, ${r(d.rs)}`;if(m==='mfhi'||m==='mflo')return`${m} ${r(d.rd)}`;if(['mult','multu','div','divu'].includes(m))return`${m} ${r(d.rs)}, ${r(d.rt)}`;
   if(d.fmt==='R')return`${m} ${r(d.rd)}, ${r(d.rs)}, ${r(d.rt)}`;if(d.fmt==='J')return`${m} ${hex(d.target<<2)}`;if(m==='lui')return`lui ${r(d.rt)}, ${hex(d.imm,4)}`;if(m in M_LS)return`${m} ${r(d.rt)}, ${d.simm}(${r(d.rs)})`;if(['beq','bne'].includes(m))return`${m} ${r(d.rs)}, ${r(d.rt)}, ${d.simm}`;if(['blez','bgtz','bltz','bgez'].includes(m))return`${m} ${r(d.rs)}, ${d.simm}`;return`${m} ${r(d.rt)}, ${r(d.rs)}, ${['andi','ori','xori'].includes(m)?d.imm:d.simm}`}
  const m=d.m;if(m==='ecall'||m==='ebreak')return m;if(d.fmt==='R')return`${m} ${r(d.rd)}, ${r(d.rs1)}, ${r(d.rs2)}`;if(d.op===0x03||m==='jalr')return`${m} ${r(d.rd)}, ${d.imm}(${r(d.rs1)})`;if(d.fmt==='I')return`${m} ${r(d.rd)}, ${r(d.rs1)}, ${d.imm}`;if(d.fmt==='S')return`${m} ${r(d.rs2)}, ${d.imm}(${r(d.rs1)})`;if(d.fmt==='B')return`${m} ${r(d.rs1)}, ${r(d.rs2)}, ${d.imm}`;if(d.fmt==='U')return`${m} ${r(d.rd)}, ${hex(d.imm>>>12,5)}`;if(d.fmt==='J')return`${m} ${r(d.rd)}, ${d.imm}`;return m}
-const api={assemble,CPU,decode,disasm,pipeline,srcRegs,MIPS_REGS,RV_REGS,regName,hex,LAYOUT};
+/* a .hex file (one 32-bit word per line) back to assembly: branch and jump targets become labels */
+function fromHex(text,hint){const words=[];for(const l of String(text).split(/\r?\n/)){const t=l.replace(/(#|;|\/\/).*$/,'').trim();if(!t)continue;for(const tok of t.split(/[\s,]+/)){const h=tok.replace(/^0x/i,'');if(!/^[0-9a-f]{1,8}$/i.test(h))throw new Error('"'+tok+'" is not a hex word');words.push(parseInt(h,16)>>>0)}}
+ if(!words.length)throw new Error('the file has no words');
+ const score=isa=>words.filter(w=>decode(isa,w).m).length;const sm=score('mips'),sr=score('rv');const isa=sm===sr?(hint||'mips'):sm>sr?'mips':'rv';
+ const base=LAYOUT[isa].text,end=base+4*words.length;const labels=new Map();const lab=a=>{if(!labels.has(a))labels.set(a,'L'+(labels.size+1));return labels.get(a)};
+ const tgt=(w,pc)=>{const d=decode(isa,w);if(!d.m)return null;if(isa==='mips'){if(['beq','bne','blez','bgtz','bltz','bgez'].includes(d.m))return(pc+4+d.simm*4)>>>0;if(d.fmt==='J')return(((pc+4)&0xF0000000)|(d.target<<2))>>>0;return null}
+  if(d.fmt==='B'||(d.fmt==='J'&&d.m==='jal'))return(pc+d.imm)>>>0;return null};
+ words.forEach((w,i)=>{const a=tgt(w,base+4*i);if(a!=null&&a>=base&&a<=end&&a%4===0)lab(a)});{const ks=[...labels.keys()].sort((x,y)=>x-y);labels.clear();ks.forEach((a,i)=>labels.set(a,'L'+(i+1)))}
+ const out=['# Read back from a .hex file: the program words, turned into instructions again.','# The data segment is not in a .hex file, so any .data has to be added again.','        .text','main:'];
+ words.forEach((w,i)=>{const pc=base+4*i;if(labels.has(pc))out.push(labels.get(pc)+':');let s=disasm(isa,w);const a=tgt(w,pc);
+  if(s==='?')s='.word '+hex(w,8);else if(a!=null&&labels.has(a))s=s.replace(/,?\s*(-?\d+|0x[0-9a-f]+)\s*$/i,(m)=>(m.trim().startsWith(',')?', ':' ')+labels.get(a));
+  out.push('        '+s)});
+ if(labels.has(end))out.push(labels.get(end)+':');
+ return{src:out.join('\n')+'\n',isa,count:words.length}}
+const api={assemble,CPU,decode,disasm,fromHex,pipeline,srcRegs,MIPS_REGS,RV_REGS,regName,hex,LAYOUT};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;else root.ARCH=api;
 })(typeof window!=='undefined'?window:globalThis);

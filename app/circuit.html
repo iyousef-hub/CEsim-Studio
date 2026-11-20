@@ -198,13 +198,14 @@ kbd{font:11px var(--font-mono);border:1px solid var(--ui-border);border-bottom-w
 </div>
 <div id="splash" role="dialog" aria-label="CEsim"><div class="sp-box"><canvas id="sp-cv"></canvas><div class="sp-in">
  <div class="sp-row"><div class="sp-logo">CE</div><div><div class="sp-name">CE<span>sim</span></div><div class="sp-sub">Circuit Design &amp; Simulation Suite</div></div></div>
- <div class="sp-ver">Version 1.30.0</div><div class="sp-bar"><i id="sp-bar"></i></div><div class="sp-foot"><span id="sp-msg">Loading component database…</span><span class="sp-by">BY. YOUSEF</span></div>
+ <div class="sp-ver">Version 1.31.0</div><div class="sp-bar"><i id="sp-bar"></i></div><div class="sp-foot"><span id="sp-msg">Loading component database…</span><span class="sp-by">BY. YOUSEF</span></div>
 </div></div></div>
 <script src="lib/canvas2svg.js"></script>
 <script src="ms14.js"></script>
 <script src="ms14-templates.js"></script>
+<script src="circuit-import.js"></script>
 <script>(function(){if(!window.C2S)return;const P=C2S.prototype;const os=P.save,or=P.restore,ost=P.stroke;P.setLineDash=function(a){this.__dash=a||[]};P.getLineDash=function(){return this.__dash||[]};P.save=function(){(this.__ds=this.__ds||[]).push(this.__dash);os.call(this)};P.restore=function(){this.__dash=(this.__ds||[]).pop();or.call(this)};P.stroke=function(){ost.apply(this,arguments);if(this.__dash&&this.__dash.length&&this.__currentElement)this.__currentElement.setAttribute("stroke-dasharray",this.__dash.join(","))}})()</script>
-<input type="file" id="fileIn" accept=".cesim,.json,.cir,.net,.sp,.txt" style="display:none">
+<input type="file" id="fileIn" accept=".cesim,.json,.cir,.net,.sp,.txt,.ms14,.ms13,.ms12,.asc,.kicad_sch" style="display:none">
 <script>
 "use strict";
 /* ================= utilities ================= */
@@ -1055,7 +1056,7 @@ const MENUS=[
  ["View",[["Zoom in","+",()=>zoomBy(1.25)],["Zoom out","−",()=>zoomBy(0.8)],["Zoom to fit","F7",zoomFit],"-",["Show grid","",()=>{showGrid=!showGrid;dirty=1},()=>showGrid],["Show current flow","F9",toggleFlow,()=>flowOn],["Explain mode","F10",toggleExplain,()=>explainOn],["Show sheet border","",()=>{showBorder=!showBorder;dirty=1},()=>showBorder]]],
  ["Place",[["Component…","Ctrl+W",()=>openBrowser()],["Create a part…","",()=>openPartMaker()],["Wire","Ctrl+Q",()=>toast("Drag from any pin to draw a wire. Ctrl+click a wire to branch from it.")],"-",["Ground","",()=>startPlace("gnd")],["VCC rail","",()=>startPlace("vcc")],["Voltage probe","",()=>startPlace("probe")],"-",["Text / note","Ctrl+T",()=>startPlace("text")],["Net label","Ctrl+L",()=>startPlace("netlabel")],["Title block…","",editTitleBlock]]],
  ["Simulate",[["Run","F5",runSim],["Pause","F6",pauseSim],["Stop","",stopSim],["Record video","F8",()=>toggleRec()],"-",["Instruments",null,null,()=>[["Multimeter","",()=>startPlace("xmm")],["Function generator","",()=>startPlace("xfg")],["Wattmeter","",()=>startPlace("xwm")],["Oscilloscope","",()=>startPlace("xsc")],["Bode plotter","",()=>startPlace("xbp")],["Word generator","",()=>startPlace("xwg")],["Logic analyzer","",()=>startPlace("xla")]]],"-",["Analyses",null,null,()=>[["DC sweep and Grapher…","",()=>openDcSweep()],["IV analyzer…","",()=>openIvAnalyzer()],["Monte Carlo…","",()=>openMonteCarlo()],["Power and efficiency…","",()=>openEfficiency()],["Bode plotter","",()=>{const b=D.comps.find(c=>c.t==="xbp");if(b)openInstWin(b);else{startPlace("xbp");toast("Place the Bode plotter, wire IN to the input and OUT to the output, then double-click it.")}}]]],"-",["Faults…","",()=>openFaults()],"-",["Simulation settings…","",openSimSettings]]],
- ["Transfer",[["Send to PCB layout","",()=>sendToPcb()],["Export SPICE netlist (.cir)…","",()=>exportCir()],["Export .asc schematic…","",()=>exportAscFile()],["Export .kicad_sch schematic…","",()=>exportKicadFile()],["Import SPICE netlist (.cir)…","",()=>$("#fileIn").click()]]],
+ ["Transfer",[["Send to PCB layout","",()=>sendToPcb()],["Export SPICE netlist (.cir)…","",()=>exportCir()],["Export .asc schematic…","",()=>exportAscFile()],["Export .kicad_sch schematic…","",()=>exportKicadFile()],["Import SPICE, Multisim, LTspice or KiCad file…","",()=>$("#fileIn").click()]]],
  ["Tools",[["Circuit code…","Ctrl+K",()=>openCodeEditor()],["Circuit from image…","",()=>openImageTool()],["Design calculators…","",()=>openCalculators()],["Solve by hand (node voltages)…","",()=>openHandSolve()],["Circuit library…","Ctrl+Shift+L",()=>openLibrary()],["Assignment…","",()=>openAssignment()],["Quiz…","",()=>openQuiz()],["Electrical rules check","",erc],["Database info","",()=>toast(countDB().toLocaleString()+" components in the CEsim master database across "+DB.reduce((a,g)=>a+g.fams.length,0)+" families.")]]],
  ["Reports",[["Lab report…","",()=>openLabReport()],"-",["Bill of Materials","",bom],["Bill of Materials (CSV)…","",bomCsv],["Netlist report","",()=>exportCir()]]],
  ["Options",[["Theme",null,null,()=>[["Classic White","",()=>setTheme("white"),()=>theme==="white"],["Dark","",()=>setTheme("dark"),()=>theme==="dark"],["Blueprint","",()=>setTheme("blueprint"),()=>theme==="blueprint"],["Graphite","",()=>setTheme("graphite"),()=>theme==="graphite"]]],["Simulation settings…","",openSimSettings]]],
@@ -1304,8 +1305,55 @@ const EXV=2;
 function loadLocal(){try{const s=localStorage.getItem("cesim.docs");if(!s)return false;const arr=JSON.parse(s);arr.forEach(x=>docs.push(deserialize(x)));
  if(+(localStorage.getItem("cesim.exv")||1)<EXV){try{localStorage.setItem("cesim.docs.backup",s)}catch(e){}EXAMPLES.forEach(([n,f])=>{const i=docs.findIndex(d=>d.name===n);if(i>=0){try{docs[i]=splitAtPins(f())}catch(e){}}});localStorage.setItem("cesim.exv",String(EXV))}
  return docs.length>0}catch(e){return false}}
-$("#fileIn").onchange=async e=>{const f=e.target.files[0];e.target.value="";if(!f)return;const text=await f.text();const base=f.name.replace(/\.[^.]+$/,"");try{if(/\.(cir|net|sp|txt)$/i.test(f.name)&&!/^\s*\{/.test(text)){const d=importCir(text,base);addDoc(d);toast("Imported SPICE netlist with "+d.comps.length+" parts. Arrange them as you like.")}else{const d=deserialize(text,base);addDoc(d)}}catch(err){toast("Could not open "+f.name+": "+err.message,true)}};
-window.cesimOpenText=(name,text,path)=>{const base=name.replace(/\.[^.]+$/,"");try{let d;if(/\.(cir|net|sp)$/i.test(name))d=importCir(text,base);else d=deserialize(text,base);d.filePath=path||null;addDoc(d)}catch(err){toast("Could not open "+name+": "+err.message,true)}};
+$("#fileIn").onchange=async e=>{const f=e.target.files[0];e.target.value="";if(!f)return;const base=f.name.replace(/\.[^.]+$/,"");try{if(/\.ms\d+$/i.test(f.name)){openMs14(new Uint8Array(await f.arrayBuffer()),base,null);return}const text=await f.text();if(/\.(asc|kicad_sch)$/i.test(f.name)){openSchematic(f.name,text,null);return}if(/\.(cir|net|sp|txt)$/i.test(f.name)&&!/^\s*\{/.test(text)){const d=importCir(text,base);addDoc(d);toast("Imported SPICE netlist with "+d.comps.length+" parts. Arrange them as you like.")}else{const d=deserialize(text,base);addDoc(d)}}catch(err){toast("Could not open "+f.name+": "+err.message,true)}};
+window.cesimOpenText=(name,text,path)=>{const base=name.replace(/\.[^.]+$/,"");try{if(/\.(asc|kicad_sch)$/i.test(name)){openSchematic(name,text,path);return}let d;if(/\.(cir|net|sp)$/i.test(name))d=importCir(text,base);else d=deserialize(text,base);d.filePath=path||null;addDoc(d)}catch(err){toast("Could not open "+name+": "+err.message,true)}};
+window.cesimOpenBinary=(name,b64)=>{const base=name.replace(/\.[^.]+$/,"");try{const s=atob(b64);const u=new Uint8Array(s.length);for(let i=0;i<s.length;i++)u[i]=s.charCodeAt(i);if(/\.ms\d+$/i.test(name))openMs14(u,base,null);else throw new Error("unknown file type")}catch(err){toast("Could not open "+name+": "+err.message,true)}};
+function openSchematic(fname,text,path){const base=fname.replace(/\.[^.]+$/,"");const kc=/\.kicad_sch$/i.test(fname);
+ const d=placeImported(base,kc?CEsimImport.readKicad(text):CEsimImport.readAsc(text),kc?"KiCad":"LTspice");addDoc(d);const w=(d._codeWarn||[]).concat(d._msWarn||[]);
+ toast("Opened "+(kc?"KiCad":"LTspice")+" schematic with "+d.comps.filter(c=>c.t!=="gnd"&&c.t!=="netlabel").length+" parts."+(w.length?" "+w[0]:""),!!(d._msWarn&&d._msWarn.length))}
+function openMs14(bytes,base){const d=importMs14(bytes,base);addDoc(d);const w=(d._codeWarn||[]).concat(d._msWarn||[]);
+ toast("Opened Multisim design with "+d.comps.filter(c=>c.t!=="gnd").length+" parts."+(w.length?" "+w[0]:""),!!(d._msWarn&&d._msWarn.length))}
+/* Multisim .ms14: parts keep their place and turn; the wires are drawn again from the nets */
+function importMs14(bytes,name){return placeImported(name,MS14.importDoc(bytes,{LIB}),"Multisim")}
+/* a design read from another program: parts {t,label,p,nodes,xy:[pin positions or null],org}, wires {pts,a:{k,i},b}; parts keep their place and turn */
+function placeImported(name,R,from){if(!R.parts.length)throw new Error("no parts CEsim knows were found");
+ const G=10,sn=v=>Math.round(v/G)*G;const all=[];
+ for(const q of R.parts){const L_=LIB[q.t];
+  for(const f of L_.fields){const v=q.p[f[0]];if(v==null)continue;if(f[2]==="sel"&&!f[3].includes(v)){const m=f[3].find(o=>String(o).toUpperCase().startsWith(String(v).toUpperCase()));if(m)q.p[f[0]]=m;else delete q.p[f[0]]}}
+  const known=[];q.xy.forEach((t,i)=>{if(t)known.push([L_.pins[i],t])});
+  let best={r:0,f:0,x:q.org?q.org.x:NaN,y:q.org?q.org.y:NaN,sc:-1e9};
+  if(known.length===1){const [pn,t]=known[0];best={r:0,f:0,x:t.x-pn[0],y:t.y-pn[1]}}
+  else if(known.length>1){const ct=[0,1].map(k=>known.reduce((a,z)=>a+(k?z[1].y:z[1].x),0)/known.length);
+   for(const f of [0,1])for(let r=0;r<4;r++){const lp=known.map(([pn])=>rotP(pn[0],pn[1],r,f));const cl=[0,1].map(k=>lp.reduce((a,z)=>a+z[k],0)/lp.length);let sc=0;
+    known.forEach(([,t],i)=>{const a=[lp[i][0]-cl[0],lp[i][1]-cl[1]],b=[t.x-ct[0],t.y-ct[1]];sc+=(a[0]*b[0]+a[1]*b[1])/((Math.hypot(...a)||1)*(Math.hypot(...b)||1))});sc-=f*1e-6+r*1e-7;
+    if(sc>best.sc+1e-9)best={r,f,x:ct[0]-cl[0],y:ct[1]-cl[1],sc}}}
+  all.push({t:q.t,label:q.label||undefined,p:q.p,nodes:q.nodes,lay:{x:best.x,y:best.y,r:best.r,f:best.f}})}
+ /* move the design near the top-left corner, on the grid */
+ {/* parts with no place (netlist lines) go in a row under the rest */const pl=all.filter(q=>isFinite(q.lay.x));const by=pl.length?Math.max(...pl.map(q=>q.lay.y))+120:0;let bx=pl.length?Math.min(...pl.map(q=>q.lay.x)):0;
+  for(const q of all)if(!isFinite(q.lay.x)){const b=LIB[q.t].bb||[-30,-30,30,30];q.lay={x:bx-b[0],y:by,r:0,f:0};bx+=b[2]-b[0]+60}}
+ const mx=Math.min(...all.map(q=>q.lay.x)),my=Math.min(...all.map(q=>q.lay.y));const T=(x,y)=>({x:sn(x-mx+120),y:sn(y-my+120)});
+ for(const q of all)Object.assign(q.lay,T(q.lay.x,q.lay.y));
+ /* parts that land on each other move right until they are clear */
+ const box=q=>{const b=LIB[q.t].bb||[-30,-30,30,30];const c=[[b[0],b[1]],[b[2],b[3]]].map(([x,y])=>rotP(x,y,q.lay.r,q.lay.f));return[q.lay.x+Math.min(c[0][0],c[1][0])-6,q.lay.y+Math.min(c[0][1],c[1][1])-6,q.lay.x+Math.max(c[0][0],c[1][0])+6,q.lay.y+Math.max(c[0][1],c[1][1])+6]};
+ const hit=(a,b)=>a[0]<b[2]&&b[0]<a[2]&&a[1]<b[3]&&b[1]<a[3];const body=all.filter(q=>q.t!=="gnd"&&q.t!=="netlabel");
+ for(let i=0;i<body.length;i++){let g=0;while(g++<60&&body.slice(0,i).some(o=>hit(box(o),box(body[i]))))body[i].lay.x+=G*2}
+ /* Multisim's wires, with each end moved onto the CEsim pin it belongs to */
+ const pinAt=e=>{const q=all[e.k];const pn=LIB[q.t].pins[e.i];const [dx,dy]=rotP(pn[0],pn[1],q.lay.r,q.lay.f);return{x:q.lay.x+dx,y:q.lay.y+dy}};
+ const xw=[];for(const w of R.wires||[]){const pts=w.pts.map(q=>T(q.x,q.y));const n=pts.length;
+  const move=(j,k,np)=>{const o=pts[j],nb=pts[k];if(n>2){if(o.y===nb.y)nb.y=np.y;else if(o.x===nb.x)nb.x=np.x}pts[j]=np};
+  if(w.a)move(0,1,pinAt(w.a));if(w.b)move(n-1,n-2,pinAt(w.b));
+  /* a bend next to a pin leaves the pin away from its part, not back over it */
+  const away=(e,pin,end)=>{if(!end)return true;const c=all[end.k].lay;return (e.x-pin.x)*(c.x-pin.x)+(e.y-pin.y)*(c.y-pin.y)<=0};
+  const o=[pts[0]];for(let i=1;i<pts.length;i++){const a=o[o.length-1],b=pts[i];if(a.x!==b.x&&a.y!==b.y){const e1={x:b.x,y:a.y},e2={x:a.x,y:b.y};let e=i===pts.length-1?e2:e1;
+    const okA=q=>i!==1||away(q,a,w.a),okB=q=>i!==pts.length-1||away(q,b,w.b);if(!(okA(e)&&okB(e))){const o2=e===e1?e2:e1;if(okA(o2)&&okB(o2))e=o2}o.push(e)}o.push(b)}
+  const c=o.filter((q,i)=>!i||q.x!==o[i-1].x||q.y!==o[i-1].y);if(c.length>1)xw.push(c)}
+ const parts=all.filter(q=>q.t!=="gnd"),xg=all.filter(q=>q.t==="gnd").map(q=>q.lay);
+ const d=newDoc(name);for(const q of parts)if(!q.label)delete q.label;
+ const keep=parts.map(q=>({...q,p:{...q.p},nodes:q.nodes.slice()}));let d2=buildPlaced(d,parts,xw,xg,[],[]);
+ /* the wires could not be kept apart: lay the circuit out again */
+ if((d2._codeWarn||[]).some(w=>/is on node|are joined|do not join/.test(w))){d2=autoLayout(newDoc(name),keep);d2._codeWarn=["The parts were too close to keep the "+from+" layout, so CEsim laid the circuit out again."]}
+ else if((d2._codeWarn||[]).length)d2._codeWarn=["Some wires were drawn again to fit CEsim's parts."];
+ d2.comps.forEach(c=>{if(!c.label&&!LIB[c.t].noLabel)c.label=nextLabel(d2,c.t)});d2._msWarn=R.warn;return d2}
 
 /* SPICE netlist import (R, C, L, V, I, D, Q, M, E, G) with automatic layout */
 function codeTokens(l){const out=[];const re=/([A-Za-z_]\w*)="([^"]*)"|"([^"]*)"|(\S+)/g;let m;while((m=re.exec(l)))out.push(m[1]!=null?m[1]+"="+m[2]:m[3]!=null?m[3]:m[4]);return out}
@@ -1406,6 +1454,8 @@ function parseCir(text){text=stripSubckt(mergeLayoutLines(normalizeAiCode(text))
 function importCir(text,name){const d=newDoc(name);const{parts,xw,xg,xn,xt}=parseCir(text);if(!parts.length&&!xn.length&&!xt.length)throw new Error("No supported elements (R, C, L, V, I, D, Q, M, E, G, X op-amp, AM, VM, POT or PART) were found.");
  {const placed=parts.filter(q=>q.lay&&!q.lay.partial);if(placed.length||!parts.length){if(placed.length<parts.length)throw new Error("Give every part a position with @ x y, or none of them. Missing: "+parts.filter(q=>!q.lay||q.lay.partial).map(q=>q.label).slice(0,6).join(", "));return buildPlaced(d,parts,xw,xg,xn,xt)}
   if(xw.length||xg.length||xn.length)throw new Error("W, GND and NET lines need every part to have a position (@ x y).")}
+ return autoLayout(d,parts)}
+function autoLayout(d,parts){
  /* layout: parts ordered along the signal path, one row (two-terminal parts vertical); nets run on horizontal lanes above, sharing a lane when they do not overlap */
  {const isSrc=q=>/^(dcv|acv|clock|idc|vcc)$/.test(q.t);const byNet={};parts.forEach((q,k)=>q.nodes.forEach(n=>{if(n!=="0")(byNet[n]=byNet[n]||[]).push(k)}));
   const seen=new Set(),ord=[];const visit=st=>{const qu=[st];seen.add(st);while(qu.length){const k=qu.shift();ord.push(k);for(const n of parts[k].nodes){if(n==="0")continue;for(const m of (byNet[n]||[]).slice().sort((a,b)=>(isSrc(parts[a])-isSrc(parts[b]))||a-b))if(!seen.has(m)){seen.add(m);qu.push(m)}}}};
@@ -1950,7 +2000,7 @@ function exportKicad(d){const mm=v=>+(v*0.127).toFixed(4);const q=s=>'"'+String(
   const ref=(c.label||L_.prefix+"?").replace(/[^\w+-]/g,"_");const nm="P_"+ref;const bb=L_.bb||[-20,-20,20,20];const cs=[[bb[0],bb[1]],[bb[2],bb[3]]].map(([x,y])=>rotP(x,y,c.r,c.f));const x1=Math.min(cs[0][0],cs[1][0]),x2=Math.max(cs[0][0],cs[1][0]),y1=Math.min(cs[0][1],cs[1][1]),y2=Math.max(cs[0][1],cs[1][1]);
   const pins=L_.pins.map((p,i)=>{const[x,y]=rotP(p[0],p[1],c.r,c.f);/* point the short pin line inwards */const ang=Math.abs(x)>=Math.abs(y)?(x>0?180:0):(y>0?90:270);return`(pin passive line (at ${mm(x)} ${mm(-y)} ${ang}) (length 0) (name ${q(p[2])} ${font}) (number "${i+1}" ${font}))`}).join(" ");
   libs.push(`(symbol "CEsim:${nm}" (pin_names (offset 0.5) (hide yes)) (exclude_from_sim no) (in_bom yes) (on_board yes) (property "Reference" ${q(L_.prefix||"U")} (at 0 0 0) ${font}) (property "Value" ${q(nm)} (at 0 0 0) ${font}) (property "Footprint" "" (at 0 0 0) ${fontH}) (property "Datasheet" "" (at 0 0 0) ${fontH}) (property "Description" ${q(L_.name)} (at 0 0 0) ${fontH}) (symbol "${nm}_0_1" (rectangle (start ${mm(x1+4)} ${mm(-(y1+4))}) (end ${mm(x2-4)} ${mm(-(y2-4))}) (stroke (width 0.254) (type default)) (fill (type background))) ${L_.pins.map(p=>{const[x,y]=rotP(p[0],p[1],c.r,c.f);const cx=Math.max(x1+4,Math.min(x2-4,x)),cy=Math.max(y1+4,Math.min(y2-4,y));return(cx!==x||cy!==y)?`(polyline (pts (xy ${mm(x)} ${mm(-y)}) (xy ${mm(cx)} ${mm(-cy)})) (stroke (width 0) (type default)) (fill (type none)))`:""}).join(" ")}) (symbol "${nm}_1_1" ${pins}))`);
-  const X=mm(c.x),Y=mm(c.y);body.push(`(symbol (lib_id "CEsim:${nm}") (at ${X} ${Y} 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid ${q(kuid())}) (property "Reference" ${q(ref)} (at ${mm(c.x+x2+4)} ${mm(c.y+y1+8)} 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Value" ${q(valOf(c))} (at ${mm(c.x+x2+4)} ${mm(c.y+y1+20)} 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 0 0 0) ${fontH}) (property "Datasheet" "" (at 0 0 0) ${fontH}) ${L_.pins.map((_,i)=>`(pin "${i+1}" (uuid ${q(kuid())}))`).join(" ")} (instances (project "${(d.name||"cesim").replace(/"/g,"")}" (path "/${root}" (reference ${q(ref)}) (unit 1)))))`)}
+  const X=mm(c.x),Y=mm(c.y);body.push(`(symbol (lib_id "CEsim:${nm}") (at ${X} ${Y} 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid ${q(kuid())}) (property "Reference" ${q(ref)} (at ${mm(c.x+x2+4)} ${mm(c.y+y1+8)} 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Value" ${q(valOf(c))} (at ${mm(c.x+x2+4)} ${mm(c.y+y1+20)} 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 0 0 0) ${fontH}) (property "Datasheet" "" (at 0 0 0) ${fontH}) (property "CEsim" ${q(JSON.stringify({t:c.t,p:c.p}))} (at ${X} ${Y} 0) ${fontH}) ${L_.pins.map((_,i)=>`(pin "${i+1}" (uuid ${q(kuid())}))`).join(" ")} (instances (project "${(d.name||"cesim").replace(/"/g,"")}" (path "/${root}" (reference ${q(ref)}) (unit 1)))))`)}
  /* wires, with a junction wherever three or more ends meet or an end lands inside another wire */
  const ends=new Map();const segs=[];for(const w of d.wires)for(let i=1;i<w.pts.length;i++){const a=w.pts[i-1],b=w.pts[i];if(a.x===b.x&&a.y===b.y)continue;segs.push([a,b]);body.push(`(wire (pts (xy ${mm(a.x)} ${mm(a.y)}) (xy ${mm(b.x)} ${mm(b.y)})) (stroke (width 0) (type default)) (uuid ${q(kuid())}))`)}
  const cnt=(p)=>{const k=p.x+","+p.y;ends.set(k,(ends.get(k)||0)+1)};segs.forEach(([a,b])=>{cnt(a);cnt(b)});for(const c of d.comps)if(LIB[c.t])LIB[c.t].pins.forEach((_,i)=>{const p=pinPos(c,i);const k=p.x+","+p.y;if(ends.has(k))ends.set(k,ends.get(k)+1)});

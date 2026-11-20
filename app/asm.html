@@ -125,7 +125,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
 </div>
 <div id="statusbar"><span id="status"><b>Ready.</b> Press F5 to run or F8 to step</span><span id="steps"></span><span id="pos">Ln 1, Col 1</span></div>
 </div>
-<input type="file" id="fileIn" accept=".asm,.s,.inc,.txt,.8086" hidden multiple>
+<input type="file" id="fileIn" accept=".asm,.s,.inc,.txt,.8086,.com" hidden multiple>
 <script src="asm-core.js"></script>
 <script src="asm-examples.js"></script>
 <script src="asm-dos.js"></script>
@@ -325,8 +325,10 @@ $('#tabs').addEventListener('click',e=>{const t=e.target.closest('.tab');if(t)sh
 function toast(m,warn){$$('.toast').forEach(x=>x.remove());const t=document.createElement('div');t.className='toast'+(warn?' warn':'');t.textContent=m;document.body.appendChild(t);setTimeout(()=>t.remove(),warn?5500:2800)}
 function setName(n){ST.name=n||'program';$('#docname').textContent=ST.name;document.title=ST.name+' · CEsim 8086'}
 function loadText(text,name,path){if(ST.running)pause();src.value=text.replace(/\r\n/g,'\n');setName(name);ST.filePath=path||null;ST.bps.clear();ST.errLines=new Map();ST.lastAsm=null;ST.cpu=null;ST.prog=null;ST.dirty=true;renderProblems();renderEditor();src.scrollTop=0;syncScroll();renderAll();setStatus('<b>Ready.</b> Press F5 to run or F8 to step');saveLocal()}
+function openCom(name,bytes){try{const r=A.disasmCom(bytes);loadText(r.src,name.replace(/\.[^.]+$/,''),null);toast(`Opened ${name}: ${r.total} bytes, ${r.codeBytes} of them read back as instructions`)}catch(e){toast('Could not open '+name+': '+e.message,true)}}
+window.cesimOpenBinary=(name,b64)=>{const s=atob(b64);const u=new Uint8Array(s.length);for(let i=0;i<s.length;i++)u[i]=s.charCodeAt(i);openCom(name,u)};
 window.cesimOpenText=(name,text,path)=>{loadText(text,name.replace(/\.[^.]+$/,''),path);toast('Opened '+name)};
-$('#fileIn').addEventListener('change',async e=>{const f=e.target.files[0];if(f)window.cesimOpenText(f.name,await f.text(),N&&N.pathFor?N.pathFor(f):null);e.target.value=''});
+$('#fileIn').addEventListener('change',async e=>{const f=e.target.files[0];if(f&&/\.com$/i.test(f.name)){e.target.value='';openCom(f.name,new Uint8Array(await f.arrayBuffer()));return}if(f)window.cesimOpenText(f.name,await f.text(),N&&N.pathFor?N.pathFor(f):null);e.target.value=''});
 async function saveFile(asNew){const nm=ST.name.replace(/[^\w.-]+/g,'_')+'.asm';const text=src.value;
  if(N&&N.write&&ST.filePath&&!asNew){await N.write(ST.filePath,text);toast('Saved '+ST.filePath.split(/[\\/]/).pop());return}
  if(N&&N.save){const r=await N.save(nm,text);if(r){ST.filePath=r;setName(r.split(/[\\/]/).pop().replace(/\.[^.]+$/,''));toast('Saved '+r.split(/[\\/]/).pop())}return}download(nm,new Blob([text],{type:'text/plain'}))}
@@ -349,7 +351,7 @@ document.addEventListener('keydown',e=>{const k=e.key;
  if(k==='F5'){e.preventDefault();$('#bRun').click()}else if(k==='F8'&&e.shiftKey||k==='F7'){e.preventDefault();stepBack()}else if(k==='F8'){e.preventDefault();stepOnce()}else if(k==='F10'){e.preventDefault();stepOver()}else if(k==='F9'){e.preventDefault();$('#bAsm').click()}
  else if(k==='Escape'){closeMenu();const o=$('.ov');if(o)o.remove();else if(ST.running)pause()}
  else if((e.ctrlKey||e.metaKey)&&k.toLowerCase()==='s'){e.preventDefault();saveFile(e.shiftKey)}else if((e.ctrlKey||e.metaKey)&&k.toLowerCase()==='o'){e.preventDefault();$('#fileIn').click()}else if((e.ctrlKey||e.metaKey)&&k.toLowerCase()==='r'){e.preventDefault();reset()}});
-document.addEventListener('dragover',e=>e.preventDefault());document.addEventListener('drop',async e=>{e.preventDefault();const f=e.dataTransfer.files[0];if(f)window.cesimOpenText(f.name,await f.text(),N&&N.pathFor?N.pathFor(f):null)});
+document.addEventListener('dragover',e=>e.preventDefault());document.addEventListener('drop',async e=>{e.preventDefault();const f=e.dataTransfer.files[0];if(f&&/\.com$/i.test(f.name)){openCom(f.name,new Uint8Array(await f.arrayBuffer()));return}if(f)window.cesimOpenText(f.name,await f.text(),N&&N.pathFor?N.pathFor(f):null)});
 function showRef(){const o=document.createElement('div');o.className='ov';o.innerHTML=`<div class="mdl" role="dialog" aria-label="Reference"><div class="mh2"><b>8086 reference</b><button class="btn" id="refX">Close</button></div><div class="mb">
 <h4>Program layouts</h4><table><tr><td>org 100h</td><td>One segment (COM). Code starts at 100h. Put data after the code or jump over it.</td></tr><tr><td>.model small</td><td>Separate segments: <code>.stack</code>, <code>.data</code>, <code>.code</code>. Start with <code>mov ax, @data</code> and <code>mov ds, ax</code>. <code>.startup</code> and <code>.exit</code> also work, and so do <code>SEGMENT</code> / <code>ENDS</code>.</td></tr></table>
 <h4>Data and directives</h4><table><tr><td>x db 5</td><td>Byte. <code>dw</code> word, <code>dd</code> double word. <code>?</code> leaves it empty.</td></tr><tr><td>s db 'Hi$'</td><td>A string. INT 21h function 09h prints up to <code>$</code>.</td></tr><tr><td>a dw 10 dup(0)</td><td>Ten words set to 0.</td></tr><tr><td>n equ 10</td><td>A constant. <code>$</code> is the current address, so <code>len equ $ - s</code> is the length of s.</td></tr><tr><td>offset x, type x</td><td>Address of x, size of one item. Also <code>length</code>, <code>size</code>, <code>seg</code>.</td></tr><tr><td>byte ptr [bx]</td><td>Says the size when it is not clear, for example <code>mov byte ptr [bx], 0</code>.</td></tr><tr><td>name proc / endp</td><td>A procedure. <code>end main</code> sets where the program starts.</td></tr></table>

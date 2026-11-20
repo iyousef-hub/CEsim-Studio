@@ -376,5 +376,164 @@ async function exportDoc(doc,H){const T=await templates();const B=new Builder(T)
    const bc=B.doc.getElementsByTagName("CIITBorderComposite")[0];const rc=bc&&bc.getElementsByTagName("CODRectComp")[0];if(rc){rc.setAttribute("pt1X",String(sw));rc.setAttribute("pt1Y",String(sh))}}}
  return{bytes:pack(B.bytes()),warn}}
 
-root.MS14={exportDoc,implode,pack,templates,map,num,eng,MDL};
+
+/* ================= .ms14 import ================= */
+/* PKWARE DCL explode (a port of zlib's contrib/blast) */
+const XLITR=[11,124,8,7,28,7,188,13,76,4,10,8,12,10,12,10,8,23,8,9,7,6,7,8,7,6,55,8,23,24,12,11,7,9,11,12,6,7,22,5,7,24,6,11,9,6,7,22,7,11,38,7,9,8,25,11,8,11,9,12,8,12,5,38,5,38,5,11,7,5,6,21,6,10,53,8,7,24,10,27,44,253,253,253,252,252,252,13,12,45,12,45,12,61,12,45,44,173];
+function xtable(rep){const len=[];for(const c of rep){const n=(c>>4)+1,l=c&15;for(let i=0;i<n;i++)len.push(l)}
+ const count=new Array(14).fill(0);for(const l of len)count[l]++;const offs=new Array(14).fill(0);for(let i=1;i<13;i++)offs[i+1]=offs[i]+count[i];
+ const sym=[];len.forEach((l,s)=>{if(l)sym[offs[l]++]=s});return{count,sym}}
+let XT=null;
+function explode(d){if(!XT)XT={lit:xtable(XLITR),len:xtable([2,35,36,53,38,23]),dist:xtable([2,20,53,230,247,151,248])};
+ let p=0,bb=0,bc=0;const bits=n=>{let v=bb;while(bc<n){if(p>=d.length)throw new Error("the compressed data ends early");v|=d[p++]<<bc;bc+=8}bb=v>>>n;bc-=n;return v&((1<<n)-1)};
+ const dec=h=>{let code=0,first=0,index=0;for(let l=1;l<=13;l++){code|=bits(1)^1;const c=h.count[l];if(code<first+c)return h.sym[index+code-first];index+=c;first+=c;first<<=1;code<<=1}throw new Error("bad compressed data")};
+ const lit=bits(8),dict=bits(8);if(lit>1||dict<4||dict>6)throw new Error("not PKWARE DCL data");
+ let out=new Uint8Array(Math.max(1024,d.length*4)),n=0;const room=k=>{if(n+k>out.length){const o=new Uint8Array(Math.max(out.length*2,n+k));o.set(out);out=o}};
+ for(;;){if(bits(1)){const s=dec(XT.len);const len=BASE[s]+bits(EXTRA[s]);if(len===519)break;const sh=len===2?2:dict;const dist=(dec(XT.dist)<<sh)+bits(sh)+1;if(dist>n)throw new Error("bad distance");room(len);for(let i=0;i<len;i++){out[n]=out[n-dist];n++}}
+  else{room(1);out[n++]=lit?dec(XT.lit):bits(8)}}
+ return out.subarray(0,n)}
+function unpack(bytes){bytes=bytes instanceof Uint8Array?bytes:new Uint8Array(bytes);const m=MAGIC.length;
+ for(let i=0;i<m;i++)if(bytes[i]!==MAGIC.charCodeAt(i))throw new Error("this is not a Multisim 14 file");
+ const u32=o=>(bytes[o]|bytes[o+1]<<8|bytes[o+2]<<16|bytes[o+3]<<24)>>>0;const total=u32(m);let p=m+8;const parts=[];let tot=0;
+ while(p+8<=bytes.length){const cl=u32(p+4);p+=8;const z=explode(bytes.subarray(p,p+cl));parts.push(z);tot+=z.length;p+=cl}
+ const all=new Uint8Array(tot);let o=0;for(const z of parts){all.set(z,o);o+=z.length}
+ if(total&&tot!==total)throw new Error("the file is damaged ("+tot+" of "+total+" bytes)");
+ return new TextDecoder("utf-8").decode(all)}
+
+/* Multisim text: "&ASC…" plain, "&UNI…" with _uc1XXXX for other characters */
+function mstr(v){v=String(v==null?"":v);if(/^&UNI/.test(v))return v.slice(4).replace(/_uc1([0-9a-fA-F]{4})/g,(m,h)=>String.fromCharCode(parseInt(h,16)));return v.replace(/^&ASC/,"")}
+function si(x){x=+x;if(!isFinite(x))return "0";return eng(x).replace("µ","u").replace(/\s+$/,"")}
+const WAVES=["sine","triangle","square"];
+/* Multisim part key -> CEsim type, Multisim pin names in CEsim pin order, and properties from the parameter list */
+function revMap(key,fam,tpl,P,q){const v=i=>P.val(i),gate=(t,pins)=>({t,pins});
+ for(const g in GATEMS)if(GATEMS[g][0]===key)return gate(g,GATEMS[g].slice(1));
+ for(const g in GATECMOS)if(GATECMOS[g][0]===key)return{t:g,pins:GATECMOS[g].slice(1),p:{family:"4000"}};
+ for(const t in CHIPMS)if(CHIPMS[t][0]===key)return{t,chip:CHIPMS[t][1]};
+ switch(key){
+  case "GROUND":return{t:"gnd",pins:["1"]};
+  case "VCC":return{t:"vcc",pins:["VCC"],p:{voltage:si(v(0)||5)}};
+  case "DC_POWER":return{t:"dcv",pins:["1","2"],p:{voltage:si(v(1))}};
+  case "DC_CURRENT":return{t:"idc",pins:["1","2"],p:{current:si(v(1))}};
+  case "AC_VOLTAGE":case "AC_CURRENT":return{t:key==="AC_VOLTAGE"?"acv":"iac",pins:["1","2"],p:{amp:si(v(1)),offset:si(v(3)),freq:si(v(5)),phase:si(v(11))}};
+  case "CLOCK_VOLTAGE":return{t:"clock",pins:["1","2"],p:{freq:si(v(1)),duty:si(v(3)),amp:si(v(5))}};
+  case "PULSE_VOLTAGE":{const T=v(13)||1e-3,pw=v(11)||T/2;return{t:"clock",pins:["1","2"],p:{low:si(v(1)),amp:si(v(3)),freq:si(1/T),duty:si(Math.round(pw/T*1000)/10)}}}
+  case "VOLTAGE_CONTROLLED_VOLTAGE_SOURCE":return{t:"vcvs",pins:["2","1","4","3"],p:{gain:si(v(1))}};
+  case "VOLTAGE_CONTROLLED_CURRENT_SOURCE":return{t:"vccs",pins:["2","1","4","3"],p:{gm:si(v(1))}};
+  case "RESISTOR_VIRTUAL":return{t:"res",pins:["1","2"],p:{resistance:si(v(1))}};
+  case "CAPACITOR_VIRTUAL":return{t:"cap",pins:["1","2"],p:{capacitance:si(v(1))}};
+  case "CAP_ELECTROLIT_VIRTUAL":return{t:"ecap",pins:["1","2"],p:{capacitance:si(v(1))}};
+  case "INDUCTOR_VIRTUAL":return{t:"ind",pins:["1","2"],p:{inductance:si(v(1))}};
+  case "POTENTIOMETER_VIRTUAL":return{t:"pot",pins:["1","3","2"],p:{resistance:si(v(5))}};
+  case "1P1S":{const m=/1\/(\d+(?:\.\d+)?)/.exec(q.all||"");return{t:"xfmr",pins:["p1pos","p1neg","s1pos","s1neg"],p:m?{ratio:m[1]}:{}}}
+  case "0.5_AMP":return{t:"fuse",pins:["1","2"]};
+  case "SPST":return{t:"spst",pins:["2","1"]};
+  case "PB_DPST":return{t:"push",pins:["1","2"]};
+  case "SPDT":return{t:"spdt",pins:["2","1","3"]};
+  case "EDR201A05":return{t:"relay",pins:["C1","C2","L1","L2"]};
+  case "MOTOR_RATED":return{t:"motor",pins:["2","1"]};
+  case "1N4007":case "1N4148":return{t:"diode",pins:["A","K"],p:{model:key}};
+  case "1N5817G":return{t:"schottky",pins:["A","K"],p:{model:"1N5817"}};
+  case "1N4735A":return{t:"zener",pins:["A","K"],p:{model:key}};
+  case "LED_red":return{t:"led",pins:["A","K"]};
+  case "1B4B42":return{t:"bridge",pins:["AC1","AC2","V+","V-"]};
+  case "2N2222A":case "BC107BP":case "BC547B":return{t:"npn",pins:["B","C","E"],p:{model:key}};
+  case "2N2907A":return{t:"pnp",pins:["B","C","E"],p:{model:key}};
+  case "2N7000":return{t:"nmos",pins:["G","D","S"],p:{model:key}};
+  case "2N6804":return{t:"pmos",pins:["G","D","S"],p:{model:key}};
+  case "OPAMP_3T_VIRTUAL":return{t:"opamp",pins:["IN+","IN-","OUT",null,null],p:{model:"Ideal"}};
+  case "OPAMP_5T_VIRTUAL":return{t:"opamp",pins:["IN+","IN-","OUT","VS+","VS-"],p:{model:"Ideal"}};
+  case "UA741CD":return{t:"opamp",pins:["IN+","IN-","OUT","VS+","VS-"],p:{model:"uA741"}};
+  case "LM339N":return{t:"comparator",pins:["1IN+","1IN-","1OUT","VS+","VS-"],p:{model:"LM339"}};
+  case "2N3370":return{t:"njfet",pins:["G","D","S"]};
+  case "2N2608":return{t:"pjfet",pins:["G","D","S"]};
+  case "2N1595":return{t:"scr",pins:["A","K","G"]};
+  case "1N5758":return{t:"diac",pins:["MT2","MT1"]};
+  case "4N25":return{t:"opto",pins:["A","K","C","E"]};
+  case "LM555CN":case "555_VIRTUAL":return{t:"timer555",pins:["VCC","RST","TRI","THR","DIS","OUT","CON","GND"]};
+  case "LM7805CT":return{t:"reg",pins:["IN","OUT","GND"],p:{model:"LM7805"}};
+  case "LM317K":return{t:"lm317",pins:["IN","OUT","ADJ"]};
+  case "7474N":return{t:"dff",pins:["1D","1CLK","1Q","~1Q"]};
+  case "7476N":return{t:"jkff",pins:["1J","1CLK","1K","1Q","~1Q"]};
+  case "7493N":return{t:"counter",pins:["INA","R01","QA","QB","QC","QD"]};
+  case "DCD_HEX":return{t:"hexdisp",pins:["1","2","3","4"]};
+  case "SEVEN_SEG_COM_K":return{t:"seg7",pins:["A","B","C","D","E","F","G"]};
+  case "PROBE":return{t:"probe",pins:["1"]};
+  case "VOLTMETER_H":case "VOLTMETER_V":return{t:"voltmeter",pins:["1","2"]};
+  case "AMMETER_H":case "AMMETER_V":return{t:"ammeter",pins:["1","2"]};
+  case "100V_100W":return{t:"lamp",pins:["1","2"]};
+  case "BUZZER":return{t:"buzzer",pins:["1","2"]};
+  case "ONPAGE_CONNECTOR":case "GLOBAL_CONNECTOR":return{t:"netlabel",pins:["1"],net:1};
+  case "XMM":return{t:"xmm",pins:["1","2"]};
+  case "XWM":return{t:"xwm",pins:["1","2","3","4"]};
+  case "XFG":{const I=q.inst||{};return{t:"xfg",pins:["1","2","3"],p:{wave:WAVES[+I.NI_EWB_WAVE_MODE]||"sine",freq:si(I.NI_EWB_FREQUENCY_VALUE??1000),amp:si(I.NI_EWB_AMPLITUDE_VALUE??1),offset:si(I.NI_EWB_OFFSET_VALUE??0),duty:si(I.NI_EWB_DEPUTY_CYCLE_VALUE??50)}}}
+  case "XSC":{const I=q.inst||{};return{t:"xsc",pins:["1","2","4"],p:{tb:si(I.NI_EWB_TIMEBASE_SCALE_VALUE??1e-3),va:si(I.NI_EWB_A_CHANNEL_SCALE_VALUE??1),vb:si(I.NI_EWB_B_CHANNEL_SCALE_VALUE??1)}}}
+ }
+ /* other Multisim parts: go by the letter of the SPICE template and its pin names */
+ const T=tpl.replace(/^\s+/,""),L=T[0]?T[0].toLowerCase():"",tp=[...T.split(/\r?\n/)[0].matchAll(/%t(\S+)/g)].map(m=>m[1].toUpperCase());
+ const has=a=>a.every(x=>tp.includes(x));
+ if(L==="r"&&tp.length>=2)return{t:"res",pins:[tp[0],tp[1]],p:{resistance:si(v(1))}};
+ if(L==="c"&&tp.length>=2)return{t:/ELECTROLIT/i.test(fam)?"ecap":"cap",pins:[tp[0],tp[1]],p:{capacitance:si(v(1))}};
+ if(L==="l"&&tp.length>=2)return{t:"ind",pins:[tp[0],tp[1]],p:{inductance:si(v(1))}};
+ if((L==="d"||L==="x")&&tp.length===2&&has(["A","K"]))return{t:/ZENER/i.test(fam)?"zener":/LED/i.test(fam)?"led":/SCHOTTKY/i.test(fam)?"schottky":"diode",pins:["A","K"]};
+ if((L==="q"||L==="x")&&has(["B","C","E"]))return{t:/PNP/i.test(fam+" "+(q.all||""))?"pnp":"npn",pins:["B","C","E"]};
+ if((L==="m"||L==="x")&&has(["G","D","S"]))return{t:/P_?MOS|PMOS|P-CH/i.test(fam)?"pmos":"nmos",pins:["G","D","S"]};
+ if(L==="x"&&has(["IN+","IN-","OUT"]))return{t:"opamp",pins:["IN+","IN-","OUT",has(["VS+"])?"VS+":null,has(["VS-"])?"VS-":null],p:{model:"Ideal"}};
+ if(L==="v"&&tp.length>=2)return{t:/\bac\b/i.test(T)&&!/dc\s+#1/i.test(T)?"acv":"dcv",pins:[tp[0],tp[1]],p:/\bac\b/i.test(T)&&!/dc\s+#1/i.test(T)?{}:{voltage:si(v(1))}};
+ return null}
+
+/* read a .ms14 design: parts with their nets, where their pins are, and the instrument settings */
+function readDoc(bytes){const xml=typeof bytes==="string"?bytes:unpack(bytes);const doc=parser().parseFromString(xml,"text/xml");
+ if(doc.getElementsByTagName("parsererror").length)throw new Error("the design inside the file could not be read");
+ const kids=(e,tag)=>{const r=[];for(const c of e.children)if(c.tagName===tag)r.push(c);return r};
+ const idOf=e=>e.parentNode&&e.parentNode.getAttribute&&e.parentNode.getAttribute("CiID");
+ const nodes={};for(const e of doc.getElementsByTagName("CiNode"))nodes[idOf(e)]=mstr(e.getAttribute("LocalName"));
+ const ports={};for(const e of doc.getElementsByTagName("CiPort")){const ns=e.getElementsByTagName("Nodes")[0];const it=ns&&ns.getElementsByTagName("Item")[0];
+  ports[idOf(e)]={name:mstr(e.getAttribute("LocalName")),comp:e.getAttribute("Component"),node:it?nodes[it.getAttribute("CiID")]:null}}
+ const inst={};for(const e of doc.getElementsByTagName("CSourceSymbolCollectNode")){const ref=mstr(e.getAttribute("CompLongName")).split("#")[0];const o=inst[ref]=inst[ref]||{};
+  for(const el of e.getElementsByTagName("Element")){const k=mstr(el.getAttribute("Key"));const d=el.getElementsByTagName("CDataElement")[0];if(d&&d.hasAttribute("Data")&&!(k in o))o[k]=d.getAttribute("Data")}}
+ const syms={};for(const e of doc.getElementsByTagName("CIITSymbolComp")){const id=e.getAttribute("CiComponent");if(!id)continue;
+  const M=["M00","M01","M10","M11","M20","M21"].map(k=>+e.getAttribute("Transformer-"+k)||0);const pins={};
+  for(const ps of e.getElementsByTagName("CIITPinSymbolComp")){const pc=ps.getElementsByTagName("CIITPinConnectorComp")[0];if(!pc)continue;const x=+pc.getAttribute("ptCenterX"),y=+pc.getAttribute("ptCenterY");
+   pins[mstr(ps.getAttribute("PinName")).toUpperCase()]={x:x*M[0]+y*M[2]+M[4],y:x*M[1]+y*M[3]+M[5],port:ps.getAttribute("PortID")}}
+  (syms[id]=syms[id]||[]).push({M,pins})}
+ /* wires: each end is a pin of a part (by its port) or a free point */
+ const conn={};for(const ps of doc.getElementsByTagName("CIITPinSymbolComp")){const pc=ps.getElementsByTagName("CIITPinConnectorComp")[0];const it=pc&&pc.parentNode;if(it&&it.getAttribute&&it.getAttribute("ID"))conn[it.getAttribute("ID")]=ps.getAttribute("PortID")}
+ const ends={};for(const e of doc.getElementsByTagName("CODPinComp")){const it=e.parentNode;const id=it&&it.getAttribute&&it.getAttribute("ID");if(!id)continue;let port=null;const cl=kids(e,"ConnectList")[0];
+  if(cl)for(const c of cl.getElementsByTagName("Item")){const pp=conn[c.getAttribute("ID")];if(pp){port=pp;break}}ends[id]=port}
+ const wires=[];for(const e of doc.getElementsByTagName("CIITLinkComp")){const pe=kids(e,"Points")[0];if(!pe)continue;const pts=[...pe.getElementsByTagName("Item")].map(i=>({x:+i.getAttribute("X"),y:+i.getAttribute("Y")}));
+  if(pts.length<2)continue;wires.push({pts,a:ends[e.getAttribute("Connect1")]||null,b:ends[e.getAttribute("Connect2")]||null})}
+ const parts=[],skip=[];
+ for(const e of doc.getElementsByTagName("CiComponent")){const id=idOf(e);if(!id)continue;const ref=mstr(e.getAttribute("LocalName"));
+  const at=kids(e,"Attributes")[0];if(!at)continue;
+  const cs=at.getElementsByTagName("CiaCollString")[0],str=cs?[...cs.getElementsByTagName("Item")].map(i=>mstr(i.getAttribute("Value"))):[];
+  const te=at.getElementsByTagName("CiaSpiceTmpltExprt")[0],tpl=te?mstr(te.getAttribute("String")):"";
+  const pl=at.getElementsByTagName("CiaParamList")[0];const arr=tag=>{const g=pl&&kids(pl,tag)[0];return g?[...g.getElementsByTagName("Item")].map(i=>i.getAttribute("Value")):[]};
+  const dbl=arr("doubles"),par=arr("parameters").map(mstr);
+  const P={val:i=>{const s=par[i];if(s!=null&&s!==""){const x=num(s);if(isFinite(x)&&(x!==0||/^[-+]?0/.test(s)))return x}const d=+dbl[i];return isFinite(d)?d:0}};
+  let fam=str[0]||"",key=str[1]||"";if(!key&&/^XFG/i.test(ref))key="XFG";if(!key&&/^XSC/i.test(ref))key="XSC";if(!key&&/^XMM/i.test(ref))key="XMM";if(!key&&/^XWM/i.test(ref))key="XWM";
+  const myPorts={};const pe=kids(e,"Ports")[0];if(pe)for(const it of pe.getElementsByTagName("Item")){const pt=ports[it.getAttribute("CiID")];if(pt)myPorts[pt.name.toUpperCase()]={...pt,id:it.getAttribute("CiID")}}
+  const m=revMap(key,fam,tpl,P,{inst:inst[ref],all:str.join(" ")});
+  if(!m){if(key||fam)skip.push(ref+" ("+(key||fam)+")");continue}
+  const sy=(syms[id]||[])[0]||{M:[1,0,0,1,0,0],pins:{}};
+  parts.push({ref,key,fam,m,ports:myPorts,sym:sy})}
+ return{parts,skip,wires,xml}}
+
+/* turn a design into CEsim parts: type, label, properties, net of each pin and where each pin sat in Multisim (CEsim units) */
+function importDoc(bytes,H){const R=readDoc(bytes);const S=1/0.9;const out=[],warn=[],portAt={};let nc=0;
+ if(R.skip.length)warn.push("No CEsim part for "+R.skip.slice(0,8).join(", ")+(R.skip.length>8?" and "+(R.skip.length-8)+" more":"")+"; left out.");
+ for(const q of R.parts){let pins=q.m.pins;const L=H&&H.LIB[q.m.t];if(!L){warn.push(q.ref+": no CEsim part "+q.m.t);continue}
+  if(q.m.chip){const e=q.m.chip;const tr=typeof e==="function"?e:n=>e[n]??null;pins=L.pins.map(p=>tr(p[2])??null)}
+  const nodes=[],xy=[];
+  L.pins.forEach((_,i)=>{const nm=pins[i];const po=nm!=null?q.ports[String(nm).toUpperCase()]:null;const sp=nm!=null?q.sym.pins[String(nm).toUpperCase()]:null;
+   nodes.push(po&&po.node!=null?String(po.node):"__NC_"+(++nc));xy.push(sp?{x:sp.x*S,y:sp.y*S}:null)});
+  const p=Object.assign({},q.m.p||{});if(q.m.net)p.name=nodes[0];
+  const label=q.m.t==="gnd"||q.m.t==="netlabel"?null:q.ref;
+  const k=out.length;L.pins.forEach((_,i)=>{const nm=pins[i];const po=nm!=null?q.ports[String(nm).toUpperCase()]:null;if(po)portAt[po.id]={k,i}});
+  out.push({t:q.m.t,label,p,nodes,xy,org:{x:q.sym.M[4]*S,y:q.sym.M[5]*S}})}
+ const wires=R.wires.filter(w=>!(w.a&&!portAt[w.a])&&!(w.b&&!portAt[w.b])).map(w=>{const pts=w.pts.map(q=>({x:q.x*S,y:q.y*S}));let a=w.a&&portAt[w.a]||null,b=w.b&&portAt[w.b]||null;
+  const d=(e,q)=>{const t=e&&out[e.k].xy[e.i];return t?Math.hypot(t.x-q.x,t.y-q.y):0};
+  if(d(a,pts[0])+d(b,pts[pts.length-1])>d(b,pts[0])+d(a,pts[pts.length-1])){const t=a;a=b;b=t}return{pts,a,b}});
+ return{parts:out,wires,warn}}
+
+root.MS14={exportDoc,importDoc,readDoc,unpack,explode,implode,pack,templates,map,num,eng,MDL};
 })(typeof window!=="undefined"?window:globalThis);

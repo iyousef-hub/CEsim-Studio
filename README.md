@@ -106,6 +106,16 @@ The Circuit tool has three analyses under **Simulate → Analyses**. Each one pl
 
 **Transfer → Export .asc schematic** writes a schematic with every resistor, capacitor, inductor, source, diode, LED, BJT and MOSFET as a symbol joined by net labels; op-amps and other parts go in as netlist lines with their subcircuits and models, together with the analysis. **Transfer → Export .kicad_sch schematic** writes the drawing with the same part positions, pins, wires, junctions, ground symbols, net labels and notes.
 
+## Opening files from other programs
+
+Every file CEsim exports also opens back in CEsim, from File → Open, by dragging it onto the window, or by double-clicking it.
+
+- **Circuit:** `.ms14` (also `.ms13` and `.ms12`), LTspice `.asc` and KiCad `.kicad_sch`. Parts keep their place, turn and values, and the original wires are kept; the function generator and oscilloscope settings come back too. Parts with no CEsim match are listed after opening.
+- **VLSI:** GDSII `.gds` and `.cif` layouts, layer by layer with their labels. A DSCH `.sch` schematic or a SPICE `.sp` netlist is laid out as a row of CMOS gates between the VDD and GND rails, with each net on its own metal track. The result passes the design-rule check and gives the same truth table.
+- **PCB:** the Gerber and drill `.zip`, or the separate files. Pads are matched to the PCB footprints, and tracks, vias, the board size and the nets come back.
+- **Architecture:** a `.hex` file opens as MIPS or RISC-V assembly, with labels on branch and jump targets.
+- **8086:** a `.COM` program opens as assembly. The code is followed from 100h, and the rest becomes `db` data with labels. Assembling it again gives the same bytes.
+
 ## Uno board on the breadboard
 
 The Breadboard tool has an **Arduino Uno board**. Wire its header pins (D0–D13, A0–A5, 5V, 3.3V, GND) to the breadboard, select the board, write or pick a sketch and press **Upload**. While the simulation runs, outputs drive the circuit at 5 V through 25 Ω, analogWrite gives the PWM average, INPUT_PULLUP adds 20 kΩ to 5 V, digitalRead and analogRead read the real node voltage, and the Serial Monitor shows the sketch output. Examples: blink, traffic light, fade, button, pot on A0 and a night light, and two ready boards under Examples.
@@ -297,7 +307,7 @@ The DOS machine uses the js-dos emulators package (DOSBox compiled to WebAssembl
 
 ### بالعربي
 
-**CEsim Studio** برنامج سطح مكتب فيه محاكي دوائر، ولوحة تجارب Breadboard تشتغل مباشرة، وتصميم لوحات PCB مع تصدير ملفات التصنيع، وتصميم شرائح VLSI بترانزستورات CMOS، ومحاكي دوائر رقمية وأدوات الجبر البولياني، ومحاكي Verilog مع عارض الإشارات، ومحاكي معمارية MIPS وRISC-V مع مسار البيانات والـ Pipeline، ومحاكي 8086 بلغة التجميع، ومحاكي Arduino بقطع افتراضية، وأداة رسم مخططات، وتصميم ثلاثي الأبعاد بقياسات حقيقية، وأداة تحول صورة الدائرة إلى دائرة قابلة للمحاكاة عن طريق ذكاء اصطناعي يشتغل على جهازك (Ollama). ويقدر يسجّل فيديو للدائرة وهي تشتغل، وفيه Bode Plotter وIV Analyzer وDC Sweep مع رسم النتائج وجداولها، وMonte Carlo، ومولد كلمات ومحلل منطقي، وحاسبات تصميم تبني الدائرة لك، ومولد تقارير معامل Word وPDF، ووضع الأعطال للمعلم، واختبارات، ولوحة Arduino Uno على البريدبورد، وجهاز DOS كامل، وتصدير المخطط إلى .asc و.kicad_sch، ووضع "اشرح لي"، وحركة التيار على الأسلاك، والحل اليدوي بطريقة جهود العقد، وسجل النسخ، ومكتبة 144 دائرة، والواجبات اللي تنصحح تلقائيًا، والكفاءة، ولوحات ESP32 وPico مع محركات وشاشات وحساسات وصوت على البريدبورد، ونسخة ويب تشتغل على الآيباد، وروابط مشاركة، ودمج تعديلات الزملاء، وتقدر تبني قطعك الخاصة من دائرة صغيرة ويتأكد منها البرنامج ويكتب جنبها Verified.
+**CEsim Studio** برنامج سطح مكتب فيه محاكي دوائر، ولوحة تجارب Breadboard تشتغل مباشرة، وتصميم لوحات PCB مع تصدير ملفات التصنيع، وتصميم شرائح VLSI بترانزستورات CMOS، ومحاكي دوائر رقمية وأدوات الجبر البولياني، ومحاكي Verilog مع عارض الإشارات، ومحاكي معمارية MIPS وRISC-V مع مسار البيانات والـ Pipeline، ومحاكي 8086 بلغة التجميع، ومحاكي Arduino بقطع افتراضية، وأداة رسم مخططات، وتصميم ثلاثي الأبعاد بقياسات حقيقية، وأداة تحول صورة الدائرة إلى دائرة قابلة للمحاكاة عن طريق ذكاء اصطناعي يشتغل على جهازك (Ollama). ويقدر يسجّل فيديو للدائرة وهي تشتغل، وفيه Bode Plotter وIV Analyzer وDC Sweep مع رسم النتائج وجداولها، وMonte Carlo، ومولد كلمات ومحلل منطقي، وحاسبات تصميم تبني الدائرة لك، ومولد تقارير معامل Word وPDF، ووضع الأعطال للمعلم، واختبارات، ولوحة Arduino Uno على البريدبورد، وجهاز DOS كامل، وتصدير المخطط إلى .asc و.kicad_sch، وفتح ملفات .ms14 و.asc و.kicad_sch و.gds و.cif و.sch وGerber و.hex و.COM، ووضع "اشرح لي"، وحركة التيار على الأسلاك، والحل اليدوي بطريقة جهود العقد، وسجل النسخ، ومكتبة 144 دائرة، والواجبات اللي تنصحح تلقائيًا، والكفاءة، ولوحات ESP32 وPico مع محركات وشاشات وحساسات وصوت على البريدبورد، ونسخة ويب تشتغل على الآيباد، وروابط مشاركة، ودمج تعديلات الزملاء، وتقدر تبني قطعك الخاصة من دائرة صغيرة ويتأكد منها البرنامج ويكتب جنبها Verified.
 النسخ متوفرة للماك (Apple Silicon) والويندوز واللينكس من صفحة **Releases**.
 
 BY. YOUSEF A.ALGHAMDI

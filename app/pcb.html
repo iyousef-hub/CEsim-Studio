@@ -55,7 +55,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
 </div>
 <div id="statusbar"><span id="status"><b>Ready.</b></span><span id="stats"></span><span id="coord"></span></div>
 </div>
-<input type="file" id="fileIn" accept=".cepcb,.json" hidden><input type="file" id="netIn" accept=".cir,.net,.txt,.sp,.spice" hidden>
+<input type="file" id="fileIn" accept=".cepcb,.json,.zip,.gbr,.ger,.gtl,.gbl,.gko,.gm1,.drl,.xln" multiple hidden><input type="file" id="netIn" accept=".cir,.net,.txt,.sp,.spice" hidden>
 <script src="pcb-core.js"></script>
 <script>
 'use strict';
@@ -236,11 +236,18 @@ function outside(e){if(!e.target.closest('#menu'))closeMenu()}function closeMenu
 function setName(n){ST.name=n||'board';$('#docname').textContent=ST.name;document.title=ST.name+' · CEsim PCB'}
 function loadDoc(d,name,path,note){d=Object.assign(emptyDoc(),d);d.rules=Object.assign({...PCB.DEF_RULES},d.rules||{});d.comps=(d.comps||[]).filter(c=>PCB.FP[c.fp]);ST.doc=d;ST.note=note||d.note||'';ST.sel=null;ST.route=null;ST.hiNet=null;ST.showDrc=false;ST.undo=[];ST.redo=[];ST.filePath=path||null;setName(name);changed();requestAnimationFrame(fit)}
 function docText(){const d=ST.doc;return JSON.stringify({format:'cesim-pcb',version:1,board:d.board,rules:d.rules,comps:d.comps,nets:d.nets,traces:d.traces,vias:d.vias,texts:d.texts,note:ST.note||undefined})}
-window.cesimOpenText=(name,text,path)=>{if(/\.(cir|net|txt|sp|spice)$/i.test(name)){netlistDialog(text);return}try{const d=JSON.parse(text);if(d.format!=='cesim-pcb')throw 0;loadDoc(d,name.replace(/\.[^.]+$/,''),path);toast('Opened '+name)}catch(e){toast('This file is not a CEsim board',true)}};
-$('#fileIn').addEventListener('change',async e=>{const f=e.target.files[0];if(f)window.cesimOpenText(f.name,await f.text(),N&&N.pathFor?N.pathFor(f):null);e.target.value=''});
+async function openGerber(files,label){try{const r=PCB.fromGerber(files);loadDoc(r.doc,String(label).replace(/\.[^.]+$/,'').replace(/-(F|B)_Cu$/,''),null);const pl=(n,w)=>n+' '+w+(n===1?'':'s');toast('Opened '+label+': '+pl(r.doc.comps.length,'part')+', '+pl(r.doc.traces.length,'track piece')+', '+pl(r.doc.vias.length,'via')+(r.warn.length?'. Not read: '+r.warn.join(', '):''),!!r.warn.length)}catch(e){toast('Could not open '+label+': '+e.message,true)}}
+async function openZip(name,bytes){try{await openGerber(await PCB.unzip(bytes),name)}catch(e){toast('Could not open '+name+': '+e.message,true)}}
+window.cesimOpenBinary=(name,b64)=>{const s=atob(b64);const u=new Uint8Array(s.length);for(let i=0;i<s.length;i++)u[i]=s.charCodeAt(i);openZip(name,u)};
+window.cesimOpenText=(name,text,path)=>{if(/\.(gbr|ger|gtl|gbl|gko|gm1|drl|xln)$/i.test(name)){openGerber({[name]:text},name);return}if(/\.(cir|net|txt|sp|spice)$/i.test(name)){netlistDialog(text);return}try{const d=JSON.parse(text);if(d.format!=='cesim-pcb')throw 0;loadDoc(d,name.replace(/\.[^.]+$/,''),path);toast('Opened '+name)}catch(e){toast('This file is not a CEsim board',true)}};
+$('#fileIn').addEventListener('change',async e=>{const fs=[...e.target.files];e.target.value='';if(!fs.length)return;const f=fs[0];
+ if(/\.zip$/i.test(f.name)){openZip(f.name,new Uint8Array(await f.arrayBuffer()));return}
+ if(fs.some(x=>/\.(gbr|ger|gtl|gbl|gko|gm1|drl|xln)$/i.test(x.name))){const o={};for(const x of fs)o[x.name]=await x.text();openGerber(o,f.name);return}
+ window.cesimOpenText(f.name,await f.text(),N&&N.pathFor?N.pathFor(f):null)});
 $('#netIn').addEventListener('change',async e=>{const f=e.target.files[0];if(f)netlistDialog(await f.text());e.target.value=''});
 async function saveFile(asNew){const nm=ST.name.replace(/[^\w.-]+/g,'_')+'.cepcb';const text=docText();if(N&&N.write&&ST.filePath&&!asNew){await N.write(ST.filePath,text);toast('Saved');return}if(N&&N.save){const r=await N.save(nm,text);if(r){ST.filePath=r;setName(r.split(/[\\/]/).pop().replace(/\.[^.]+$/,''));toast('Saved '+r.split(/[\\/]/).pop())}return}const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:'application/json'}));a.download=nm;document.body.appendChild(a);a.click();a.remove()}
-document.addEventListener('dragover',e=>e.preventDefault());document.addEventListener('drop',async e=>{e.preventDefault();const f=e.dataTransfer.files[0];if(f)window.cesimOpenText(f.name,await f.text(),N&&N.pathFor?N.pathFor(f):null)});
+document.addEventListener('dragover',e=>e.preventDefault());document.addEventListener('drop',async e=>{e.preventDefault();const fs=[...e.dataTransfer.files];const f=fs[0];if(!f)return;if(/\.zip$/i.test(f.name)){openZip(f.name,new Uint8Array(await f.arrayBuffer()));return}
+ if(fs.some(x=>/\.(gbr|ger|gtl|gbl|gko|gm1|drl|xln)$/i.test(x.name))){const o={};for(const x of fs)o[x.name]=await x.text();openGerber(o,f.name);return}window.cesimOpenText(f.name,await f.text(),N&&N.pathFor?N.pathFor(f):null)});
 /* ---------- examples ---------- */
 const EX={
  'LED and resistor':['* LED with a current-limiting resistor\nJ1 vcc 0\nR1 vcc a 470\nD1 a 0 LED',true,'The simplest board: a 2-pin connector for 5 to 9 V, a resistor and an LED, already routed. Switch to Real view to see the finished board.'],

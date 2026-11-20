@@ -86,9 +86,9 @@ h2{font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--dim)
 <body>
 <div id="app">
  <nav id="rail" aria-label="Categories">
-  <div class="brand"><div class="lg">CE</div><div><b>CEsim Studio</b><span>Version 1.30.0</span></div></div>
+  <div class="brand"><div class="lg">CE</div><div><b>CEsim Studio</b><span>Version 1.31.0</span></div></div>
   <div id="navs"></div>
-  <div class="railfoot">Opens .cesim · .cebb · .cepcb · .cevlsi · .msk · .cir · .cedig · .circ · .cediag · .drawio · .mmd · .ce3d · .stl · .obj · .3mf · .asm · .ino · .v · .vcd · .s<br><b>BY. YOUSEF</b><button class="btn" id="aboutBtn">About</button><button class="btn" id="themeBtn" aria-haspopup="dialog"><i></i>Theme and colors</button></div>
+  <div class="railfoot">Opens .cesim · .cir · .ms14 · .asc · .kicad_sch · .cebb · .cepcb · Gerber .zip · .cevlsi · .msk · .gds · .cif · .sch · .cedig · .circ · .cediag · .drawio · .mmd · .ce3d · .stl · .obj · .3mf · .asm · .com · .s · .hex · .ino · .v · .vcd<br><b>BY. YOUSEF</b><button class="btn" id="aboutBtn">About</button><button class="btn" id="themeBtn" aria-haspopup="dialog"><i></i>Theme and colors</button></div>
  </nav>
  <main id="main">
   <div class="top"><input id="q" placeholder="Search tools and recent files" aria-label="Search tools and recent files"><button class="btn" id="openBtn">Open file…</button></div>
@@ -100,7 +100,7 @@ h2{font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--dim)
 <div id="drop">Drop a file to open it in the right tool</div>
 <div id="splash" role="dialog" aria-label="CEsim Studio"><div class="sp-box"><canvas id="sp-cv"></canvas><div class="sp-in">
  <div class="sp-row"><div class="sp-logo">CE</div><div><div class="sp-name">CE<span>sim</span><small>Studio</small></div><div class="sp-sub">Circuit Design &amp; Simulation Suite</div></div></div>
- <div class="sp-ver">Version 1.30.0</div><div class="sp-bar"><i id="sp-bar"></i></div><div class="sp-foot"><span id="sp-msg">Loading tools…</span><span class="sp-by">BY. YOUSEF</span></div>
+ <div class="sp-ver">Version 1.31.0</div><div class="sp-bar"><i id="sp-bar"></i></div><div class="sp-foot"><span id="sp-msg">Loading tools…</span><span class="sp-by">BY. YOUSEF</span></div>
 </div></div></div>
 <script>
 const $=s=>document.querySelector(s);
@@ -110,22 +110,22 @@ const IC={mail:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9
  asm:'<path d="M4 6l4 6-4 6M11 18h9"/>',arduino:'<circle cx="8" cy="12" r="4"/><circle cx="16" cy="12" r="4"/><path d="M6.5 12h3M14.5 12h3M16 10.5v3"/>',hdl:'<path d="M8 7l-5 5 5 5M16 7l5 5-5 5M13 5l-2 14"/>',
  diagram:'<rect x="3" y="3" width="7" height="6" rx="1"/><rect x="14" y="15" width="7" height="6" rx="1"/><path d="M6.5 9v5h11v1"/><circle cx="17.5" cy="6" r="3"/>',d3:'<path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5"/>',vlsi:'<rect x="3" y="3" width="18" height="18"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/>'};
 const TOOLS=[
- {id:'circuit',cat:'Circuits',name:'Circuit',desc:'Schematic capture and live simulation with instruments.',fmt:'.cesim · .cir',ready:1},
+ {id:'circuit',cat:'Circuits',name:'Circuit',desc:'Schematic capture and live simulation with instruments.',fmt:'.cesim · .cir · .ms14 · .asc · .kicad_sch',ready:1},
  {id:'codecircuit',cat:'Circuits',name:'Circuit code',desc:'Write a circuit as text, or let any AI chat write it for you from a photo, then build it in one click.',fmt:'.cir · text',ready:1,isNew:1},
  {id:'imgcircuit',cat:'Circuits',name:'Circuit from image',desc:'Turn a photo or screenshot of a schematic into an editable circuit, with AI that runs on your Mac.',fmt:'.png · .jpg · paste',ready:1,isNew:1},
  {id:'breadboard',cat:'Circuits',name:'Breadboard',desc:'Build on a real-looking breadboard with LEDs, chips, a 555 and meters, and watch it run live.',fmt:'.cebb',ready:1,isNew:1},
  {id:'pcb',cat:'Hardware and PCB',name:'PCB',desc:'Place footprints, route two copper layers, check the design rules and export files for manufacturing.',fmt:'.cepcb · Gerber · Excellon',ready:1,isNew:1},
  {id:'logic',cat:'Digital and architecture',name:'Logic',desc:'Gates, flip-flops, buses and timing diagrams, with a live simulation.',fmt:'.cedig · .circ',ready:1,isNew:1},
- {id:'arch',cat:'Digital and architecture',name:'Architecture',desc:'MIPS and RISC-V programs step by step, on a live datapath and a 5-stage pipeline with hazards.',fmt:'.s · .asm',ready:1,isNew:1},
+ {id:'arch',cat:'Digital and architecture',name:'Architecture',desc:'MIPS and RISC-V programs step by step, on a live datapath and a 5-stage pipeline with hazards.',fmt:'.s · .asm · .hex',ready:1,isNew:1},
  {id:'bool',cat:'Digital and architecture',name:'Boolean tools',desc:'Truth tables, K-maps, minimal SOP and POS, and FSM design.',fmt:'',ready:1,isNew:1},
  {id:'asm',cat:'Programming',name:'8086',desc:'Assemble and step through programs, with registers, flags, memory, a console and virtual ports.',fmt:'.asm · .com',ready:1,isNew:1},
  {id:'arduino',cat:'Programming',name:'Arduino',desc:'Run sketches on a virtual Uno with LEDs, buttons, sensors, a servo, an LCD and the Serial Monitor.',fmt:'.ino',ready:1,isNew:1},
  {id:'hdl',cat:'Programming',name:'Verilog',desc:'Simulate Verilog modules and testbenches, with a waveform viewer and a testbench writer.',fmt:'.v · .vcd',ready:1,isNew:1},
  {id:'diagram',cat:'Drawing and 3D',name:'Diagram',desc:'Flowcharts, FSMs, datapaths, networks and lab report pages.',fmt:'.cediag · .drawio · .mmd',ready:1,isNew:1},
  {id:'d3',cat:'Drawing and 3D',name:'3D',desc:'Millimetre-accurate modelling with board library and STL export.',fmt:'.ce3d · .stl · .obj · .3mf',ready:1,isNew:1},
- {id:'vlsi',cat:'Hardware and PCB',name:'VLSI',desc:'Draw CMOS transistors on a λ grid, check the design rules, see the truth table and the cross-section.',fmt:'.cevlsi · .MSK · .sch · GDSII · CIF',ready:1,isNew:1}];
+ {id:'vlsi',cat:'Hardware and PCB',name:'VLSI',desc:'Draw CMOS transistors on a λ grid, check the design rules, see the truth table and the cross-section.',fmt:'.cevlsi · .MSK · .sch · .sp · GDSII · CIF',ready:1,isNew:1}];
 const CATS=['All tools','Circuits','Digital and architecture','Programming','Drawing and 3D','Hardware and PCB'];
-let cat='All tools';const VERSION='1.30.0';
+let cat='All tools';const VERSION='1.31.0';
 const N=window.cesimNative;
 function svg(n){return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${IC[n]}</svg>`}
 function toast(m){const d=document.createElement('div');d.className='toast';d.textContent=m;document.body.appendChild(d);setTimeout(()=>d.remove(),2600)}

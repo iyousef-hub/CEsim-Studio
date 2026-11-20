@@ -97,7 +97,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
 </div>
 <div id="statusbar"><span id="status"><b>Ready.</b> Press F8 to step through the program</span><span id="cyc"></span><span id="pos">Ln 1, Col 1</span></div>
 </div>
-<input type="file" id="fileIn" accept=".s,.asm,.S,.txt" hidden>
+<input type="file" id="fileIn" accept=".s,.asm,.S,.txt,.hex" hidden>
 <script src="arch-core.js"></script>
 <script src="arch-examples.js"></script>
 <script>
@@ -287,7 +287,7 @@ function closeMenu(){const m=$('#menu');if(m)m.remove();document.removeEventList
 function setName(n){ST.name=n||'program';$('#docname').textContent=ST.name;document.title=ST.name+' · CEsim Architecture'}
 function detectIsa(t){const mips=(t.match(/\$(t\d|s\d|a\d|v\d|zero|ra|sp|at)\b/g)||[]).length,rv=(t.match(/\b(ecall|x\d+|a[0-7]|t[0-6]|s(1[01]|\d))\b/g)||[]).length;return mips>=rv?'mips':'rv'}
 function loadText(text,name,path,isa){if(ST.running)pause();src.value=text.replace(/\r\n/g,'\n');setName(name);ST.filePath=path||null;ST.fromEx=false;ST.bps.clear();setIsa(isa||detectIsa(src.value),true);ST.isa=isa||detectIsa(src.value);$$('.seg button').forEach(b=>b.classList.toggle('on',b.dataset.isa===ST.isa));ST.cpu=null;ST.dirty=true;ST.errLines=new Map();renderEditor();src.scrollTop=0;syncScroll();renderAll();setStatus('<b>Ready.</b> Press F8 to step through the program');saveLocal()}
-window.cesimOpenText=(name,text,path)=>{loadText(text,name.replace(/\.[^.]+$/,''),path);toast(`Opened ${name} as ${ST.isa==='mips'?'MIPS':'RISC-V'}`)};
+window.cesimOpenText=(name,text,path)=>{if(/\.hex$/i.test(name)){try{const r=A.fromHex(text,ST.isa);loadText(r.src,name.replace(/\.[^.]+$/,''),null,r.isa);toast(`Opened ${name}: ${r.count} instruction words read back as ${r.isa==='mips'?'MIPS':'RISC-V'}`)}catch(e){toast('Could not open '+name+': '+e.message,true)}return}loadText(text,name.replace(/\.[^.]+$/,''),path);toast(`Opened ${name} as ${ST.isa==='mips'?'MIPS':'RISC-V'}`)};
 $('#fileIn').addEventListener('change',async e=>{const f=e.target.files[0];if(f)window.cesimOpenText(f.name,await f.text(),N&&N.pathFor?N.pathFor(f):null);e.target.value=''});
 async function saveFile(asNew){const nm=ST.name.replace(/[^\w.-]+/g,'_')+(ST.isa==='mips'?'.asm':'.s');const text=src.value;if(N&&N.write&&ST.filePath&&!asNew){await N.write(ST.filePath,text);toast('Saved '+ST.filePath.split(/[\\/]/).pop());return}if(N&&N.save){const r=await N.save(nm,text);if(r){ST.filePath=r;setName(r.split(/[\\/]/).pop().replace(/\.[^.]+$/,''));toast('Saved '+r.split(/[\\/]/).pop())}return}const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:'text/plain'}));a.download=nm;document.body.appendChild(a);a.click();a.remove()}
 function exportBin(){if(ST.dirty||!ST.prog){if(!assemble(true))return}const lines2=ST.prog.words.map(w=>(w.word>>>0).toString(16).padStart(8,'0'));const t=lines2.join('\n')+'\n';const nm=ST.name.replace(/[^\w.-]+/g,'_')+'.hex';const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([t],{type:'text/plain'}));a.download=nm;document.body.appendChild(a);a.click();a.remove();toast('Saved the machine code, one word per line. It loads into a Verilog memory with $readmemh')}

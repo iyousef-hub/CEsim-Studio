@@ -191,6 +191,144 @@ function toSCH(lay,ex,name,lambda){ex=ex||extract(lay);lambda=lambda||0.06;const
  return['DSCH 3.8','VERSION '+mwStamp(),`BB(${x0},${y0},${x1},${y1})`,...syms,...cnc,...wires.map(w=>`LIG(${w.join(',')})`),'FFIG '+nm].join('\r\n')+'\r\n'}
 /* cross-section: what is at each column along row y */
 function section(lay,y,x0,x1){const cols=[];for(let x=x0;x<x1;x++){const c={x};for(const l of LAYERS)c[l]=lay.has(l,x,y);c.gate=!!channelType(lay,x,y);cols.push(c)}return cols}
-const api={LAYERS,INFO,RULES,Layout,rects,extract,simulate,truthTable,nameFunction,drc,toSpice,toCIF,toGDS,toMSK,fromMSK,toSCH,section,channelType,K,XY};
+/* ---------------- reading other layout and schematic files ---------------- */
+const gcd=(a,b)=>{a=Math.abs(Math.round(a));b=Math.abs(Math.round(b));while(b){[a,b]=[b,a%b]}return a};
+/* boxes and polygons in file units -> cells; active becomes ndiff or pdiff by the select layer or the n-well */
+function paint(shapes,labels,g){const L=new Layout();const warn=[];if(!shapes.length&&!labels.length)return{L,warn:['The file has no shapes']};
+ if(!g){let v=0;for(const s of shapes)for(const[x,y]of s.pts){v=gcd(v,x);v=gcd(v,y)}g=v||1}
+ let x0=Infinity,y1=-Infinity,x1=-Infinity,y0=Infinity;for(const s of shapes)for(const[x,y]of s.pts){x0=Math.min(x0,x);x1=Math.max(x1,x);y0=Math.min(y0,y);y1=Math.max(y1,y)}
+ while((x1-x0)/g>3000||(y1-y0)/g>3000)g*=2;
+ const cells=s=>{const P=s.pts.map(([x,y])=>[(x-x0)/g,(y1-y)/g]);const bx=Math.floor(Math.min(...P.map(p=>p[0]))),bX=Math.ceil(Math.max(...P.map(p=>p[0]))),by=Math.floor(Math.min(...P.map(p=>p[1]))),bY=Math.ceil(Math.max(...P.map(p=>p[1])));const out=[];
+  for(let j=by;j<bY;j++)for(let i=bx;i<bX;i++){const cx=i+0.5,cy=j+0.5;let inside=false;for(let a=0,b=P.length-1;a<P.length;b=a++){const[xa,ya]=P[a],[xb,yb]=P[b];if((ya>cy)!==(yb>cy)&&cx<(xb-xa)*(cy-ya)/(yb-ya)+xa)inside=!inside}if(inside)out.push([i,j])}return out};
+ const sel={nsel:new Set(),psel:new Set()};const act=[];
+ for(const s of shapes){const c=cells(s);if(s.layer==='active'){act.push(...c);continue}if(s.layer==='nsel'||s.layer==='psel'){for(const[i,j]of c)sel[s.layer].add(K(i,j));continue}if(LAYERS.includes(s.layer))for(const[i,j]of c)L.set(s.layer,i,j,true)}
+ for(const[i,j]of act){const k=K(i,j);const p=sel.psel.has(k)||(!sel.nsel.has(k)&&L.has('nwell',i,j));L.set(p?'pdiff':'ndiff',i,j,true)}
+ for(const b of labels){const i=Math.floor((b.x-x0)/g),j=Math.floor((y1-b.y)/g);if(b.text)L.label(String(b.text).trim(),i,j)}
+ return{L,warn,lambda:g}}
+const GDS_BACK={42:'nwell',43:'active',44:'psel',45:'nsel',46:'poly',49:'m1',51:'m2',62:'m3',25:'contact',50:'via',61:'via2'};
+function fromGDS(bytes){const u=bytes instanceof Uint8Array?bytes:new Uint8Array(bytes);let p=0;const structs={};let cur=null,el=null,lib='';const warn=new Set();
+ const i16=o=>{const v=(u[o]<<8)|u[o+1];return v>32767?v-65536:v},i32=o=>(u[o]<<24)|(u[o+1]<<16)|(u[o+2]<<8)|u[o+3],str=(o,n)=>{let s='';for(let i=0;i<n;i++){const c=u[o+i];if(c)s+=String.fromCharCode(c)}return s};
+ const r8=o=>{const s=u[o]&0x80?-1:1,e=(u[o]&0x7f)-64;let m=0;for(let i=1;i<8;i++)m=m*256+u[o+i];return s*m/Math.pow(2,56)*Math.pow(16,e)};let dbu=1e-9;
+ while(p+4<=u.length){const len=(u[p]<<8)|u[p+1],type=u[p+2],d=p+4,n=len-4;if(len<4)break;
+  switch(type){case 0x02:lib=str(d,n);break;case 0x03:dbu=r8(d+8);break;case 0x06:cur={name:str(d,n),els:[]};structs[cur.name]=cur;break;case 0x07:cur=null;break;
+   case 0x08:el={k:'b'};break;case 0x09:el={k:'p',w:0};break;case 0x0c:el={k:'t'};break;case 0x0a:el={k:'s'};break;case 0x0b:el={k:'a'};break;
+   case 0x0d:if(el)el.layer=i16(d);break;case 0x0f:if(el)el.w=i32(d);break;case 0x12:if(el)el.ref=str(d,n);break;case 0x1a:if(el)el.strans=i16(d);break;case 0x1c:if(el)el.angle=r8(d);break;
+   case 0x10:if(el){el.xy=[];for(let i=0;i+8<=n;i+=8)el.xy.push([i32(d+i),i32(d+i+4)])}break;case 0x19:if(el)el.text=str(d,n);break;
+   case 0x11:if(el&&cur)cur.els.push(el);el=null;break}
+  p+=len}
+ const names=Object.keys(structs);if(!names.length)throw new Error('this is not a GDSII file');
+ const used=new Set();for(const s of names)for(const e of structs[s].els)if(e.ref)used.add(e.ref);const top=names.filter(n=>!used.has(n));const root=top[top.length-1]||names[0];
+ const shapes=[],labels=[];
+ const walk=(name,dx,dy,depth)=>{const S=structs[name];if(!S||depth>20)return;for(const e of S.els){const xy=(e.xy||[]).map(([x,y])=>[x+dx,y+dy]);
+  if(e.k==='b'){const l=GDS_BACK[e.layer];if(!l){warn.add('GDS layer '+e.layer);continue}shapes.push({layer:l,pts:xy.slice(0,-1)})}
+  else if(e.k==='p'){const l=GDS_BACK[e.layer];if(!l){warn.add('GDS layer '+e.layer);continue}const h=(e.w||0)/2;for(let i=1;i<xy.length;i++){const[a,b]=[xy[i-1],xy[i]];const X0=Math.min(a[0],b[0])-(a[1]===b[1]?0:h),X1=Math.max(a[0],b[0])+(a[1]===b[1]?0:h),Y0=Math.min(a[1],b[1])-(a[0]===b[0]?0:h),Y1=Math.max(a[1],b[1])+(a[0]===b[0]?0:h);shapes.push({layer:l,pts:[[X0,Y0],[X1,Y0],[X1,Y1],[X0,Y1]]})}}
+  else if(e.k==='t'&&xy[0])labels.push({text:e.text,x:xy[0][0],y:xy[0][1]});
+  else if(e.k==='s'&&xy[0]){if(e.strans||e.angle)warn.add('turned or mirrored cells (placed without the turn)');walk(e.ref,xy[0][0],xy[0][1],depth+1)}
+  else if(e.k==='a')warn.add('arrays of cells')}};
+ walk(root,0,0,0);
+ const g=/^CESIM$/i.test(lib)?Math.round(0.3e-6/dbu):0;const r=paint(shapes,labels,g);if(warn.size)r.warn.push('Not read: '+[...warn].join(', '));r.name=root;return r}
+const CIF_BACK={CWN:'nwell',CWP:null,CAA:'active',CSN:'nsel',CSP:'psel',CPG:'poly',CMF:'m1',CMS:'m2',CMT:'m3',CCC:'contact',CCA:'contact',CCP:'contact',CVA:'via',CVS:'via2',
+ NWEL:'nwell',ACTI:'active',NSEL:'nsel',PSEL:'psel',POLY:'poly',MET1:'m1',MET2:'m2',MET3:'m3',CONT:'contact',VIA:'via',VIA2:'via2',CNW:'nwell',CAC:'active',CPS:'poly',CMET:'m1'};
+function fromCIF(text){const src=String(text).replace(/\([^)]*\)/g,m=>{const lm=/lambda\s*=\s*([\d.]+)/i.exec(m);if(lm)fromCIF._lam=+lm[1];return ' '});const cmds=src.split(';').map(s=>s.trim()).filter(Boolean);
+ const syms={},top={els:[]};let cur=top;const warn=new Set();
+ for(const c of cmds){let m;
+  if((m=/^DS\s*(\d+)\s*(\d+)?\s*(\d+)?/i.exec(c))){cur={els:[],a:+(m[2]||1),b:+(m[3]||1)};syms[m[1]]=cur;continue}
+  if(/^DF/i.test(c)){cur=top;continue}if(/^E$/i.test(c))break;
+  if((m=/^L\s*(\w+)/i.exec(c))){cur.layer=m[1].toUpperCase();continue}
+  const sc=v=>v*(cur.a||1)/(cur.b||1);const nums=s=>(s.match(/-?\d+/g)||[]).map(Number);
+  if((m=/^B\s*(.*)$/i.exec(c))){const v=nums(m[1]);const[w,h,cx,cy]=v.map(sc);cur.els.push({layer:cur.layer,pts:[[cx-w/2,cy-h/2],[cx+w/2,cy-h/2],[cx+w/2,cy+h/2],[cx-w/2,cy+h/2]]});continue}
+  if((m=/^P\s*(.*)$/i.exec(c))){const v=nums(m[1]).map(sc);const pts=[];for(let i=0;i+1<v.length;i+=2)pts.push([v[i],v[i+1]]);cur.els.push({layer:cur.layer,pts});continue}
+  if((m=/^W\s*(.*)$/i.exec(c))){const v=nums(m[1]).map(sc);const h=v[0]/2;for(let i=3;i+1<v.length;i+=2){const a=[v[i-2],v[i-1]],b=[v[i],v[i+1]];const X0=Math.min(a[0],b[0])-h,X1=Math.max(a[0],b[0])+h,Y0=Math.min(a[1],b[1])-h,Y1=Math.max(a[1],b[1])+h;cur.els.push({layer:cur.layer,pts:[[X0,Y0],[X1,Y0],[X1,Y1],[X0,Y1]]})}continue}
+  if((m=/^C\s*(\d+)(.*)$/i.exec(c))){const t=/T\s*(-?\d+)[\s,]+(-?\d+)/i.exec(m[2]);if(/\b[MR]\b/i.test(m[2].replace(/T\s*-?\d+[\s,]+-?\d+/i,'')))warn.add('turned or mirrored cells (placed without the turn)');cur.els.push({call:m[1],dx:t?sc(+t[1]):0,dy:t?sc(+t[2]):0});continue}
+  if((m=/^94\s+(\S+)\s+(-?\d+)\s+(-?\d+)/.exec(c))){cur.els.push({text:m[1],x:sc(+m[2]),y:sc(+m[3])});continue}}
+ const shapes=[],labels=[];
+ const walk=(S,dx,dy,depth)=>{if(depth>20)return;for(const e of S.els){if(e.call){if(syms[e.call])walk(syms[e.call],dx+e.dx,dy+e.dy,depth+1);continue}
+  if(e.text!=null){labels.push({text:e.text,x:e.x+dx,y:e.y+dy});continue}const l=CIF_BACK[e.layer];if(l===undefined){warn.add('CIF layer '+e.layer);continue}if(!l)continue;shapes.push({layer:l,pts:e.pts.map(([x,y])=>[x+dx,y+dy])})}};
+ walk(top,0,0,0);if(!shapes.length&&!labels.length)throw new Error('this is not a CIF file');
+ const g=fromCIF._lam?Math.round(fromCIF._lam*100):0;fromCIF._lam=0;const r=paint(shapes,labels,g);if(warn.size)r.warn.push('Not read: '+[...warn].join(', '));return r}
+
+/* transistor and gate netlists -> a layout: gates in a row between VDD and GND rails, every net on its own metal-3 track above or below */
+const isV=n=>/^(vdd|vcc|1)$/i.test(n),isG=n=>/^(gnd|vss|0)$/i.test(n);
+function netlistLayout(segs,ins,outs){const L=new Layout();const C=(kind,x,y,under)=>{L.rect(kind,x,y,2,2);if(kind!=='via2')L.rect('m1',x-1,y-1,4,4);if(kind==='via'||kind==='via2')L.rect('m2',x-1,y-1,4,4);if(kind==='via2')L.rect('m3',x-1,y-1,4,4);if(under)L.rect(under,x-1,y-1,4,4)};
+ const P=16;const top=[],bot=[];let col=0;const lab={};
+ for(const s of segs){const c0=col;const n=s.g.length;const x0=6+P*c0;if(s.p)L.rect('pdiff',x0,10,P*n+4,6);if(s.n)L.rect('ndiff',x0,26,P*n+4,4);
+  s.g.forEach((g,j)=>{const px=14+P*(c0+j);L.rect('poly',px,s.p?8:22,2,s.p&&s.n?24:s.p?14:10);L.rect('poly',px-1,19,4,4);C('contact',px,20);C('via',px,24);L.rect('m1',px-1,19,4,8);top.push({net:g,x:px,y:23});if(!lab[g])lab[g]=[px,21]});
+  for(let i=0;i<=n;i++){const cx=7+P*(c0+i);const pn=s.p?s.p[i]:'*',nn=s.n?s.n[i]:'*';
+   if(pn!=='*'){C('contact',cx,12,'pdiff');if(pn==='VDD')L.rect('m1',cx-1,0,4,15);else{C('via',cx,16);L.rect('m1',cx-1,11,4,8);top.push({net:pn,x:cx,y:15});if(!lab[pn])lab[pn]=[cx,17]}}
+   if(nn!=='*'){C('contact',cx,27,'ndiff');if(nn==='GND')L.rect('m1',cx-1,26,4,20);else if(nn===pn){L.rect('m1',cx-1,11,4,22);if(!lab[pn])lab[pn]=[cx,17]}else{C('via',cx,30);L.rect('m1',cx-1,26,4,7);bot.push({net:nn,x:cx,y:32});if(!lab[nn])lab[nn]=[cx,28]}}}
+  col+=n+1}
+ let fx=7+P*col;
+ /* the rails join a track when VDD or GND is also needed away from them */
+ if(top.some(s=>s.net==='VDD')||bot.some(s=>s.net==='VDD')){C('via',fx,1);top.push({net:'VDD',x:fx,y:0});fx+=8}
+ if(top.some(s=>s.net==='GND')||bot.some(s=>s.net==='GND')){C('via',fx,43);bot.push({net:'GND',x:fx,y:46});fx+=8}
+ const tn=new Set(top.map(s=>s.net)),bn=new Set(bot.map(s=>s.net));
+ for(const net of bn)if(tn.has(net)){top.push({net,x:fx,y:null,ft:1});bot.push({net,x:fx,y:null,ft:1});fx+=8}
+ const W=fx+2;const anyP=segs.some(s=>s.p);if(anyP)L.rect('nwell',0,5,W,16);L.rect('m1',0,0,W,4).rect('m1',0,42,W,4);L.label('VDD',1,1).label('GND',1,43);
+ const channel=(stubs,dir)=>{const nets={};for(const s of stubs)(nets[s.net]=nets[s.net]||[]).push(s);
+  const iv=Object.entries(nets).map(([net,ss])=>({net,ss,a:Math.min(...ss.map(s=>s.x))-1,b:Math.max(...ss.map(s=>s.x))+2})).sort((p,q)=>p.a-q.a);
+  const ends=[];for(const v of iv){let t=ends.findIndex(e=>v.a-e>=4);if(t<0){t=ends.length;ends.push(0)}ends[t]=v.b;v.t=t}
+  for(const v of iv){const ty=dir<0?-7*(v.t+1):48+7*v.t;L.rect('m3',v.a,ty,v.b-v.a+1,4);
+   for(const s of v.ss){L.rect('via2',s.x,ty+1,2,2);L.rect('m2',s.x-1,ty,4,4);if(s.ft)continue;if(dir<0)L.rect('m2',s.x-1,ty,4,s.y-ty+4);else L.rect('m2',s.x-1,s.y-3,4,ty-s.y+7)}}
+  return iv};
+ const T=channel(top,-1),B=channel(bot,1);
+ for(const s of top.filter(s=>s.ft)){const t=T.find(v=>v.net===s.net).t,b=B.find(v=>v.net===s.net).t;const y0=-7*(t+1),y1=48+7*b;L.rect('m2',s.x-1,y0,4,y1-y0+4)}
+ for(const[nm,role]of[...ins.map(n=>[n,'in']),...outs.map(n=>[n,'out'])]){if(!lab[nm]||isV(nm)||isG(nm))continue;const[x,y]=lab[nm];L.label(nm,x,y);const b=L.labels.find(q=>q.text===nm);if(b)b.role=role}
+ return L}
+/* standard CMOS gates as rows of gate columns: p and n are the diffusion nodes between the columns ('*' has no contact) */
+let LOC=0;const loc=()=>'_n'+(++LOC);
+const GATES={
+ inv:(a,y)=>[{g:[a[0]],p:['VDD',y],n:['GND',y]}],
+ nand2:(a,y)=>[{g:[a[0],a[1]],p:[y,'VDD',y],n:[y,'*','GND']}],
+ nand3:(a,y)=>[{g:[a[0],a[1],a[2]],p:[y,'VDD',y,'VDD'],n:[y,'*','*','GND']}],
+ nor2:(a,y)=>[{g:[a[0],a[1]],p:['VDD','*',y],n:[y,'GND',y]}],
+ nor3:(a,y)=>[{g:[a[0],a[1],a[2]],p:['VDD','*','*',y],n:[y,'GND',y,'GND']}],
+ xor2:(a,y)=>{const an=loc(),bn=loc(),p1=loc();return[...GATES.inv([a[0]],an),...GATES.inv([a[1]],bn),{g:[a[1],a[0],bn,an],p:[p1,'VDD',p1,y,p1],n:[y,'*','GND','*',y]}]}};
+GATES.and2=(a,y)=>{const t=loc();return[...GATES.nand2(a,t),...GATES.inv([t],y)]};GATES.and3=(a,y)=>{const t=loc();return[...GATES.nand3(a,t),...GATES.inv([t],y)]};
+GATES.or2=(a,y)=>{const t=loc();return[...GATES.nor2(a,t),...GATES.inv([t],y)]};GATES.or3=(a,y)=>{const t=loc();return[...GATES.nor3(a,t),...GATES.inv([t],y)]};
+GATES.xnor2=(a,y)=>{const t=loc();return[...GATES.xor2(a,t),...GATES.inv([t],y)]};GATES.buf=(a,y)=>{const t=loc();return[...GATES.inv(a,t),...GATES.inv([t],y)]};
+/* transistors -> columns: an n and a p transistor on the same gate share a column */
+function trSegs(tr){const ps=tr.filter(t=>t.type==='p'),ns=tr.filter(t=>t.type==='n');const segs=[];const usedN=new Set();
+ for(const p of ps){const n=ns.find(q=>!usedN.has(q)&&q.g===p.g);if(n)usedN.add(n);segs.push({g:[p.g],p:[p.s,p.d],n:n?[n.s,n.d]:null})}
+ for(const n of ns)if(!usedN.has(n))segs.push({g:[n.g],p:null,n:[n.s,n.d]});
+ /* a p column wants VDD on the left, an n column GND, so the rails are used directly */
+ for(const s of segs){if(s.p&&s.p[1]==='VDD'&&s.p[0]!=='VDD')s.p.reverse();if(s.n&&s.n[1]==='GND'&&s.n[0]!=='GND')s.n.reverse()}
+ return segs}
+const canonNet=n=>isV(n)?'VDD':isG(n)?'GND':n;
+/* ports: a net on a gate only is an input; one on a source or drain is an output */
+function ports(tr,names){const gate=new Set(),diff=new Set();for(const t of tr){gate.add(t.g);diff.add(t.s);diff.add(t.d)}
+ const ins=[],outs=[];for(const n of names){if(isV(n)||isG(n))continue;if(diff.has(n))outs.push(n);else if(gate.has(n))ins.push(n)}return{ins,outs}}
+function fromSpiceNet(text){const lines=String(text).replace(/\r/g,'').split('\n');const joined=[];for(const l of lines){if(/^\s*\+/.test(l)&&joined.length)joined[joined.length-1]+=' '+l.replace(/^\s*\+/,'');else joined.push(l)}
+ const tr=[];let portNames=null;const models={};for(const l of joined){const m=/^\s*\.model\s+(\S+)\s+(\w+)/i.exec(l);if(m)models[m[1].toUpperCase()]=m[2].toUpperCase()}
+ for(const l0 of joined){const l=l0.replace(/[;$].*$/,'').trim();if(!l||l[0]==='*')continue;let m;
+  if((m=/^\.subckt\s+\S+\s+(.*)$/i.exec(l))){portNames=m[1].split(/\s+/).filter(x=>x&&!/=/.test(x));continue}
+  if(/^M/i.test(l)){const t=l.split(/\s+/);if(t.length<6)continue;const mod=t[5].toUpperCase();const ty=/P/.test(models[mod]||mod)&&!/^N/.test(models[mod]||mod)?'p':'n';
+   tr.push({type:ty,d:canonNet(t[1]),g:canonNet(t[2]),s:canonNet(t[3])})}}
+ if(!tr.length)throw new Error('No MOS transistors (M lines) were found');
+ const names=portNames?portNames.map(canonNet):[...new Set(tr.flatMap(t=>[t.g,t.s,t.d]))];const{ins,outs}=ports(tr,names);
+ return{L:netlistLayout(trSegs(tr),ins,outs),warn:[],count:tr.length}}
+/* DSCH .sch: transistors, gates, buttons (inputs), lamps (outputs), VDD/VSS; wires join pins by position */
+function fromSCH(text){const lines=String(text).replace(/\r/g,'').split('\n');if(!/^DSCH/i.test(lines[0]||''))throw new Error('this is not a DSCH schematic');
+ const syms=[],segs=[],dots=[];let cur=null;
+ for(const ln of lines){let m;if((m=/^SYM\s+#(\S+)/.exec(ln))){cur={kind:m[1].toLowerCase(),pins:[],title:''};syms.push(cur);continue}if(/^FSYM/.test(ln)){cur=null;continue}
+  if(cur){if((m=/^PIN\((-?\d+),(-?\d+),[^)]*\)(.*)$/.exec(ln)))cur.pins.push({x:+m[1],y:+m[2],name:m[3].trim()});else if((m=/^TITLE\s+-?\d+\s+-?\d+\s+#(.*)$/.exec(ln)))cur.title=m[1].trim();continue}
+  if((m=/^LIG\((-?\d+),(-?\d+),(-?\d+),(-?\d+)\)/.exec(ln)))segs.push([{x:+m[1],y:+m[2]},{x:+m[3],y:+m[4]}]);else if((m=/^CNC\((-?\d+)\s+(-?\d+)\)/.exec(ln)))dots.push({x:+m[1],y:+m[2]})}
+ const par=new Map();const f=k=>{if(!par.has(k))par.set(k,k);let r=k;while(par.get(r)!==r)r=par.get(r);par.set(k,r);return r};const u=(a,b)=>par.set(f(a),f(b));const PK=p=>p.x+','+p.y;
+ for(const[a,b]of segs)u(PK(a),PK(b));
+ const touch=p=>{const k=PK(p);f(k);for(const[a,b]of segs){const on=(a.x===b.x&&p.x===a.x&&p.y>Math.min(a.y,b.y)&&p.y<Math.max(a.y,b.y))||(a.y===b.y&&p.y===a.y&&p.x>Math.min(a.x,b.x)&&p.x<Math.max(a.x,b.x));if(on)u(k,PK(a))}return k};
+ const allPins=syms.flatMap(s=>s.pins);allPins.forEach(touch);dots.forEach(touch);
+ const name=new Map();const give=(p,n)=>{const r=f(touch(p));if(!name.has(r)||/^(VDD|GND)$/.test(n))name.set(r,n)};
+ for(const s of syms){if(s.kind==='vdd')s.pins.forEach(p=>give(p,'VDD'));else if(s.kind==='vss'||s.kind==='gnd')s.pins.forEach(p=>give(p,'GND'))}
+ for(const s of syms)if((s.kind==='button'||s.kind==='light'||s.kind==='clock')&&s.pins[0]){const nm=s.title||s.pins[0].name;give(s.pins[0],nm)}
+ let auto=0;const net=p=>{const r=f(touch(p));if(!name.has(r))name.set(r,'n'+(++auto));return name.get(r)};
+ const tr=[],gseg=[],ins=[],outs=[],skip=new Set();LOC=0;
+ for(const s of syms){const k=s.kind.replace(/_\d+$/,'');
+  if(k==='pmos'||k==='nmos'){const pin=n=>s.pins.find(q=>q.name===n);const g=pin('g'),d=pin('d'),sr=pin('s');if(!g||!d||!sr){skip.add(k);continue}tr.push({type:k[0],g:net(g),d:net(d),s:net(sr)});continue}
+  if(k==='button'||k==='clock'){if(s.pins[0])ins.push(net(s.pins[0]));continue}if(k==='light'){if(s.pins[0])outs.push(net(s.pins[0]));continue}if(k==='vdd'||k==='vss'||k==='gnd')continue;
+  if(GATES[k]){const o=s.pins.find(q=>/^(s|out|y|q)$/i.test(q.name))||s.pins[s.pins.length-1];const ii=s.pins.filter(q=>q!==o).sort((a,b)=>a.name.localeCompare(b.name));gseg.push(...GATES[k](ii.map(net),net(o)));continue}
+  skip.add(k)}
+ if(!tr.length&&!gseg.length)throw new Error('No transistors or gates CEsim can lay out were found');
+ const segs2=[...gseg,...trSegs(tr)];const r={L:netlistLayout(segs2,[...new Set(ins)],[...new Set(outs)]),warn:skip.size?['Not laid out: '+[...skip].join(', ')]:[]};return r}
+
+const api={LAYERS,INFO,RULES,Layout,rects,extract,simulate,truthTable,nameFunction,drc,toSpice,toCIF,toGDS,toMSK,fromMSK,toSCH,fromGDS,fromCIF,fromSCH,fromSpiceNet,netlistLayout,section,channelType,K,XY};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;else root.VL=api;
 })(typeof window!=='undefined'?window:globalThis);

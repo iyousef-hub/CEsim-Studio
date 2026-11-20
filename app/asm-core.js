@@ -451,6 +451,93 @@ class CPU{
   this.cpuErr(`Interrupt ${hex(n,2)}h has no handler. Supported services: INT 10h, 16h, 1Ah, 20h and 21h. You can install your own handler with INT 21h function 25h`)}
  flagStr(){return['OF','DF','IF','TF','SF','ZF','AF','PF','CF'].map(k=>k[0]+'='+this.gf(F[k])).join(' ')}
 }
-const api={assemble,CPU,R16,R8,SREG,F,hex,parseNum};
+/* ---------- .COM files back to assembly ---------- */
+/* follows the code from 100h (jumps, calls, branches); bytes it never reaches are data. Addresses the code uses become labels. */
+function disasmCom(bytes){const b=bytes instanceof Uint8Array?bytes:new Uint8Array(bytes);const ORG=0x100,END=ORG+b.length;const at=a=>b[a-ORG];
+ const H=(v,n)=>{const s=(v>>>0).toString(16).toUpperCase().padStart(n||1,'0');return(/^[A-F]/.test(s)?'0':'')+s+'h'};
+ const RM=['bx+si','bx+di','bp+si','bp+di','si','di','bp','bx'];const ALUN=['add','or','adc','sbb','and','sub','xor','cmp'];const SHN=['rol','ror','rcl','rcr','shl','shr',null,'sar'];
+ const G3=['test',null,'not','neg','mul','imul','div','idiv'];const CCN=['jo','jno','jb','jae','je','jne','jbe','ja','js','jns','jp','jnp','jl','jge','jle','jg'];
+ const code=new Map();const queue=[ORG];const labels=new Map();const dataRefs=new Set();
+ const one=a=>{let p=a;const rd=()=>{if(p>=END)throw 0;return at(p++)};const s8=v=>v>127?v-256:v;const w16=()=>{const lo=rd(),hi=rd();return lo|(hi<<8)};
+  let seg='',rep='';const ins={a,flow:'next',targets:[],mem:null};
+  for(;;){const c=at(p);if(c===0x26||c===0x2E||c===0x36||c===0x3E){seg=['es','cs','ss','ds'][(c>>3)&3]+':';p++;continue}if(c===0xF2||c===0xF3){rep=c===0xF2?'repne ':'rep ';p++;continue}if(c===0xF0){rep='lock ';p++;continue}break}
+  const op=rd();
+  const modrm=(w)=>{const m=rd();const mod=m>>6,reg=(m>>3)&7,rm=m&7;let o;
+   if(mod===3)o={k:'r',t:(w?R16:R8)[rm]};else{let e,disp=0,direct=false;if(mod===0&&rm===6){disp=w16();direct=true;e=null}else{e=RM[rm];if(mod===1)disp=s8(rd());else if(mod===2)disp=(w16()<<16)>>16}
+    o={k:'m',direct,disp,e,seg}}
+   return{reg,o}};
+  const fmt=(o,size)=>{if(o.k==='r')return o.t;const ptr=size?(size===1?'byte ptr ':'word ptr '):'';let inner;
+   if(o.direct){inner=o.disp>=ORG&&o.disp<END?'@D'+o.disp:H(o.disp,4);if(o.disp>=ORG&&o.disp<END)dataRefs.add(o.disp)}else inner=o.e+(o.disp?(o.disp<0?'-'+H(-o.disp):'+'+H(o.disp)):'');
+   return ptr+(o.seg||'')+'['+inner+']'};
+  const R=(w,r)=>(w?R16:R8)[r];const imm=(w)=>w?w16():rd();
+  const jump=(t,txt,flow)=>{ins.targets.push(t);ins.text=txt+' @L'+t;ins.flow=flow||'branch'};
+  let t;
+  if(op<0x40&&(op&7)<6){const n=ALUN[op>>3],w=op&1;if((op&7)<4){const{reg,o}=modrm(w);t=(op&2)?`${n} ${R(w,reg)}, ${fmt(o)}`:`${n} ${fmt(o)}, ${R(w,reg)}`}else{const v=imm(w);t=`${n} ${w?'ax':'al'}, ${H(v,w?4:2)}`}}
+  else if([0x06,0x0E,0x16,0x1E].includes(op))t='push '+SREG[(op>>3)&3];else if([0x07,0x17,0x1F].includes(op))t='pop '+SREG[(op>>3)&3];
+  else if(op===0x27)t='daa';else if(op===0x2F)t='das';else if(op===0x37)t='aaa';else if(op===0x3F)t='aas';
+  else if(op>=0x40&&op<0x48)t='inc '+R16[op&7];else if(op<0x50&&op>=0x48)t='dec '+R16[op&7];else if(op>=0x50&&op<0x58)t='push '+R16[op&7];else if(op>=0x58&&op<0x60)t='pop '+R16[op&7];
+  else if(op>=0x70&&op<0x80){const r=s8(rd());jump((p+r)&0xFFFF,CCN[op&15])}
+  else if(op>=0x80&&op<=0x83){const w=op&1;const{reg,o}=modrm(w);const v=op===0x83?s8(rd()):imm(w);t=`${ALUN[reg]} ${fmt(o,o.k==='m'?(w?2:1):0)}, ${op===0x83?(v<0?'-'+H(-v):H(v)):H(v,w?4:2)}`}
+  else if(op===0x84||op===0x85){const w=op&1;const{reg,o}=modrm(w);t=`test ${fmt(o)}, ${R(w,reg)}`}
+  else if(op===0x86||op===0x87){const w=op&1;const{reg,o}=modrm(w);t=o.k==='r'?`xchg ${R(w,reg)}, ${fmt(o)}`:`xchg ${fmt(o)}, ${R(w,reg)}`}
+  else if(op>=0x88&&op<=0x8B){const w=op&1;const{reg,o}=modrm(w);t=(op&2)?`mov ${R(w,reg)}, ${fmt(o)}`:`mov ${fmt(o)}, ${R(w,reg)}`}
+  else if(op===0x8C){const{reg,o}=modrm(1);if(reg>3)throw 0;t=`mov ${fmt(o)}, ${SREG[reg]}`}else if(op===0x8E){const{reg,o}=modrm(1);if(reg>3||reg===1)throw 0;t=`mov ${SREG[reg]}, ${fmt(o)}`}
+  else if(op===0x8D){const{reg,o}=modrm(1);if(o.k==='r')throw 0;t=`lea ${R16[reg]}, ${fmt(o)}`}else if(op===0x8F){const{o}=modrm(1);t=`pop ${fmt(o,o.k==='m'?2:0)}`}
+  else if(op===0x90)t='nop';else if(op>0x90&&op<0x98)t='xchg ax, '+R16[op&7];
+  else if(op>=0xA0&&op<=0xA3){const w=op&1;const ad=w16();const m={k:'m',direct:true,disp:ad,seg};t=op<0xA2?`mov ${w?'ax':'al'}, ${fmt(m)}`:`mov ${fmt(m)}, ${w?'ax':'al'}`}
+  else if(op===0xA8)t='test al, '+H(rd(),2);else if(op===0xA9)t='test ax, '+H(w16(),4);
+  else if(op>=0xA4&&op<=0xAF&&op!==0xA8&&op!==0xA9)t=rep+['movsb','movsw','cmpsb','cmpsw',null,null,'stosb','stosw','lodsb','lodsw','scasb','scasw'][op-0xA4];
+  else if(op>=0xB0&&op<0xB8)t=`mov ${R8[op&7]}, ${H(rd(),2)}`;
+  else if(op>=0xB8&&op<0xC0){const v=w16();ins.imm=v;t=`mov ${R16[op&7]}, ${v>=ORG&&v<END?'offset @D'+v:H(v,4)}`;if(v>=ORG&&v<END)dataRefs.add(v)}
+  else if(op===0xC2){t='ret '+H(w16(),4);ins.flow='end'}else if(op===0xC3){t='ret';ins.flow='end'}else if(op===0xCA){t='retf '+H(w16(),4);ins.flow='end'}else if(op===0xCB){t='retf';ins.flow='end'}
+  else if(op===0xC4||op===0xC5){const{reg,o}=modrm(1);if(o.k==='r')throw 0;t=`${op===0xC4?'les':'lds'} ${R16[reg]}, ${fmt(o)}`}
+  else if(op===0xC6||op===0xC7){const w=op&1;const{o}=modrm(w);const v=imm(w);t=`mov ${fmt(o,o.k==='m'?(w?2:1):0)}, ${H(v,w?4:2)}`}
+  else if(op===0xCC)t='int 3';else if(op===0xCD){const n=rd();t='int '+H(n,2);ins.int=n}else if(op===0xCE)t='into';else if(op===0xCF){t='iret';ins.flow='end'}
+  else if(op>=0xD0&&op<=0xD3||op===0xC0||op===0xC1){const w=op&1;const{reg,o}=modrm(w);if(!SHN[reg])throw 0;const cnt=op>=0xD2?'cl':op>=0xD0?'1':String(rd());t=`${SHN[reg]} ${fmt(o,o.k==='m'?(w?2:1):0)}, ${cnt}`}
+  else if(op===0xD4&&at(p)===0x0A){p++;t='aam'}else if(op===0xD5&&at(p)===0x0A){p++;t='aad'}else if(op===0xD7)t='xlat';
+  else if(op>=0xE0&&op<=0xE3){const r=s8(rd());jump((p+r)&0xFFFF,['loopne','loope','loop','jcxz'][op-0xE0])}
+  else if(op===0xE4)t='in al, '+H(rd(),2);else if(op===0xE5)t='in ax, '+H(rd(),2);else if(op===0xE6)t=`out ${H(rd(),2)}, al`;else if(op===0xE7)t=`out ${H(rd(),2)}, ax`;
+  else if(op===0xEC)t='in al, dx';else if(op===0xED)t='in ax, dx';else if(op===0xEE)t='out dx, al';else if(op===0xEF)t='out dx, ax';
+  else if(op===0xE8){const r=(w16()<<16)>>16;jump((p+r)&0xFFFF,'call','call')}
+  else if(op===0xE9){const r=(w16()<<16)>>16;const tg=(p+r)&0xFFFF;if(r>=-128&&r<=127){ins.targets.push(tg);ins.flow='end';ins.raw=true}else jump(tg,'jmp','end')}
+  else if(op===0xEB){const r=s8(rd());jump((p+r)&0xFFFF,'jmp short','end')}
+  else if(op===0xF4){t='hlt';ins.flow='end'}else if(op===0xF5)t='cmc';else if(op>=0xF8&&op<=0xFD)t=['clc','stc','cli','sti','cld','std'][op-0xF8];
+  else if(op===0xF6||op===0xF7){const w=op&1;const{reg,o}=modrm(w);if(!G3[reg])throw 0;if(reg===0)t=`test ${fmt(o,o.k==='m'?(w?2:1):0)}, ${H(imm(w),w?4:2)}`;else t=`${G3[reg]} ${fmt(o,o.k==='m'?(w?2:1):0)}`}
+  else if(op===0xFE){const{reg,o}=modrm(0);if(reg>1)throw 0;t=`${reg?'dec':'inc'} ${fmt(o,o.k==='m'?1:0)}`}
+  else if(op===0xFF){const{reg,o}=modrm(1);const n=['inc','dec','call',null,'jmp',null,'push',null][reg];if(!n)throw 0;t=`${n} ${fmt(o,o.k==='m'?2:0)}`;if(reg===4)ins.flow='end'}
+  else if(op===0x9C)t='pushf';else if(op===0x9D)t='popf';else if(op===0x9E)t='sahf';else if(op===0x9F)t='lahf';else if(op===0x98)t='cbw';else if(op===0x99)t='cwd';else if(op===0x9B)t='wait';
+  else if(op===0xF8)t='clc';
+  else throw 0;
+  if(t!=null)ins.text=(rep&&!/^(rep|lock)/.test(t)&&/^lock/.test(rep)?rep:'')+t;ins.len=p-a;return ins};
+ /* program end: INT 20h, or INT 21h with AH = 4Ch */
+ let ah=null;
+ while(queue.length){let a=queue.shift();while(a>=ORG&&a<END&&!code.has(a)){let ins;try{ins=one(a)}catch(e){break}
+   for(let k=a;k<a+ins.len;k++)if(code.has(k)&&k!==a){ins=null;break}if(!ins)break;code.set(a,ins);
+   if(/^mov ah, /.test(ins.text||''))ah=parseInt(ins.text.slice(8),16);else if(/^mov ax, /.test(ins.text||'')&&ins.imm!=null)ah=ins.imm>>8;
+   for(const tg of ins.targets){if(tg>=ORG&&tg<END){labels.set(tg,true);queue.push(tg)}}
+   if(ins.int===0x20||(ins.int===0x21&&ah===0x4C)||ins.int===0x27)break;if(ins.flow==='end')break;a+=ins.len}}
+ /* every instruction must assemble back to the same bytes; one that would not (another encoding of it) is kept as bytes */
+ for(const[a,ins]of code){if(ins.raw||ins.text==null)continue;const txt=ins.text.replace(/offset @D(\d+)/g,(m,v)=>H(+v,4)).replace(/@[DL](\d+)/g,(m,v)=>H(+v,4));
+  let ok=false;try{const pr=assemble('org '+H(a,4)+'\n        '+txt+'\n');if(pr.ok){const got=[];for(const r of pr.listing)if(r.sec==='code')got.push(...r.bytes);ok=got.length===ins.len&&got.every((x,k)=>x===at(a+k))}}catch(e){}
+  if(!ok)ins.raw=true}
+ /* names: L for code, D for data */
+ const name=new Map();let nl=0,nd=0;const isCode=a=>code.has(a);
+ for(const a of [...new Set([...labels.keys(),...dataRefs])].sort((x,y)=>x-y)){if(a<ORG||a>END)continue;name.set(a,isCode(a)||labels.has(a)?'L'+(++nl):'D'+(++nd))}
+ /* a referenced address inside an instruction cannot get a label: use the plain number */
+ const inside=new Set();for(const[a,ins]of code)for(let k=a+1;k<a+ins.len;k++)inside.add(k);
+ const lab=v=>name.has(v)&&!inside.has(v)?name.get(v):null;
+ for(const[a,ins]of code)if(!ins.raw&&ins.targets.some(t=>!lab(t)))ins.raw=true;
+ const fix=s=>s.replace(/offset @D(\d+)/g,(m,v)=>lab(+v)?'offset '+lab(+v):H(+v,4)).replace(/@D(\d+)/g,(m,v)=>lab(+v)||H(+v,4)).replace(/@L(\d+)/g,(m,v)=>lab(+v)||H(+v,4));
+ const out=['; Read back from a .COM file: the code is followed from 100h, the rest is data.','org 100h',''];
+ const pad=s=>s.length>=8?s+' ':s.padEnd(8);
+ let a=ORG;while(a<END){const l=lab(a);
+  if(code.has(a)){const ins=code.get(a);let txt;if(ins.raw){const r=[];for(let k=0;k<ins.len;k++)r.push(H(at(a+k),2));txt='db   '+r.join(', ')+'   ; '+(ins.text!=null?fix(ins.text).replace(/@L/g,''):'jmp '+(lab(ins.targets[0])||H(ins.targets[0],4)))}else txt=fix(ins.text);
+   out.push(pad(l?l+':':'')+txt);a+=ins.len;continue}
+  /* data up to the next code or label */
+  let e=a+1;while(e<END&&!code.has(e)&&!name.has(e))e++;const parts=[];let s='';const flush=()=>{if(s){parts.push("'"+s+"'");s=''}};
+  for(let k=a;k<e;k++){const c=at(k);if(c>=32&&c<127&&c!==39)s+=String.fromCharCode(c);else{flush();parts.push(H(c,2))}}flush();
+  const dl=l&&/^L/.test(l);if(dl)out.push(l+':');for(let i=0;i<parts.length;i+=12)out.push(pad(i===0&&l&&!dl?l:'')+'db   '+parts.slice(i,i+12).join(', '));a=e}
+ return{src:out.join('\n')+'\n',codeBytes:[...code.values()].reduce((s,i)=>s+i.len,0),total:b.length}}
+const api={assemble,CPU,R16,R8,SREG,F,hex,parseNum,disasmCom};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;else root.ASM86=api;
 })(typeof window!=='undefined'?window:globalThis);

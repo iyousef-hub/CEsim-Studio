@@ -20,7 +20,13 @@ const docTypes = [
   { CFBundleTypeName: 'Waveform', CFBundleTypeExtensions: ['vcd'], CFBundleTypeRole: 'Viewer', LSHandlerRank: 'Alternate' },
   { CFBundleTypeName: 'MIPS or RISC-V assembly', CFBundleTypeExtensions: ['s'], CFBundleTypeRole: 'Editor', LSHandlerRank: 'Alternate' },
   { CFBundleTypeName: 'CEsim 3D', CFBundleTypeExtensions: ['ce3d'], CFBundleTypeRole: 'Editor', LSHandlerRank: 'Owner' },
-  { CFBundleTypeName: '3D model', CFBundleTypeExtensions: ['stl', 'obj', '3mf'], CFBundleTypeRole: 'Editor', LSHandlerRank: 'Alternate' }];
+  { CFBundleTypeName: '3D model', CFBundleTypeExtensions: ['stl', 'obj', '3mf'], CFBundleTypeRole: 'Editor', LSHandlerRank: 'Alternate' },
+  { CFBundleTypeName: 'Multisim design', CFBundleTypeExtensions: ['ms14', 'ms13', 'ms12'], CFBundleTypeRole: 'Editor', LSHandlerRank: 'Alternate' },
+  { CFBundleTypeName: 'LTspice or KiCad schematic', CFBundleTypeExtensions: ['asc', 'kicad_sch'], CFBundleTypeRole: 'Editor', LSHandlerRank: 'Alternate' },
+  { CFBundleTypeName: 'Chip layout', CFBundleTypeExtensions: ['msk', 'gds', 'cif'], CFBundleTypeRole: 'Editor', LSHandlerRank: 'Alternate' },
+  { CFBundleTypeName: 'DSCH schematic', CFBundleTypeExtensions: ['sch'], CFBundleTypeRole: 'Editor', LSHandlerRank: 'Alternate' },
+  { CFBundleTypeName: 'Gerber file', CFBundleTypeExtensions: ['gbr', 'gtl', 'gbl', 'drl'], CFBundleTypeRole: 'Viewer', LSHandlerRank: 'Alternate' },
+  { CFBundleTypeName: 'Program image', CFBundleTypeExtensions: ['hex', 'com'], CFBundleTypeRole: 'Viewer', LSHandlerRank: 'Alternate' }];
 (async () => {
   const opts = { dir: path.join(root, 'app'), name: 'CEsim Studio', platform, arch, electronVersion: '33.2.1', out: path.join(root, 'out'), overwrite: true,
     appVersion: VERSION, buildVersion: VERSION, appCopyright: 'BY. YOUSEF A.ALGHAMDI' };

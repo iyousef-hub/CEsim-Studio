@@ -144,7 +144,7 @@ function refPos(c){const b=compBox(c);return[(b[0]+b[2])/2,b[1]-1.2]}
 function gerberFiles(doc,name){name=name||'board';const W=doc.board.w,H=doc.board.h;const F=v=>Math.round(v*1e6).toString();const X=x=>F(x),Y=y=>F(H-y);
  function writer(fn,attr){const ap=new Map();let next=10;const body=[];let cur=null;const apOf=def=>{if(!ap.has(def))ap.set(def,next++);return ap.get(def)};const sel=def=>{const d=apOf(def);if(cur!==d){body.push(`D${d}*`);cur=d}};
   return{flash(def,x,y){sel(def);body.push(`X${X(x)}Y${Y(y)}D03*`)},line(def,pts){sel(def);body.push(`X${X(pts[0][0])}Y${Y(pts[0][1])}D02*`);for(let i=1;i<pts.length;i++)body.push(`X${X(pts[i][0])}Y${Y(pts[i][1])}D01*`)},
-   text(){const head=[`G04 ${fn}, made with CEsim PCB*`,`%TF.GenerationSoftware,CEsim,PCB,1.30.0*%`,`%TF.FileFunction,${attr}*%`,'%FSLAX46Y46*%','%MOMM*%','%LPD*%','G01*'];for(const[def,d]of ap)head.push(`%ADD${d}${def}*%`);return head.concat(body,['M02*']).join('\n')+'\n'}}}
+   text(){const head=[`G04 ${fn}, made with CEsim PCB*`,`%TF.GenerationSoftware,CEsim,PCB,1.31.0*%`,`%TF.FileFunction,${attr}*%`,'%FSLAX46Y46*%','%MOMM*%','%LPD*%','G01*'];for(const[def,d]of ap)head.push(`%ADD${d}${def}*%`);return head.concat(body,['M02*']).join('\n')+'\n'}}}
  const n4=v=>(+v).toFixed(4);const apPad=(p,grow)=>{const w=p.w+2*grow,h=p.h+2*grow;if(p.shape==='round')return`C,${n4(w)}`;if(p.shape==='oval')return`O,${n4(w)}X${n4(h)}`;return`R,${n4(w)}X${n4(h)}`};
  const out={};const items=copper(doc);
  for(const L of['F','B']){const w=writer(`${L==='F'?'Top':'Bottom'} copper`,`Copper,L${L==='F'?1:2},${L==='F'?'Top':'Bot'}`);for(const it of items)if(it.kind==='pad'&&it.layers.includes(L))w.flash(apPad(it.p,0),it.p.x,it.p.y);for(const v of doc.vias)w.flash(`C,${n4(v.d)}`,v.x,v.y);for(const t of doc.traces)if(t.layer===L)w.line(`C,${n4(t.w)}`,[t.a,t.b]);out[`${name}-${L}_Cu.gbr`]=w.text()}
@@ -187,6 +187,80 @@ function autoPlace(doc,opt){opt=opt||{};const gap=opt.gap||3.0;const comps=doc.c
  const all=doc.comps.map(compBox);const W=Math.max(...all.map(b=>b[2]))+gap+0.5,H=Math.max(...all.map(b=>b[3]))+gap+0.5;doc.board={w:Math.ceil(W/2.54)*2.54,h:Math.ceil(H/2.54)*2.54};return doc}
 function area(c){const b=compBox(c);return(b[2]-b[0])*(b[3]-b[1])}
 const snapG=(v,g)=>Math.round(v/g)*g;
-const api={FP,padsOf,rotPt,padShape,shapeDist,copper,clusters,ratsnest,drc,autoroute,gerberFiles,zip,crc32,fromNetlist,autoPlace,compBox,silkOf,refPos,textStrokes,nets,DEF_RULES,segSeg,ptSeg};
+/* ---------------- reading Gerber and Excellon files back ---------------- */
+/* ZIP: stored and deflated entries (deflate needs DecompressionStream, or zlib in Node) */
+async function unzip(bytes){const u=bytes instanceof Uint8Array?bytes:new Uint8Array(bytes);const dv=new DataView(u.buffer,u.byteOffset,u.byteLength);const out={};
+ let e=-1;for(let i=u.length-22;i>=Math.max(0,u.length-70000);i--)if(dv.getUint32(i,true)===0x06054b50){e=i;break}if(e<0)throw new Error('this is not a ZIP file');
+ const n=dv.getUint16(e+10,true);let p=dv.getUint32(e+16,true);const dec=new TextDecoder();
+ for(let k=0;k<n;k++){if(dv.getUint32(p,true)!==0x02014b50)break;const method=dv.getUint16(p+10,true),csize=dv.getUint32(p+20,true),nl=dv.getUint16(p+28,true),xl=dv.getUint16(p+30,true),cl=dv.getUint16(p+32,true),off=dv.getUint32(p+42,true);
+  const name=dec.decode(u.subarray(p+46,p+46+nl));p+=46+nl+xl+cl;if(/\/$/.test(name))continue;
+  const lnl=dv.getUint16(off+26,true),lxl=dv.getUint16(off+28,true);const data=u.subarray(off+30+lnl+lxl,off+30+lnl+lxl+csize);
+  if(method===0)out[name]=data;else if(method===8){if(typeof DecompressionStream!=='undefined'){const s=new Blob([data]).stream().pipeThrough(new DecompressionStream('deflate-raw'));out[name]=new Uint8Array(await new Response(s).arrayBuffer())}
+   else if(typeof require!=='undefined')out[name]=new Uint8Array(require('zlib').inflateRawSync(data))}}
+ return out}
+function parseGerber(text){const src=String(text);let fmt={xi:2,xd:6,yi:2,yd:6,tz:false},mm=true;const ap={};let cur=null,x=0,y=0,mode=1,region=false;const flashes=[],lines=[];let func='';const warn=new Set();
+ const coord=(s,dec,ii)=>{if(s==null)return null;let neg=s[0]==='-';s=s.replace(/^[-+]/,'');if(/\./.test(s))return(neg?-1:1)*parseFloat(s);if(fmt.tz)s=s.padEnd(ii+dec,'0');const v=parseInt(s,10)/Math.pow(10,dec);return neg?-v:v};
+ const U=v=>mm?v:v*25.4;
+ const toks=src.replace(/\r/g,'').split(/(%[^%]*%)|\*/).filter(t=>t&&t.trim());
+ for(let t of toks){t=t.trim();if(t[0]==='%'){const body=t.slice(1,-1).replace(/\*$/,'');for(const b of body.split('*').filter(Boolean)){let m;
+    if((m=/^FS([LT])A?X(\d)(\d)Y(\d)(\d)/.exec(b)))fmt={tz:m[1]==='T',xi:+m[2],xd:+m[3],yi:+m[4],yd:+m[5]};
+    else if(/^MOIN/.test(b))mm=false;else if(/^MOMM/.test(b))mm=true;
+    else if((m=/^ADD(\d+)([A-Za-z_][\w.]*),?([\d.X]*)/.exec(b))){const v=(m[3]||'').split('X').map(Number);ap[m[1]]={shape:m[2],w:U(v[0]||0),h:U(v[1]||v[0]||0)}}
+    else if((m=/^TF\.FileFunction,(.*)$/.exec(b)))func=m[1]}continue}
+  let m;
+  if(/^G0?4/.test(t))continue;if(/^G36/.test(t)){region=true;warn.add('filled areas');continue}if(/^G37/.test(t)){region=false;continue}
+  if((m=/^G0?([123])(?!\d)/.exec(t))){mode=+m[1];t=t.slice(m[0].length)}
+  if((m=/^G54D(\d+)/.exec(t))||(m=/^D(\d+)$/.exec(t))){if(+m[1]>=10){cur=m[1];continue}}
+  if(/^M0?2/.test(t))break;
+  m=/^(?:X([-+]?[\d.]+))?(?:Y([-+]?[\d.]+))?(?:I([-+]?[\d.]+))?(?:J([-+]?[\d.]+))?D0?([123])$/.exec(t);if(!m)continue;
+  const nx=m[1]!=null?U(coord(m[1],fmt.xd,fmt.xi)):x,ny=m[2]!=null?U(coord(m[2],fmt.yd,fmt.yi)):y;const d=+m[5];
+  if(region){x=nx;y=ny;continue}
+  if(d===3)flashes.push({x:nx,y:ny,ap:ap[cur]});
+  else if(d===1){if(mode===1)lines.push({a:[x,y],b:[nx,ny],ap:ap[cur]});else{const ci=m[3]!=null?U(coord(m[3],fmt.xd,fmt.xi)):0,cj=m[4]!=null?U(coord(m[4],fmt.yd,fmt.yi)):0;const cx=x+ci,cy=y+cj;const r=Math.hypot(x-cx,y-cy);let a0=Math.atan2(y-cy,x-cx),a1=Math.atan2(ny-cy,nx-cx);
+    if(mode===3){while(a1<=a0)a1+=2*Math.PI}else{while(a1>=a0)a1-=2*Math.PI}const nseg=Math.max(2,Math.ceil(Math.abs(a1-a0)/(Math.PI/12)));let px=x,py=y;for(let i=1;i<=nseg;i++){const a=a0+(a1-a0)*i/nseg;const qx=i===nseg?nx:cx+r*Math.cos(a),qy=i===nseg?ny:cy+r*Math.sin(a);lines.push({a:[px,py],b:[qx,qy],ap:ap[cur]});px=qx;py=qy}}}
+  x=nx;y=ny}
+ return{flashes,lines,func,warn:[...warn]}}
+function parseDrill(text){const L=String(text).replace(/\r/g,'').split('\n');let mm=true,tz=false;const tools={};let cur=null;const holes=[];
+ for(const l0 of L){const l=l0.trim();let m;if(!l||l[0]===';')continue;if(/^METRIC/.test(l)){mm=true;tz=/TZ/.test(l)}else if(/^INCH/.test(l)){mm=false;tz=/TZ/.test(l)}
+  if((m=/^T(\d+)(?:F\d+S\d+)?C([\d.]+)/.exec(l))){tools[+m[1]]=(+m[2])*(mm?1:25.4);continue}if((m=/^T(\d+)$/.exec(l))){cur=+m[1];continue}
+  if((m=/^X([-+]?[\d.]+)Y([-+]?[\d.]+)/.exec(l))){const c=s=>/\./.test(s)?parseFloat(s):parseInt(s,10)/(mm?1000:10000);holes.push({x:c(m[1])*(mm?1:25.4),y:c(m[2])*(mm?1:25.4),d:tools[cur]||0.8})}}
+ return holes}
+const PREFIX={R_Axial:'R',R_0805:'R',Pot_Trim:'RV',D_DO41:'D',LED_5mm:'D',LED_0805:'D',C_0805:'C',C_Disc:'C',CP_Radial:'C','TO-92':'Q',SW_Push_6mm:'SW',Terminal_2:'J',Header_1x2:'J',Header_1x3:'J',Header_1x4:'J',Header_1x6:'J','DIP-8':'U','DIP-14':'U','DIP-16':'U',Seg7:'U'};
+function layerOf(name,func){const n=name.toLowerCase();const f=String(func||'');
+ if(/\.(drl|xln|exc|drd)$/.test(n)||/drill/.test(n)&&!/\.gbr$/.test(n))return'drill';
+ if(/Profile/.test(f)||/edge|outline|\.gko$|\.gm1$|\.gml$/.test(n))return'edge';
+ if(/Copper,L1|Copper.*Top/.test(f)||/f_cu|\.gtl$|top.?copper|copper.?top/.test(n))return'F';
+ if(/Copper,L\d+,Bot/.test(f)||/b_cu|\.gbl$|bottom.?copper|copper.?bot/.test(n))return'B';
+ return null}
+/* files: {name: text or bytes}. Pads are matched against the footprints the PCB knows; tracks and vias come back as they are. */
+function fromGerber(files){const dec=new TextDecoder();const txt=v=>typeof v==='string'?v:dec.decode(v);const g={F:null,B:null,edge:null},holes=[];const warn=new Set();
+ for(const[name,v]of Object.entries(files)){const t=txt(v);let lay=layerOf(name,'');if(lay==='drill'||(!lay&&/^M48/.test(t.trim()))){holes.push(...parseDrill(t));continue}
+  if(!/%FS|%MO|D0?[123]\*/.test(t))continue;const G=parseGerber(t);lay=lay||layerOf(name,G.func);if(lay&&!g[lay]){g[lay]=G;G.warn.forEach(w=>warn.add(w))}}
+ if(!g.F&&!g.B)throw new Error('no copper layer was found in the files');
+ /* frame: the outline if there is one */
+ const pts=[];if(g.edge){for(const l of g.edge.lines)pts.push(l.a,l.b)}else for(const G of[g.F,g.B])if(G){for(const f of G.flashes)pts.push([f.x,f.y]);for(const l of G.lines)pts.push(l.a,l.b)}
+ const x0=Math.min(...pts.map(p=>p[0]))-(g.edge?0:3),x1=Math.max(...pts.map(p=>p[0]))+(g.edge?0:3),y0=Math.min(...pts.map(p=>p[1]))-(g.edge?0:3),y1=Math.max(...pts.map(p=>p[1]))+(g.edge?0:3);
+ const T=([x,y])=>[+(x-x0).toFixed(4),+(y1-y).toFixed(4)];
+ const doc={board:{w:+(x1-x0).toFixed(3),h:+(y1-y0).toFixed(3)},comps:[],nets:{},traces:[],vias:[],texts:[],rules:{...DEF_RULES}};
+ const fl=(g.F?g.F.flashes:[]).map(f=>{const[x,y]=T([f.x,f.y]);return{x,y,ap:f.ap||{shape:'C',w:1,h:1},used:false}});
+ const onB=(x,y)=>g.B&&g.B.flashes.some(f=>{const q=T([f.x,f.y]);return Math.abs(q[0]-x)<0.02&&Math.abs(q[1]-y)<0.02});
+ const hole=(x,y)=>holes.map(h=>({...h,q:T([h.x,h.y])})).find(h=>Math.abs(h.q[0]-x)<0.02&&Math.abs(h.q[1]-y)<0.02);
+ const shapeOk=(f,p)=>{const s=f.ap.shape;const want=p.shape==='round'?'C':p.shape==='oval'?'O':'R';if(s!==want)return false;return Math.abs(f.ap.w-p.w)<0.02&&Math.abs(f.ap.h-p.h)<0.02};
+ /* footprints with more pads first */
+ const fps=Object.keys(FP).sort((a,b)=>FP[b].pads.length-FP[a].pads.length);const count={};
+ for(const k of fps){const F=FP[k];for(const rot of[0,90,180,270]){const c0={fp:k,x:0,y:0,rot,ref:'?'};const rel=padsOf(c0);
+   for(const f of fl){if(f.used||!shapeOk(f,rel[0]))continue;const ox=f.x-rel[0].x,oy=f.y-rel[0].y;const hit=[];
+    for(const p of rel){const q=fl.find(z=>!z.used&&Math.abs(z.x-(p.x+ox))<0.02&&Math.abs(z.y-(p.y+oy))<0.02&&shapeOk(z,p));if(!q)break;if(p.drill&&!hole(q.x,q.y))break;hit.push(q)}
+    if(hit.length!==rel.length)continue;hit.forEach(q=>q.used=true);const pre=PREFIX[k]||'U';count[pre]=(count[pre]||0)+1;doc.comps.push({ref:pre+count[pre],fp:k,value:'',x:+ox.toFixed(4),y:+oy.toFixed(4),rot})}}}
+ /* round flashes on both sides over a hole, not part of a footprint: vias */
+ let loose=0;for(const f of fl){if(f.used)continue;const h=hole(f.x,f.y);if(f.ap.shape==='C'&&h&&onB(f.x,f.y)){doc.vias.push({x:f.x,y:f.y,d:+f.ap.w.toFixed(3),drill:+h.d.toFixed(3)});f.used=true}else loose++}
+ if(loose)warn.add(loose+' pads that match no footprint');
+ for(const L of['F','B'])if(g[L])for(const l of g[L].lines){const a=T(l.a),b=T(l.b);if(a[0]===b[0]&&a[1]===b[1])continue;doc.traces.push({a,b,w:+((l.ap&&l.ap.w)||0.25).toFixed(3),layer:L})}
+ /* nets from the copper: everything that touches is one net */
+ const items=copper(doc);const cl=clusters(items);const groups=new Map();items.forEach((it,i)=>{const r=cl[i];if(!groups.has(r))groups.set(r,[]);groups.get(r).push(it)});let nn=0;
+ for(const its of groups.values()){const pads=its.filter(i=>i.kind==='pad');if(pads.length<2&&its.length<2)continue;const net='N'+(++nn);for(const it of its){if(it.kind==='pad')doc.nets[it.ref+'.'+it.pad]=net;else if(it.kind==='trace')it.t.net=net;else if(it.kind==='via')it.v.net=net}}
+ return{doc,warn:[...warn]}}
+
+const api={FP,padsOf,rotPt,padShape,shapeDist,copper,clusters,ratsnest,drc,autoroute,gerberFiles,zip,unzip,crc32,parseGerber,parseDrill,fromGerber,fromNetlist,autoPlace,compBox,silkOf,refPos,textStrokes,nets,DEF_RULES,segSeg,ptSeg};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;else root.PCB=api;
 })(typeof window!=='undefined'?window:globalThis);
