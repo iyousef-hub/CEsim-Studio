@@ -2,7 +2,7 @@ Unicode true
 !include "MUI2.nsh"
 !define APP "CEsim Studio"
 !ifndef VER
-!define VER "1.31.0"
+!define VER "1.32.0"
 !endif
 !define EXE "CEsim Studio.exe"
 !define SRC "..\..\out\CEsim Studio-win32-x64"
@@ -13,7 +13,7 @@ InstallDir "$LOCALAPPDATA\Programs\CEsim Studio"
 InstallDirRegKey HKCU "Software\CEsim Studio" "InstallDir"
 RequestExecutionLevel user
 SetCompressor /SOLID lzma
-VIProductVersion "1.31.0.0"
+VIProductVersion "1.32.0.0"
 VIAddVersionKey "ProductName" "${APP}"
 VIAddVersionKey "FileDescription" "${APP} Setup"
 VIAddVersionKey "FileVersion" "${VER}"

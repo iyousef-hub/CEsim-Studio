@@ -30,12 +30,64 @@ const PICO_LEGS=[...Array.from({length:20},(_,i)=>[0,i]),...Array.from({length:2
 const ESP32_BLINK='// Blink the on-board LED (GPIO 2). Wire GPIO 4 through 220 ohm to an LED for an outside LED\nvoid setup() {\n  pinMode(LED_BUILTIN, OUTPUT);\n  pinMode(4, OUTPUT);\n  Serial.begin(115200);\n}\n\nvoid loop() {\n  digitalWrite(LED_BUILTIN, HIGH);\n  digitalWrite(4, HIGH);\n  delay(500);\n  digitalWrite(LED_BUILTIN, LOW);\n  digitalWrite(4, LOW);\n  delay(500);\n}\n';
 const PICO_BLINK='// Blink the on-board LED (GP25). Wire GP15 through 220 ohm to an LED for an outside LED\nvoid setup() {\n  pinMode(LED_BUILTIN, OUTPUT);\n  pinMode(15, OUTPUT);\n  Serial.begin(115200);\n}\n\nvoid loop() {\n  digitalWrite(LED_BUILTIN, HIGH);\n  digitalWrite(15, HIGH);\n  delay(500);\n  digitalWrite(LED_BUILTIN, LOW);\n  digitalWrite(15, LOW);\n  delay(500);\n}\n';
 /* how each board's legs map to GPIO numbers, power and ground */
-function mcuMap(names,gpioOf){const gpio=new Map(),gnd=[];let v5=-1,v33=-1;names.forEach((n,i)=>{const g=gpioOf(n);if(g!=null)gpio.set(g,i);if(/^A?GND$/.test(n))gnd.push(i);if(/^(5V|VIN|VBUS)$/.test(n))v5=i;if(/^(3\.3V|3V3)$/.test(n))v33=i});return{gpio,gnd,v5,v33}}
+function mcuMap(names,gpioOf){const gpio=new Map(),gnd=[];let v5=-1,v33=-1;names.forEach((n,i)=>{const g=gpioOf(n);if(g!=null)gpio.set(g,i);if(/^A?GND$/.test(n))gnd.push(i);if(/^(5V|VIN|VBUS|VCC)$/.test(n)&&!(v5>=0&&names[v5]==='5V'))v5=i;if(/^(3\.3V|3V3)$/.test(n))v33=i});return{gpio,gnd,v5,v33}}
 const MCU={
  uno:Object.assign(mcuMap(UNO_PINS,n=>{const m=n.match(/^D(\d+)$/);if(m)return+m[1];const a=n.match(/^A(\d)$/);return a?14+(+a[1]):null}),{name:'Uno',vl:5,count:20,adc:{bits:10,vref:5,pins:[14,15,16,17,18,19],alias:p=>p>=0&&p<=5?p+14:p},pwm:new Set([3,5,6,9,10,11]),i2c:{sda:18,scl:19},led:13,rout:25,pull:20000,blink:UNO_BLINK,consts:{}}),
  esp32:Object.assign(mcuMap(ESP32_PINS,n=>{const m=n.match(/^D(\d+)$/);if(m)return+m[1];return{VP:36,VN:39,TX0:1,RX0:3}[n]??null}),{name:'ESP32',vl:3.3,count:40,adc:{bits:12,vref:3.3,pins:[32,33,34,35,36,39,0,2,4,12,13,14,15,25,26,27],alias:p=>p},pwm:null,i2c:{sda:21,scl:22},led:2,rout:30,pull:45000,blink:ESP32_BLINK,
   consts:{LED_BUILTIN:2,A0:36,A3:39,A4:32,A5:33,A6:34,A7:35,A10:4,A11:0,A12:2,A13:15,A14:13,A15:12,A16:14,A17:27,A18:25,A19:26,SDA:21,SCL:22}}),
  pico:Object.assign(mcuMap(PICO_PINS,n=>{const m=n.match(/^GP(\d+)$/);return m?+m[1]:null}),{name:'Pico',vl:3.3,count:30,adc:{bits:12,vref:3.3,pins:[26,27,28],alias:p=>p},pwm:null,i2c:{sda:4,scl:5},led:25,rout:30,pull:50000,blink:PICO_BLINK,consts:{LED_BUILTIN:25,A0:26,A1:27,A2:28,SDA:4,SCL:5}})};
+/* ---------- more boards: the header rows give the legs, and one drawing serves them all ---------- */
+const colP=(x,names,y0)=>names.map((n,i)=>[n,[x,(y0||0)+i]]);const rowP=(y,names,x0)=>names.map((n,i)=>[n,[(x0||0)+i,y]]);
+const blinkFor=(led,name,extra)=>`// Blink the on-board LED of the ${name} (pin ${led}). ${extra||'Wire a pin through 220 ohm to an LED for an outside LED'}\nvoid setup() {\n  pinMode(LED_BUILTIN, OUTPUT);\n  Serial.begin(9600);\n}\n\nvoid loop() {\n  digitalWrite(LED_BUILTIN, HIGH);\n  delay(500);\n  digitalWrite(LED_BUILTIN, LOW);\n  delay(500);\n}\n`;
+const range=(a,b)=>Array.from({length:b-a+1},(_,i)=>a+i);
+const anaConsts=(n,base,extra)=>Object.assign(Object.fromEntries(range(0,n-1).map(i=>['A'+i,base+i])),extra||{});
+function defBoard(key,o){const list=o.unoForm?UNO_PINS.map((n,i)=>[n,UNO_LEGS[i]]):o.layout;const pins=list.map(q=>q[0]),legs=list.map(q=>q[1]);
+ const m=mcuMap(pins,o.gpioOf);m.same=[];const by={};pins.forEach((n,i)=>{if(/^(5V|3V3|3\.3V|VIN|RST|IOREF|VCC)$/.test(n))(by[n]=by[n]||[]).push(i)});for(const k in by)if(by[k].length>1)m.same.push(by[k]);
+ MCU[key]=Object.assign(m,{name:o.name,vl:o.vl,count:o.count,adc:o.adc,pwm:o.pwm,i2c:o.i2c,led:o.led,rout:o.rout||(o.vl>4?25:30),pull:o.pull||(o.vl>4?20000:45000),blink:o.blink||blinkFor(o.led,o.name),consts:o.consts||{},ex:o.ex,hint:o.hint||''});
+ LIB[key]={name:o.title,legs,props:{code:MCU[key].blink},pins,offboard:true,board:true,mcu:key,look:o.look,unoForm:!!o.unoForm}}
+const dA=(base)=>n=>{const m=n.match(/^D(\d+)$/);if(m)return+m[1];const a=n.match(/^A(\d+)$/);return a?base+(+a[1]):null};
+const UNO_ADC={bits:10,vref:5,pins:range(14,19),alias:p=>p>=0&&p<=5?p+14:p};
+function addBoards(){
+defBoard('unor4',{unoForm:true,title:'Arduino UNO R4 Minima board',name:'UNO R4',vl:5,count:20,gpioOf:dA(14),adc:UNO_ADC,pwm:new Set([3,5,6,9,10,11]),i2c:{sda:18,scl:19},led:13,consts:anaConsts(6,14,{LED_BUILTIN:13,SDA:18,SCL:19,DAC:14}),
+ look:{color:'#0a7d8c',label:'UNO R4',chip:'RA4M1'},ex:{led:9,servo:9,trig:7,echo:8,ain:'A0',bits:1023,vr:5,buz:8,stp:[8,9,10,11],rel:7}});
+defBoard('leonardo',{unoForm:true,title:'Arduino Leonardo board',name:'Leonardo',vl:5,count:20,gpioOf:dA(14),adc:UNO_ADC,pwm:new Set([3,5,6,9,10,11,13]),i2c:{sda:2,scl:3},led:13,consts:anaConsts(6,14,{LED_BUILTIN:13,SDA:2,SCL:3}),
+ look:{color:'#0d6e7a',label:'LEONARDO',chip:'ATMEGA32U4'},ex:{led:9,servo:9,trig:7,echo:8,ain:'A0',bits:1023,vr:5,buz:8,stp:[8,9,10,11],rel:7},hint:'. Use 0 to 13, or A0 to A5'});
+const NANO_L=['D13','3V3','AREF','A0','A1','A2','A3','A4','A5','A6','A7','5V','RST','GND','VIN'],NANO_R=['D12','D11','D10','D9','D8','D7','D6','D5','D4','D3','D2','GND','RST','D0','D1'];
+const NANO_LAY=[...colP(0,NANO_L),...colP(7,NANO_R)];const NANO_ADC={bits:10,vref:5,pins:range(14,21),alias:p=>p>=0&&p<=7?p+14:p};
+const NANO_EX={led:9,servo:9,trig:7,echo:8,ain:'A0',bits:1023,vr:5,buz:8,stp:[8,9,10,11],rel:7};
+defBoard('nano',{layout:NANO_LAY,title:'Arduino Nano board',name:'Nano',vl:5,count:22,gpioOf:dA(14),adc:NANO_ADC,pwm:new Set([3,5,6,9,10,11]),i2c:{sda:18,scl:19},led:13,consts:anaConsts(8,14,{LED_BUILTIN:13,SDA:18,SCL:19}),look:{color:'#1f5fae',label:'NANO',chip:'ATMEGA328P'},ex:NANO_EX,hint:'. Use 0 to 13, or A0 to A7'});
+defBoard('nanoevery',{layout:NANO_LAY,title:'Arduino Nano Every board',name:'Nano Every',vl:5,count:22,gpioOf:dA(14),adc:NANO_ADC,pwm:new Set([3,5,6,9,10]),i2c:{sda:18,scl:19},led:13,consts:anaConsts(8,14,{LED_BUILTIN:13,SDA:18,SCL:19}),look:{color:'#1f5fae',label:'NANO EVERY',chip:'ATMEGA4809'},ex:NANO_EX,hint:'. Use 0 to 13, or A0 to A7'});
+const N33_ADC={bits:10,vref:3.3,pins:range(14,21),alias:p=>p>=0&&p<=7?p+14:p};const N33_EX={led:9,servo:9,trig:7,echo:8,ain:'A0',bits:1023,vr:3.3,buz:8,stp:[8,9,10,11],rel:7};
+defBoard('nano33iot',{layout:NANO_LAY,title:'Arduino Nano 33 IoT board',name:'Nano 33 IoT',vl:3.3,count:22,gpioOf:dA(14),adc:N33_ADC,pwm:new Set([2,3,5,6,9,10,11,12,16,17,19]),i2c:{sda:18,scl:19},led:13,consts:anaConsts(8,14,{LED_BUILTIN:13,SDA:18,SCL:19}),look:{color:'#0b7a6e',label:'NANO 33 IoT',chip:'SAMD21'},ex:N33_EX,hint:'. Use 0 to 13, or A0 to A7'});
+defBoard('nano33ble',{layout:NANO_LAY,title:'Arduino Nano 33 BLE board',name:'Nano 33 BLE',vl:3.3,count:22,gpioOf:dA(14),adc:N33_ADC,pwm:new Set(range(0,21)),i2c:{sda:18,scl:19},led:13,consts:anaConsts(8,14,{LED_BUILTIN:13,SDA:18,SCL:19}),look:{color:'#0b7a6e',label:'NANO 33 BLE',chip:'nRF52840'},ex:N33_EX,hint:'. Use 0 to 13, or A0 to A7'});
+defBoard('micro',{layout:[...colP(0,['D13','3V3','AREF','A0','A1','A2','A3','A4','A5','NC','NC','5V','RST','GND','VIN']),...colP(7,['D12','D11','D10','D9','D8','D7','D6','D5','D4','D3','D2','GND','RST','D0','D1'])],
+ title:'Arduino Micro board',name:'Micro',vl:5,count:24,gpioOf:dA(18),adc:{bits:10,vref:5,pins:range(18,23),alias:p=>p>=0&&p<=5?p+18:p},pwm:new Set([3,5,6,9,10,11,13]),i2c:{sda:2,scl:3},led:13,consts:anaConsts(6,18,{LED_BUILTIN:13,SDA:2,SCL:3}),look:{color:'#1f5fae',label:'MICRO',chip:'ATMEGA32U4'},ex:NANO_EX,hint:'. Use 0 to 13, or A0 to A5'});
+defBoard('promini',{layout:[...colP(0,['D1','D0','RST','GND','D2','D3','D4','D5','D6','D7','D8','D9']),...colP(7,['RAW','GND','RST','VCC','A3','A2','A1','A0','D13','D12','D11','D10'])],
+ title:'Arduino Pro Mini board (5 V)',name:'Pro Mini',vl:5,count:20,gpioOf:dA(14),adc:{bits:10,vref:5,pins:range(14,17),alias:p=>p>=0&&p<=3?p+14:p},pwm:new Set([3,5,6,9,10,11]),i2c:{sda:18,scl:19},led:13,consts:anaConsts(4,14,{LED_BUILTIN:13}),look:{color:'#b3261e',label:'PRO MINI',chip:'ATMEGA328P'},ex:NANO_EX,hint:'. Use 0 to 13, or A0 to A3'});
+defBoard('mkr1010',{layout:[...colP(0,['AREF','A0','A1','A2','A3','A4','A5','A6','D0','D1','D2','D3','D4','D5']),...colP(9,['5V','VIN','3V3','GND','RST','D14','D13','D12','D11','D10','D9','D8','D7','D6'])],
+ title:'Arduino MKR WiFi 1010 board',name:'MKR WiFi 1010',vl:3.3,count:22,gpioOf:dA(15),adc:{bits:10,vref:3.3,pins:range(15,21),alias:p=>p>=0&&p<=6?p+15:p},pwm:new Set([0,1,2,3,4,5,6,7,8,10,12,18,19]),i2c:{sda:11,scl:12},led:6,consts:anaConsts(7,15,{LED_BUILTIN:6,SDA:11,SCL:12}),look:{color:'#0b7a6e',label:'MKR 1010',chip:'SAMD21'},
+ ex:{led:5,servo:5,trig:7,echo:8,ain:'A1',bits:1023,vr:3.3,buz:4,stp:[0,1,2,3],rel:7},hint:'. Use 0 to 14, or A0 to A6'});
+/* Mega and Due: digital pins along the top and down the double row at the end, analog and power along the bottom */
+const megaLayout=(an,extra)=>{const L=[...rowP(0,range(0,21).map(i=>'D'+i))];L.push(['5V',[25,0]],['5V',[26,0]]);for(let k=0;k<16;k++)L.push(['D'+(22+2*k),[25,1+k]],['D'+(23+2*k),[26,1+k]]);L.push(['GND',[25,17]],['GND',[26,17]]);
+ L.push(...rowP(19,['IOREF','RST','3V3','5V','GND','GND','VIN']));L.push(...rowP(19,range(0,an-1).map(i=>'A'+i),8));if(extra)L.push(...rowP(19,extra,8+an));return L};
+defBoard('mega',{layout:megaLayout(16),title:'Arduino Mega 2560 board',name:'Mega 2560',vl:5,count:70,gpioOf:dA(54),adc:{bits:10,vref:5,pins:range(54,69),alias:p=>p>=0&&p<=15?p+54:p},pwm:new Set([...range(2,13),44,45,46]),i2c:{sda:20,scl:21},led:13,consts:anaConsts(16,54,{LED_BUILTIN:13,SDA:20,SCL:21}),
+ look:{color:'#0f7c8c',label:'MEGA 2560',chip:'ATMEGA2560'},ex:{led:9,servo:9,trig:7,echo:8,ain:'A0',bits:1023,vr:5,buz:8,stp:[22,24,26,28],rel:30},hint:'. Use 0 to 53, or A0 to A15'});
+defBoard('due',{layout:megaLayout(12,['DAC0','DAC1']),title:'Arduino Due board',name:'Due',vl:3.3,count:66,gpioOf:dA(54),adc:{bits:10,vref:3.3,pins:range(54,65),alias:p=>p>=0&&p<=11?p+54:p},pwm:new Set(range(2,13)),i2c:{sda:20,scl:21},led:13,consts:anaConsts(12,54,{LED_BUILTIN:13,SDA:20,SCL:21}),
+ look:{color:'#1f5fae',label:'DUE',chip:'SAM3X8E'},ex:{led:9,servo:9,trig:7,echo:8,ain:'A0',bits:1023,vr:3.3,buz:8,stp:[22,24,26,28],rel:30},hint:'. Use 0 to 53, or A0 to A11'});
+}
+/* Raspberry Pi: the 40-pin header (odd pins in the lower row, pin 1 on the left), programs in Python */
+const PI_HDR=['3V3','5V','GPIO2','5V','GPIO3','GND','GPIO4','GPIO14','GND','GPIO15','GPIO17','GPIO18','GPIO27','GND','GPIO22','GPIO23','3V3','GPIO24','GPIO10','GND','GPIO9','GPIO25','GPIO11','GPIO8','GND','GPIO7','GPIO0','GPIO1','GPIO5','GND','GPIO6','GPIO12','GPIO13','GND','GPIO19','GPIO16','GPIO26','GPIO20','GND','GPIO21'];
+const PI_LAY=PI_HDR.map((n,i)=>[n,[Math.floor(i/2),i%2?0:1]]);
+const PI_BLINK='# Blink an LED: GPIO 17 (header pin 11) through 220 ohm to the LED, LED to GND (pin 9)\nimport RPi.GPIO as GPIO\nimport time\n\nGPIO.setmode(GPIO.BCM)\nGPIO.setup(17, GPIO.OUT)\n\nwhile True:\n    GPIO.output(17, GPIO.HIGH)\n    print("LED on")\n    time.sleep(0.5)\n    GPIO.output(17, GPIO.LOW)\n    print("LED off")\n    time.sleep(0.5)\n';
+const PI_GP=n=>{const m=n.match(/^GPIO(\d+)$/);return m?+m[1]:null};
+const PI_MODELS=[['pi1bplus','Raspberry Pi 1 Model B+','PI 1 B+','BCM2835'],['pi2b','Raspberry Pi 2 Model B','PI 2 B','BCM2836'],['pi3b','Raspberry Pi 3 Model B','PI 3 B','BCM2837'],['pi3bplus','Raspberry Pi 3 Model B+','PI 3 B+','BCM2837B0'],['pi4b','Raspberry Pi 4 Model B','PI 4 B','BCM2711'],['pi400','Raspberry Pi 400','PI 400','BCM2711'],['pi5','Raspberry Pi 5','PI 5','BCM2712'],['pizero','Raspberry Pi Zero','PI ZERO','BCM2835'],['pizero2w','Raspberry Pi Zero 2 W','PI ZERO 2 W','RP3A0']];
+function addPis(){for(const[k,title,label,chip]of PI_MODELS)defBoard(k,{layout:PI_LAY,title:title+' board',name:title.replace(/^Raspberry /,''),vl:3.3,count:28,gpioOf:PI_GP,adc:{bits:10,vref:3.3,pins:[],alias:p=>p},pwm:null,i2c:{sda:2,scl:3},led:-1,rout:40,pull:50000,blink:PI_BLINK,consts:{},
+  look:{color:k==='pi400'?'#c8102e':'#2f8a3a',label,chip,box:/zero/.test(k)?[-30,-30,220,110]:k==='pi400'?[-60,-30,330,190]:[-70,-30,260,200]},lang:'python',hint:'',ex:{led:17,btn:27,pwm:18}});
+ for(const k of PI_MODELS.map(m=>m[0]))MCU[k].lang='python';
+ /* Pico W and Pico 2: the Pico pins, sketches in Arduino C */
+ const PL=PICO_PINS.map((n,i)=>[n,[i<20?0:7,i<20?i:39-i]]);
+ for(const[k,title,label,chip]of[['picow','Raspberry Pi Pico W board','PICO W','RP2040'],['pico2','Raspberry Pi Pico 2 board','PICO 2','RP2350']])defBoard(k,{layout:PL,title,name:title.replace(/ board$/,'').replace(/^Raspberry Pi /,''),vl:3.3,count:30,gpioOf:n=>{const m=n.match(/^GP(\d+)$/);return m?+m[1]:null},adc:{bits:10,vref:3.3,pins:[26,27,28],alias:p=>p>=0&&p<=2?p+26:p},pwm:null,i2c:{sda:4,scl:5},led:25,consts:{LED_BUILTIN:25,A0:26,A1:27,A2:28,SDA:4,SCL:5},blink:PICO_BLINK,look:{color:'#1f7a3f',label,chip},ex:{led:15,servo:16,trig:2,echo:3,ain:26,bits:1023,vr:3.3,buz:14,stp:[10,11,12,13],rel:22},hint:'. Use GP0 to GP28'})}
+const BOARD_KEYS=['uno','unor4','leonardo','nano','nanoevery','nano33iot','nano33ble','micro','promini','mkr1010','mega','due','esp32','pico','picow','pico2','pi1bplus','pi2b','pi3b','pi3bplus','pi4b','pi400','pi5','pizero','pizero2w'];
 /* the sketch is written for the board: its pin names become numbers, and calls the board does not need are dropped */
 function boardSource(type,src){const m=MCU[type];let s=String(src||'');if(type!=='uno'){for(const[k,v]of Object.entries(m.consts))s=s.replace(new RegExp('\\b'+k+'\\b','g'),String(v));s=s.replace(/\b(analogReadResolution|analogWriteResolution|analogSetAttenuation|analogWriteFreq|analogWriteRange)\s*\([^;]*\)\s*;/g,'')}return s.replace(/&\s*Wire\b/g,'0')}
 const LIB={
@@ -63,6 +115,10 @@ const LIB={
  uno:{name:'Arduino Uno board',legs:UNO_LEGS,props:{code:UNO_BLINK},pins:UNO_PINS,offboard:true,board:true,mcu:'uno'},
  esp32:{name:'ESP32 DevKit board',legs:ESP32_LEGS,props:{code:ESP32_BLINK},pins:ESP32_PINS,offboard:true,board:true,mcu:'esp32'},
  pico:{name:'Raspberry Pi Pico board',legs:PICO_LEGS,props:{code:PICO_BLINK},pins:PICO_PINS,offboard:true,board:true,mcu:'pico'},
+ rgbled:{name:'RGB LED (common cathode)',legs:[[0,0],[1,0],[2,0],[3,0]],props:{},pins:['R','−','G','B']},
+ pir:{name:'PIR motion sensor (HC-SR501)',legs:[[0,0],[1,0],[2,0]],props:{on:false},pins:['VCC','OUT','GND']},
+ tilt:{name:'Tilt switch (SW-520D)',legs:[[0,0],[2,0]],props:{on:false},pins:['1','2']},
+ joystick:{name:'Joystick module (KY-023)',legs:[[0,0],[1,0],[2,0],[3,0],[4,0]],props:{x:0.5,y:0.5,pressed:false},pins:['GND','+5V','VRx','VRy','SW']},
  motor:{name:'DC motor (5 V)',legs:[[0,0],[2,0]],props:{},pins:['+','−'],offboard:true,module:true},
  servo:{name:'Servo motor (SG90)',legs:[[0,0],[1,0],[2,0]],props:{},pins:['GND (brown)','V+ (red)','Signal (orange)'],offboard:true,module:true},
  stepper:{name:'Stepper motor 28BYJ-48 with ULN2003 driver',legs:[[0,0],[1,0],[2,0],[3,0],[5,0],[6,0]],props:{},pins:['IN1','IN2','IN3','IN4','+5V','GND'],offboard:true,module:true},
@@ -75,6 +131,7 @@ const LIB={
  voltmeter:{name:'Voltmeter',flex:true,legs:2,span:3,probes:true,props:{},pins:['red +','black −']},
  ammeter:{name:'Ammeter',flex:true,legs:2,span:3,probes:true,props:{},pins:['red (in)','black (out)']},
 };
+addBoards();addPis();
 const GATES={7400:{f:(a,b)=>!(a&&b),n:4},7402:{f:(a,b)=>!(a||b),n:4,nor:true},7404:{f:a=>!a,n:6,not:true},7408:{f:(a,b)=>a&&b,n:4},7432:{f:(a,b)=>a||b,n:4},7486:{f:(a,b)=>a!==b,n:4}};
 // pin numbers (1-based) of each gate: [in1,in2,out]
 function gatePins(ic){if(ic==='7404')return[[1,2],[3,4],[5,6],[9,8],[11,10],[13,12]].map(([i,o])=>[i,null,o]);if(ic==='7402')return[[2,3,1],[5,6,4],[8,9,10],[11,12,13]];return[[1,2,3],[4,5,6],[9,10,8],[12,13,11]]}
@@ -88,7 +145,7 @@ function newPart(type,at){const L=LIB[type];const p={id:'p'+Math.random().toStri
 function connectivity(doc){const parent=new Map();const find=k=>{let r=k;while(parent.has(r)&&parent.get(r)!==r)r=parent.get(r);let c=k;while(parent.has(c)&&parent.get(c)!==r){const n=parent.get(c);parent.set(c,r);c=n}return r};const add=k=>{if(!parent.has(k))parent.set(k,k)};const union=(a,b)=>{add(a);add(b);const ra=find(a),rb=find(b);if(ra!==rb)parent.set(ra,rb)};
  const ptNode=(x,y)=>{const k=key(x,y);const h=HOLES.get(k);if(h){union('pt:'+k,'strip:'+h.strip);return'pt:'+k}add('pt:'+k);return'pt:'+k};
  for(const w of doc.wires){union(ptNode(w.a[0],w.a[1]),ptNode(w.b[0],w.b[1]))}
- const partLegs=new Map();for(const p of doc.parts){const legs=legsOf(p);const ids=legs.map(([x,y])=>ptNode(x,y));partLegs.set(p.id,ids);if(p.type==='seg7')union(ids[2],ids[7]);{const L_=LIB[p.type];if(L_&&L_.mcu){const g=MCU[L_.mcu].gnd;g.forEach(k=>union(ids[g[0]],ids[k]))}}}
+ const partLegs=new Map();for(const p of doc.parts){const legs=legsOf(p);const ids=legs.map(([x,y])=>ptNode(x,y));partLegs.set(p.id,ids);if(p.type==='seg7')union(ids[2],ids[7]);{const L_=LIB[p.type];if(L_&&L_.mcu){const M_=MCU[L_.mcu];const g=M_.gnd;g.forEach(k=>union(ids[g[0]],ids[k]));(M_.same||[]).forEach(q=>q.forEach(k=>union(ids[q[0]],ids[k])))}}}
  const nodeOf=k=>find(k);return{find,partLegs,nodeOf,inHole:(x,y)=>HOLES.has(key(x,y))}}
 /* ---------------- simulator ---------------- */
 const VT=0.025852;
@@ -103,7 +160,7 @@ class Sim{
    if(!L.offboard){pts.forEach((pt,i)=>{if(!con.inHole(pt[0],pt[1])){const k='pt:'+key(pt[0],pt[1]);const r=con.find(k);let used=0;for(const w of doc.wires)if(key(w.a[0],w.a[1])===key(pt[0],pt[1])||key(w.b[0],w.b[1])===key(pt[0],pt[1]))used++;if(!used)this.floating.push({part:p.id,leg:i})}})}
    const e={p,nodes,type:p.type};
    if(p.type==='battery'||p.type==='supply'){e.rint=internal();if(this.refNode==null)this.refNode=nodes[1]}
-   if(p.type==='led'||p.type==='pled'||p.type==='diode')e.mid=internal();
+   if(p.type==='led'||p.type==='pled'||p.type==='diode')e.mid=internal();if(p.type==='rgbled'){e.mids=[internal(),internal(),internal()];e.subs=[{},{},{}]}
    if(p.type==='ne555')e.n1=internal();
    if(LIB[p.type].mcu){e.mcu=MCU[LIB[p.type].mcu];e.gndN=nodes[e.mcu.gnd[0]];this.unoStart(e)}
    if(p.type==='motor'){e.w=0;e.th=0}if(p.type==='relay'){e.on=false}if(p.type==='stepper'){e.idx=-1;e.ang=0}
@@ -123,7 +180,7 @@ class Sim{
  stamp(G,I,x,dt){const cond=(a,b,g)=>{G[a][a]+=g;G[b][b]+=g;G[a][b]-=g;G[b][a]-=g};const cur=(a,b,i)=>{I[a]-=i;I[b]+=i};/* current i flows a->b through element */
   const diode=(a,b,e,Is,nf,key)=>{const vd0=x[a]-x[b];const st=this.state[e.p.id];const vt=nf*VT;const vcrit=vt*Math.log(vt/(Math.SQRT2*Is));const old=st[key]==null?0:st[key];let vd=pnjlim(vd0,old,vt,vcrit);st[key]=vd;const ex=Math.exp(Math.min(vd/vt,80));const id=Is*(ex-1),gd=Is*ex/vt+1e-12;cond(a,b,gd);cur(a,b,id-gd*vd)};
   for(const e of this.els){const nd=e.nodes,p=e.p,st=this.state[p.id];
-   switch(e.type){
+   switch(e.mcu?'__mcu':e.type){
     case'resistor':cond(nd[0],nd[1],1/Math.max(1e-3,+p.props.ohms||1));break;
     case'pot':{const R=Math.max(10,+p.props.ohms||10000),a=Math.max(0.001,Math.min(0.999,+p.props.pos));cond(nd[0],nd[1],1/(R*a));cond(nd[1],nd[2],1/(R*(1-a)));break}
     case'button':cond(nd[0],nd[1],p.props.pressed?100:1e-12);break;
@@ -132,6 +189,10 @@ class Sim{
     case'led':{if(st.burned){cond(nd[0],nd[1],1e-10);break}const vf=LED_VF[p.props.color]||1.9;const nf=2.0;const Is=0.01/(Math.exp(vf/(nf*VT))-1);diode(nd[0],e.mid,e,Is,nf,'vd');cond(e.mid,nd[1],1/8);break}
     case'pled':{if(st.burned){cond(nd[0],nd[1],1e-10);break}const vf=(LED_VF[p.props.color]||2.9)+0.25;const nf=2.0;const Is=0.35/(Math.exp(vf/(nf*VT))-1);diode(nd[0],e.mid,e,Is,nf,'vd');cond(e.mid,nd[1],1/1);break}
     case'ldr':cond(nd[0],nd[1],1/ldrOhms(p));break;
+    case'rgbled':{[[0,'red'],[2,'green'],[3,'blue']].forEach(([k,c],j)=>{const vf=LED_VF[c]||2;const nf=2.0;const Is=0.01/(Math.exp(vf/(nf*VT))-1);diode(nd[k],e.mids[j],e,Is,nf,'vd'+j);cond(e.mids[j],nd[1],1/8)});break}
+    case'pir':{const on=!!p.props.on;cond(nd[1],on?nd[0]:nd[2],1/100);cond(nd[1],on?nd[2]:nd[0],1e-9);cond(nd[0],nd[2],1/50000);break}
+    case'tilt':cond(nd[0],nd[1],p.props.on?100:1e-12);break;
+    case'joystick':{const R=10000;for(const[k,v]of[[2,+p.props.x],[3,+p.props.y]]){const a=Math.max(0.001,Math.min(0.999,1-v));cond(nd[1],nd[k],1/(R*a));cond(nd[k],nd[0],1/(R*(1-a)))}cond(nd[4],nd[0],p.props.pressed?100:1e-12);break}
     case'diode':{diode(nd[0],e.mid,e,1e-9,1.8,'vd');cond(e.mid,nd[1],1/0.05);break}
     case'npn':{const[E,B,C]=nd;const Is=1e-14,bf=150,br=4;const vt=VT,vcrit=vt*Math.log(vt/(Math.SQRT2*Is));let vbe=x[B]-x[E],vbc=x[B]-x[C];vbe=pnjlim(vbe,st.vbe||0,vt,vcrit);vbc=pnjlim(vbc,st.vbc||0,vt,vcrit);st.vbe=vbe;st.vbc=vbc;
      const ef=Math.exp(Math.min(vbe/vt,80)),er=Math.exp(Math.min(vbc/vt,80));const ict=Is*(ef-er),ibe=Is/bf*(ef-1),ibc=Is/br*(er-1);const gmf=Is*ef/vt,gmr=Is*er/vt,gbe=Is/bf*ef/vt+1e-12,gbc=Is/br*er/vt+1e-12;
@@ -142,9 +203,9 @@ class Sim{
     case'battery':case'supply':{const vi=e.vi;const Rin=e.type==='battery'?1.5:0.05;/* source between + and internal node, internal R to - */G[nd[0]][vi]+=1;G[e.rint][vi]-=1;G[vi][nd[0]]+=1;G[vi][e.rint]-=1;I[vi]+=+p.props.volts||0;cond(e.rint,nd[1],1/Rin);break}
     case'ammeter':{const vi=e.vi;G[nd[0]][vi]+=1;G[nd[1]][vi]-=1;G[vi][nd[0]]+=1;G[vi][nd[1]]-=1;break}
     case'voltmeter':cond(nd[0],nd[1],1e-7);break;
-    case'uno':case'esp32':case'pico':{const M=e.mcu,GND=e.gndN;const src=(k,V,g)=>{if(k===GND)return;cond(k,GND,g);cur(GND,k,g*V)};if(M.v5>=0)src(nd[M.v5],5,10);if(M.v33>=0)src(nd[M.v33],3.3,10);
+    case'__mcu':{const M=e.mcu,GND=e.gndN;const src=(k,V,g)=>{if(k===GND)return;cond(k,GND,g);cur(GND,k,g*V)};if(M.v5>=0)src(nd[M.v5],5,10);if(M.v33>=0)src(nd[M.v33],3.3,10);
      const rt=e.rt;for(const[g,li]of M.gpio){const k=nd[li];const s=rt&&rt.state!=='error'?rt.pins[g]:null;if(!s||s.mode===0){cond(k,GND,1e-8);continue}
-      if(s.mode===2){src(k,M.vl,1/M.pull);continue}let V=s.v?M.vl:0;if(s.tone)V=M.vl/2;else if(s.pwm>=0)V=M.vl*s.pwm/255;src(k,V,1/M.rout)}break}
+      if(s.mode===2){src(k,M.vl,1/M.pull);continue}if(s.mode===3){src(k,0,1/M.pull);continue}let V=s.v?M.vl:0;if(s.tone)V=M.vl/2;else if(s.pwm>=0)V=M.vl*s.pwm/255;src(k,V,1/M.rout)}break}
     case'motor':{/* winding 10 ohm and a back EMF that grows with speed */const g=1/10,E=0.005*e.w;cond(nd[0],nd[1],g);cur(nd[1],nd[0],g*E);break}
     case'servo':cond(nd[1],nd[0],1/250);cond(nd[2],nd[0],1e-7);break;
     case'stepper':{const V=x[nd[4]]-x[nd[5]];for(let k=0;k<4;k++){cond(nd[k],nd[5],1/10000);if(V>3.5&&x[nd[k]]-x[nd[5]]>2)cond(nd[4],nd[5],1/60)}break}
@@ -184,17 +245,23 @@ class Sim{
    if(e.type==='ecap'){const v=x[nd[0]]-x[nd[1]];st.v=v;if(v<-1)this.addWarn(p.id,'rev','An electrolytic capacitor is connected backwards (its − leg is at the higher voltage). It can be damaged')}
    if(e.type==='capacitor')st.v=x[nd[0]]-x[nd[1]];
    if(e.type==='npn'){st.vce=x[nd[2]]-x[nd[0]];st.vbe=x[nd[1]]-x[nd[0]]}
+   if(e.type==='rgbled')st.rgb=[0,2,3].map((k,j)=>Math.max(0,Math.min(1,(x[e.mids[j]]-x[nd[1]])*8/0.015)));
    if(LIB[e.type]&&LIB[e.type].ic&&!st.powered&&this.t>0.01)this.addWarn(p.id,'pwr',`${LIB[e.type].name.split(' ')[0]} has no power: connect pin 14 to + and pin 7 to −`)
    if(e.type==='ne555'&&!st.powered&&this.t>0.01)this.addWarn(p.id,'pwr','The 555 has no power: connect pin 8 to + and pin 1 to −')}}
- unoStart(e){const st=this.state[e.p.id]=this.state[e.p.id]||{};const I=root.INO;if(!I){st.err='The sketch runner is not loaded';return}const M=e.mcu;
+ unoStart(e){const st=this.state[e.p.id]=this.state[e.p.id]||{};const M=e.mcu;if(M.lang==='python')return this.piStart(e,st);const I=root.INO;if(!I){st.err='The sketch runner is not loaded';return}
   const prog=I.compile(boardSource(e.type,e.p.props.code));if(!prog.ok){st.err=prog.errors.map(x=>(x.line?'Line '+x.line+': ':'')+x.msg).join('\n');return}
   const rt=new I.Sim(prog,[]);const self=this;while(rt.pins.length<M.count)rt.pins.push({mode:0,v:0,pwm:-1,tone:0,touched:false});
   const volt=g=>{const x=self.x,li=M.gpio.get(g);return x&&li!=null?x[e.nodes[li]]-x[e.gndN]:0};
-  rt.pinOk=function(p,l){p=p|0;if(p<0||p>=M.count||(!M.gpio.has(p)&&p!==M.led))throw new Error(`Pin ${p} does not exist on the ${M.name}`+(e.type==='uno'?'. Use 0 to 13, or A0 to A5':''));return p};
+  rt.pinOk=function(p,l){p=p|0;if(p<0||p>=M.count||(!M.gpio.has(p)&&p!==M.led))throw new Error(`Pin ${p} does not exist on the ${M.name}`+(e.type==='uno'?'. Use 0 to 13, or A0 to A5':M.hint||''));return p};
   rt.level=function(p){const s=this.pins[p];if(s&&s.mode===1)return s.v;return volt(p)>M.vl/2?1:0};
   rt.ar=function(p,l){p=M.adc.alias(p|0);if(!M.adc.pins.includes(p))throw new Error(`analogRead() needs an analog pin of the ${M.name} (got ${p})`);this.us+=100;const mx=(1<<M.adc.bits)-1;return Math.max(0,Math.min(mx,Math.round(volt(p)/M.adc.vref*mx)))};
+  if(M.pwm&&e.type!=='uno')rt.aw=function(p,v,l){p=this.pinOk(p,l);v=Math.max(0,Math.min(255,v|0));const s=this.pins[p];s.touched=true;s.mode=1;if(M.pwm.has(p)){s.pwm=v;s.v=v>0?1:0}else{s.pwm=-1;s.v=v>=128?1:0;if(!this.pwmWarned){this.pwmWarned=true;if(this.warn)this.warn(l,`Pin ${p} has no PWM on the ${M.name}. analogWrite() works on pins ${[...M.pwm].join(', ')}`)}}this.emit('pins')};
   if(!M.pwm)rt.aw=function(p,v,l){p=this.pinOk(p,l);v=Math.max(0,Math.min(255,v|0));const s=this.pins[p];s.touched=true;s.mode=1;s.pwm=v;s.v=v>0?1:0;this.emit('pins')};
   e.rt=rt;st.err=null;st.warns=prog.warnings||[]}
+ piStart(e,st){const Y=root.PYRT;if(!Y){st.err='The Python runner is not loaded';return}const M=e.mcu;const prog=Y.compile(e.p.props.code||'');if(!prog.ok){st.err=prog.errors.map(x=>(x.line?'Line '+x.line+': ':'')+x.msg).join('\n');return}
+  const rt=new Y.Sim(prog,{count:M.count});const self=this;const volt=g=>{const x=self.x,li=M.gpio.get(g);return x&&li!=null?x[e.nodes[li]]-x[e.gndN]:0};
+  rt.level=function(p){const s=this.pins[p];if(s&&s.mode===1)return s.v;return volt(p)>1.6?1:0};rt.pinOk=function(p){p=p|0;if(p<0||p>27)throw new Y.PyErr('ValueError',`GPIO ${p} is not on the header. Use GPIO 0 to 27 (BCM numbers), or GPIO.setmode(GPIO.BOARD) for header pin numbers`);return p};
+  e.rt=rt;st.err=null;st.warns=[]}
  /* which board pin drives each module: found from the nodes they share */
  linkModules(){const mcus=this.els.filter(e=>e.mcu);const pinAt=node=>{for(const m of mcus)for(const[g,li]of m.mcu.gpio)if(m.nodes[li]===node)return{e:m,g};return null};
   for(const e of this.els){const nd=e.nodes;
@@ -239,7 +306,7 @@ function toNetlist(doc,title){const con=connectivity(doc);const names=new Map();
   case'voltmeter':break;
   case'uno':L.push(`${id('V')} ${n[20]} ${n[22]} DC 5  ; Uno 5V pin (the sketch outputs are not exported)`);break;
   case'esp32':case'pico':{const M=MCU[p.type];L.push(`${id('V')} ${n[M.v33]} ${n[M.gnd[0]]} DC 3.3  ; ${M.name} 3.3V pin (the sketch outputs are not exported)`);break}
-  default:skipped.push(LIB[p.type].name)}}
+  default:if(LIB[p.type]&&LIB[p.type].mcu){const M=MCU[LIB[p.type].mcu];const k=M.vl>4&&M.v5>=0?M.v5:M.v33>=0?M.v33:M.v5;if(k>=0)L.push(`${id('V')} ${n[k]} ${n[M.gnd[0]]} DC ${M.vl>4?5:3.3}  ; ${M.name} supply pin (the sketch outputs are not exported)`);break}skipped.push(LIB[p.type].name)}}
  if(skipped.length)L.push(`* Not exported (the circuit simulator has no model for them): ${[...new Set(skipped)].join(', ')}`);
  L.push('.end');return L.join('\n')}
 function engNum(v){v=+v;const a=Math.abs(v);if(a>=1e6)return+(v/1e6).toPrecision(4)+'meg';if(a>=1e3)return+(v/1e3).toPrecision(4)+'k';if(a>=1||a===0)return String(+v.toPrecision(4));if(a>=1e-3)return+(v*1e3).toPrecision(4)+'m';if(a>=1e-6)return+(v*1e6).toPrecision(4)+'u';if(a>=1e-9)return+(v*1e9).toPrecision(4)+'n';return+(v*1e12).toPrecision(4)+'p'}
@@ -257,6 +324,6 @@ function toPcb(doc){const con=connectivity(doc);const par=new Map();const f=k=>{
   let value='';if(p.type==='resistor')value=fmtOhm(p.props.ohms).replace(' ','');else if(p.type==='capacitor'||p.type==='ecap')value=fmtF(p.props.farads).replace(' ','');else if(p.type==='led')value='LED '+p.props.color;else if(p.type==='pled')value='Power LED '+p.props.color;else if(p.type==='ldr')value='LDR';else if(p.type==='pot')value=fmtOhm(p.props.ohms).replace(' ','');else if(p.type==='battery'||p.type==='supply')value=p.props.volts+'V in';else if(LIB[p.type].ic)value='74LS'+LIB[p.type].ic.slice(2);else if(p.type==='ne555')value='NE555';else if(p.type==='npn')value='2N2222';else if(p.type==='switch')value='slide switch';else if(p.type==='seg7')value='7-seg CC';else if(p.type==='diode')value='1N4007';
   comps.push({ref,fp:m[0],value,x:0,y:0,rot:0});const legs=con.partLegs.get(p.id);legs.forEach((l,i)=>{if((use.get(root(l))||0)<2)return;nets[ref+'.'+(m[1]?m[1][i]:String(i+1))]=nm(l)})}
  return{comps,nets,skipped}}
-const api={MCU,boardSource,ESP32_BLINK,PICO_BLINK,UNO_PINS,UNO_BLINK,P,COLS,ROWS,ROWY,RAILS,RAIL_N,colX,railX,HOLES,holeXY,key,LIB,GATES,gatePins,LED_RGB,LED_VF,legsOf,newPart,connectivity,Sim,fmtOhm,fmtF,parseValue,bands,toNetlist,toPcb,stripLabel,engNum,ldrOhms};
+const api={MCU,BOARD_KEYS,boardSource,ESP32_BLINK,PICO_BLINK,UNO_PINS,UNO_BLINK,P,COLS,ROWS,ROWY,RAILS,RAIL_N,colX,railX,HOLES,holeXY,key,LIB,GATES,gatePins,LED_RGB,LED_VF,legsOf,newPart,connectivity,Sim,fmtOhm,fmtF,parseValue,bands,toNetlist,toPcb,stripLabel,engNum,ldrOhms};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;else root.BB=api;
 })(typeof window!=='undefined'?window:globalThis);

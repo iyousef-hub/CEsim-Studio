@@ -74,7 +74,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
 <body><div id="app">
 <div id="top">
  <div class="logo">CE</div><span id="docname" title="Click to rename">sketch</span>
- <button class="tb" id="bFile">File ▾</button><button class="tb" id="bEx">Examples ▾</button><div class="sep"></div>
+ <button class="tb" id="bFile">File ▾</button><button class="tb" id="bEx">Examples ▾</button><select class="s" id="boardSel" aria-label="Board" title="Board"></select><div class="sep"></div>
  <button class="tb" id="bVerify" title="Check the sketch for mistakes (Ctrl+R)">Verify</button>
  <button class="tb pri" id="bRun" title="Upload and run (F5)">Run<kbd>F5</kbd></button>
  <button class="tb" id="bStop" title="Stop the board (Shift+F5)">Stop</button>
@@ -96,7 +96,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
   </div>
  </div>
  <div id="right">
-  <svg id="board" viewBox="0 0 460 300" role="img" aria-label="Arduino Uno board"></svg>
+  <svg id="board" viewBox="0 0 460 300" role="img" aria-label="Arduino board"></svg>
   <div class="rh"><b>Parts</b><button class="btn" id="bAdd">+ Add part</button></div>
   <div id="parts"></div>
  </div>
@@ -148,12 +148,12 @@ function toggleComment(){const v=src.value;let a=v.lastIndexOf('\n',src.selectio
 function gotoLine(l){const ls=lines();l=Math.max(1,Math.min(l,ls.length));let p=0;for(let i=0;i<l-1;i++)p+=ls[i].length+1;src.focus();src.setSelectionRange(p,p+ls[l-1].length);const top=(l-1)*20;if(top<src.scrollTop+20||top>src.scrollTop+src.clientHeight-60)src.scrollTop=Math.max(0,top-src.clientHeight/3);syncScroll();updPos()}
 
 /* ---------- compile and run ---------- */
-function verify(quiet){const r=INO.compile(src.value);ST.errLines=new Map();ST.warnLines=new Map();for(const e of r.errors)if(e.line)ST.errLines.set(e.line,e.msg);for(const w of r.warnings)if(!ST.warnLines.has(w.line))ST.warnLines.set(w.line,w.msg);ST.compiled=r;renderEditor();renderProblems();
+function verify(quiet){const r=INO.compile(boardSrc(src.value));ST.errLines=new Map();ST.warnLines=new Map();for(const e of r.errors)if(e.line)ST.errLines.set(e.line,e.msg);for(const w of r.warnings)if(!ST.warnLines.has(w.line))ST.warnLines.set(w.line,w.msg);ST.compiled=r;renderEditor();renderProblems();
  if(!r.ok){setStatus(`<b>Error on line ${r.errors[0].line}:</b> ${esc(r.errors[0].msg)}`,'err');showTab('prob');if(r.errors[0].line)gotoLine(r.errors[0].line);return null}
  if(!quiet)setStatus(`<b>The sketch is correct.</b>${r.warnings.length?` ${r.warnings.length} note${r.warnings.length>1?'s':''} in Problems`:''}`,'ok');return r}
 function upload(){const r=verify(true);if(!r)return false;ST.prog=r;ST.dirty=false;
  if(!ST.parts.length)autoParts(r);
- ST.sim=new INO.Sim(r,ST.parts);ST.T=0;ST.serLen=0;$('#serOut').textContent='';ST.plot=[];ST.plotNames=[];ST.lastWarn=0;
+ ST.sim=new INO.Sim(r,ST.parts);applyBoard(ST.sim);ST.T=0;ST.serLen=0;$('#serOut').textContent='';ST.plot=[];ST.plotNames=[];ST.lastWarn=0;
  if(ST.sim.state==='error'){setStatus(`<b>Error:</b> ${esc(ST.sim.error.msg)}`,'err');return false}return true}
 function autoParts(r){const t=new INO.Sim(r,[]);try{t.run(1500000,150)}catch(e){}const add=[];const used=new Set();
  for(const L of t.lcds){add.push({type:'lcd'});}
@@ -179,13 +179,13 @@ function setStatus(h,k){const s=$('#status');s.innerHTML=h;s.className=k||''}
 const DIG_TOP=[['SCL',-1],['SDA',-1],['AREF',-1],['GND',-1],['13',13],['12',12],['~11',11],['~10',10],['~9',9],['8',8],null,['7',7],['~6',6],['~5',5],['4',4],['~3',3],['2',2],['TX 1',1],['RX 0',0]];
 const BOT=[['IOREF',-1],['RESET',-1],['3.3V',-1],['5V',-1],['GND',-1],['GND',-1],['VIN',-1],null,['A0',14],['A1',15],['A2',16],['A3',17],['A4',18],['A5',19]];
 function pinXY(p){let x=120;for(const d of DIG_TOP){if(!d){x+=10;continue}if(d[1]===p)return[x,24];x+=16}x=160;for(const d of BOT){if(!d){x+=10;continue}if(d[1]===p)return[x,276];x+=16}return null}
-function boardSVG(){let h=`<defs><linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0a8f98"/><stop offset="1" stop-color="#05747c"/></linearGradient><filter id="glow" x="-1" y="-1" width="3" height="3"><feGaussianBlur stdDeviation="3"/></filter></defs>`;
+function boardSVG(){let h=`<defs><linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${BOARD.col[0]}"/><stop offset="1" stop-color="${BOARD.col[1]}"/></linearGradient><filter id="glow" x="-1" y="-1" width="3" height="3"><feGaussianBlur stdDeviation="3"/></filter></defs>`;
  h+=`<path d="M14 6h420l12 12v40l10 10v150l-10 10v54l-12 12H14a8 8 0 0 1-8-8V14a8 8 0 0 1 8-8z" fill="url(#bg)" stroke="#035e65" stroke-width="2"/>`;
  h+=`<rect x="-2" y="40" width="62" height="56" rx="3" fill="#b8c0c8" stroke="#7d8790"/><rect x="2" y="46" width="52" height="44" fill="#d5dbe0"/><text x="28" y="72" text-anchor="middle" font-size="9" fill="#55606b" font-family="IBM Plex Sans">USB</text>`;
  h+=`<rect x="0" y="200" width="54" height="46" rx="4" fill="#1c1f23"/><circle cx="27" cy="223" r="10" fill="#3a3f45"/>`;
  h+=`<g id="rst" style="cursor:pointer"><rect x="70" y="10" width="28" height="22" rx="3" fill="#c9ced3"/><circle cx="84" cy="21" r="7" fill="#d83a2b" stroke="#8d1e14"/><text x="84" y="44" text-anchor="middle" font-size="7.5" fill="#d9f3f4" font-family="IBM Plex Sans">RESET</text></g>`;
- h+=`<rect x="190" y="150" width="190" height="44" rx="3" fill="#1f2328"/>${Array.from({length:14},(_,i)=>`<rect x="${196+i*13.4}" y="144" width="6" height="7" fill="#b9bfc5"/><rect x="${196+i*13.4}" y="193" width="6" height="7" fill="#b9bfc5"/>`).join('')}<text x="285" y="177" text-anchor="middle" font-size="10" fill="#8d959e" font-family="IBM Plex Mono">ATMEGA328P</text>`;
- h+=`<text x="320" y="124" text-anchor="middle" font-size="30" font-weight="700" fill="#e9fbfc" font-family="IBM Plex Sans" letter-spacing="2">UNO</text><text x="150" y="128" font-size="13" font-weight="600" fill="#bfeff1" font-family="IBM Plex Sans">ARDUINO</text>`;
+ h+=`<rect x="190" y="150" width="190" height="44" rx="3" fill="#1f2328"/>${Array.from({length:14},(_,i)=>`<rect x="${196+i*13.4}" y="144" width="6" height="7" fill="#b9bfc5"/><rect x="${196+i*13.4}" y="193" width="6" height="7" fill="#b9bfc5"/>`).join('')}<text x="285" y="177" text-anchor="middle" font-size="10" fill="#8d959e" font-family="IBM Plex Mono">${BOARD.chip}</text>`;
+ h+=`<text x="320" y="124" text-anchor="middle" font-size="${BOARD.label.length>6?20:30}" font-weight="700" fill="#e9fbfc" font-family="IBM Plex Sans" letter-spacing="2">${BOARD.label}</text>${BOARD.nd>14?`<text x="440" y="150" font-size="7.5" fill="#bfeff1" font-family="IBM Plex Mono" text-anchor="end">D14 to D53 and A6 to A15: side header</text>`:BOARD.na>6?`<text x="440" y="150" font-size="7.5" fill="#bfeff1" font-family="IBM Plex Mono" text-anchor="end">A6, A7: analog only</text>`:""}<text x="150" y="128" font-size="13" font-weight="600" fill="#bfeff1" font-family="IBM Plex Sans">ARDUINO</text>`;
  h+=`<g font-size="7.5" fill="#d9f3f4" font-family="IBM Plex Sans"><rect x="96" y="60" width="11" height="7" rx="1" fill="#3b4a10" id="ledL"/><text x="91" y="66" text-anchor="end">L</text><rect x="96" y="74" width="11" height="7" rx="1" fill="#3b2a10" id="ledTX"/><text x="91" y="80" text-anchor="end">TX</text><rect x="96" y="88" width="11" height="7" rx="1" fill="#3b2a10" id="ledRX"/><text x="91" y="94" text-anchor="end">RX</text><rect x="400" y="96" width="11" height="7" rx="1" fill="#39ff6a"/><text x="415" y="102">ON</text></g>`;
  h+=`<rect x="112" y="14" width="${DIG_TOP.filter(Boolean).length*16+14}" height="20" rx="2" fill="#1d2126"/><rect x="152" y="266" width="${BOT.filter(Boolean).length*16+14}" height="20" rx="2" fill="#1d2126"/>`;
  let x=120;for(const d of DIG_TOP){if(!d){x+=10;continue}h+=`<rect x="${x-3.5}" y="20.5" width="7" height="7" fill="#0d0f12"/><circle id="pin${d[1]}_${x}" cx="${x}" cy="24" r="0" fill="#ff3b30"/><text x="${x}" y="39" text-anchor="start" transform="rotate(90 ${x} 39)" font-size="7.5" fill="#e3f7f8" font-family="IBM Plex Mono" dy="2.5">${d[0]}</text>`;x+=16}
@@ -201,10 +201,32 @@ function renderBoard(){const s=ST.sim;let h='';const used=new Set();for(const p 
  const tx=s&&s.serial.length&&s.us-s.txBlink<60000;$('#ledTX').setAttribute('fill',tx?'#ffb030':'#3b2a10');const rx=s&&ST.rxBlink&&performance.now()-ST.rxBlink<120;$('#ledRX').setAttribute('fill',rx?'#ffb030':'#3b2a10')}
 
 /* ---------- parts ---------- */
-const PT={led:{name:'LED',desc:'Light on a digital pin'},rgb:{name:'RGB LED',desc:'Three colours, three pins'},button:{name:'Push button',desc:'Press and hold'},switch:{name:'Slide switch',desc:'On or off'},pot:{name:'Potentiometer',desc:'Knob on an analog pin'},ldr:{name:'Light sensor',desc:'LDR on an analog pin'},lm35:{name:'Temperature sensor',desc:'LM35, 10 mV per °C'},ultrasonic:{name:'Ultrasonic sensor',desc:'HC-SR04 distance'},pir:{name:'Motion sensor',desc:'PIR, digital output'},servo:{name:'Servo motor',desc:'0 to 180 degrees'},buzzer:{name:'Buzzer',desc:'Plays tone()'},lcd:{name:'LCD 16×2',desc:'LiquidCrystal display'}};
-function defaults(t){switch(t){case'led':return{pin:13,color:'red'};case'rgb':return{r:9,g:10,b:11,common:'cathode'};case'button':return{pin:2,wiring:'gnd',pressed:false};case'switch':return{pin:4,wiring:'gnd',on:false};case'pot':return{pin:14,value:512};case'ldr':return{pin:15,value:60};case'lm35':return{pin:16,value:25};case'ultrasonic':return{trig:7,echo:6,value:50};case'pir':return{pin:8,on:false};case'servo':return{pin:9};case'buzzer':return{pin:8};case'lcd':return{}}return{}}
-const DPINS=[...Array(14).keys(),14,15,16,17,18,19],APINS=[14,15,16,17,18,19];
-const pinSel=(id,k,v,list,label)=>`${label?`<span>${label}</span>`:''}<select data-id="${id}" data-k="${k}" aria-label="${label||'Pin'}">${(list||DPINS).map(p=>`<option value="${p}" ${p===v?'selected':''}>${p>=14?'A'+(p-14):'pin '+p}${INO.PWM.has(p)?' ~':''}</option>`).join('')}</select>`;
+const PT={led:{name:'LED',desc:'Light on a digital pin'},rgb:{name:'RGB LED',desc:'Three colours, three pins'},button:{name:'Push button',desc:'Press and hold'},switch:{name:'Slide switch',desc:'On or off'},pot:{name:'Potentiometer',desc:'Knob on an analog pin'},ldr:{name:'Light sensor',desc:'LDR on an analog pin'},lm35:{name:'Temperature sensor',desc:'LM35, 10 mV per °C'},ultrasonic:{name:'Ultrasonic sensor',desc:'HC-SR04 distance'},pir:{name:'Motion sensor',desc:'PIR, digital output'},servo:{name:'Servo motor',desc:'0 to 180 degrees'},buzzer:{name:'Buzzer',desc:'Plays tone()'},lcd:{name:'LCD 16×2',desc:'LiquidCrystal display'},
+ joyx:{name:'Joystick X axis',desc:'Analog, 512 in the middle'},joyy:{name:'Joystick Y axis',desc:'Analog, 512 in the middle'},soil:{name:'Soil moisture sensor',desc:'Analog, wetter is higher'},gas:{name:'Gas sensor (MQ-2)',desc:'Analog, more gas is higher'},
+ flex:{name:'Flex sensor',desc:'Analog, bending changes it'},water:{name:'Water level sensor',desc:'Analog, deeper is higher'},mic:{name:'Sound sensor (analog)',desc:'Analog loudness'},
+ tilt:{name:'Tilt switch',desc:'HIGH when tilted'},touch:{name:'Touch sensor (TTP223)',desc:'HIGH while touched'},sound:{name:'Sound sensor (digital)',desc:'HIGH on a loud sound'},
+ ir:{name:'IR obstacle sensor',desc:'LOW when something is close'},reed:{name:'Reed switch module',desc:'LOW near a magnet'},hall:{name:'Hall sensor (A3144)',desc:'LOW near a magnet'}};
+const ANA_PT={joyx:['X',512],joyy:['Y',512],soil:['moisture',300],gas:['gas',150],flex:['bend',400],water:['level',0],mic:['loudness',80]},DIG_PT={tilt:['tilted','level'],touch:['touched','not touched'],sound:['loud','quiet'],ir:['obstacle','clear'],reed:['magnet near','no magnet'],hall:['magnet near','no magnet']};
+function defaults(t){switch(t){case'led':return{pin:13,color:'red'};case'rgb':return{r:9,g:10,b:11,common:'cathode'};case'button':return{pin:2,wiring:'gnd',pressed:false};case'switch':return{pin:4,wiring:'gnd',on:false};case'pot':return{pin:14,value:512};case'ldr':return{pin:15,value:60};case'lm35':return{pin:16,value:25};case'ultrasonic':return{trig:7,echo:6,value:50};case'pir':return{pin:8,on:false};case'servo':return{pin:9};case'buzzer':return{pin:8};case'lcd':return{}}if(ANA_PT[t])return{pin:14,value:ANA_PT[t][1]};if(DIG_PT[t])return{pin:7,on:false};return{}}
+/* boards with the Uno pin numbering (A0 = 14); the Mega has 54 digital pins and A0 = 54 */
+const R_=(a,b)=>Array.from({length:b-a+1},(_,i)=>a+i);
+const BOARDS={uno:{name:'Arduino Uno R3',label:'UNO',chip:'ATMEGA328P',col:['#0a8f98','#05747c'],nd:14,abase:14,na:6,pwm:[3,5,6,9,10,11]},
+ unor4:{name:'Arduino UNO R4 Minima',label:'UNO R4',chip:'RA4M1',col:['#0b8696','#065f6b'],nd:14,abase:14,na:6,pwm:[3,5,6,9,10,11]},
+ leonardo:{name:'Arduino Leonardo',label:'LEONARDO',chip:'ATMEGA32U4',col:['#0a7f8a','#055e66'],nd:14,abase:14,na:6,pwm:[3,5,6,9,10,11,13]},
+ nano:{name:'Arduino Nano',label:'NANO',chip:'ATMEGA328P',col:['#2b6fc7','#1c4f94'],nd:14,abase:14,na:8,pwm:[3,5,6,9,10,11]},
+ nanoevery:{name:'Arduino Nano Every',label:'NANO EVERY',chip:'ATMEGA4809',col:['#2b6fc7','#1c4f94'],nd:14,abase:14,na:8,pwm:[3,5,6,9,10]},
+ promini:{name:'Arduino Pro Mini (5 V)',label:'PRO MINI',chip:'ATMEGA328P',col:['#c4372b','#8e2219'],nd:14,abase:14,na:8,pwm:[3,5,6,9,10,11]},
+ mega:{name:'Arduino Mega 2560',label:'MEGA 2560',chip:'ATMEGA2560',col:['#0a8f98','#05747c'],nd:54,abase:54,na:16,pwm:[...R_(2,13),44,45,46]}};
+let BOARD=BOARDS.uno;try{const k=localStorage.getItem('cesim.ino.board');if(BOARDS[k])BOARD=BOARDS[k]}catch(e){}
+let DPINS,APINS;function boardPins(){APINS=R_(BOARD.abase,BOARD.abase+BOARD.na-1);DPINS=[...R_(0,BOARD.nd-1),...APINS]}boardPins();
+const isPwm=p=>BOARD.pwm.includes(p);
+/* the sketch for the chosen board: analog names past A5, and every analog name on the Mega */
+function boardSrc(t){if(BOARD.abase===14&&BOARD.na<=6)return t;for(let i=BOARD.na-1;i>=0;i--){if(BOARD.abase===14&&i<6)continue;t=t.replace(new RegExp('\\bA'+i+'\\b','g'),String(BOARD.abase+i))}return t}
+function applyBoard(sim){const B=BOARD;const max=B.abase+B.na-1;while(sim.pins.length<=max)sim.pins.push({mode:0,v:0,pwm:-1,tone:0,touched:false});
+ sim.pinOk=function(p,l){p=p|0;if(p<0||p>max)throw new Error(`Pin ${p} does not exist on the ${B.name}. Use 0 to ${B.nd-1}, or A0 to A${B.na-1}`);return p};
+ sim.abase=B.abase;sim.na=B.na;
+ sim.aw=function(p,v,l){p=this.pinOk(p,l);v=Math.max(0,Math.min(255,v|0));const s=this.pins[p];s.touched=true;s.mode=1;if(isPwm(p)){s.pwm=v;s.v=v>0?1:0}else{s.pwm=-1;s.v=v>=128?1:0;if(!this.pwmWarned){this.pwmWarned=true;this.warn(l,`Pin ${p} has no PWM on the ${B.name}. analogWrite() works on pins ${B.pwm.join(', ')}`)}}this.emit('pins')}}
+const pinSel=(id,k,v,list,label)=>`${label?`<span>${label}</span>`:''}<select data-id="${id}" data-k="${k}" aria-label="${label||'Pin'}">${(list||DPINS).map(p=>`<option value="${p}" ${p===v?'selected':''}>${p>=BOARD.abase?'A'+(p-BOARD.abase):'pin '+p}${isPwm(p)?' ~':''}</option>`).join('')}</select>`;
 const COLORS={red:'#ff3b30',green:'#2ee66b',yellow:'#ffd60a',blue:'#2f8bff',white:'#f4f7ff'};
 function pinLevel(p){const s=ST.sim;if(!s||p==null)return 0;const st=s.pins[p];if(st.mode===1)return st.pwm>=0?st.pwm/255:st.v;if(st.mode===2&&st.pullupByWrite)return .08;return 0}
 function partHTML(p){const id=p.id,info=PT[p.type];let vis='',ctl='',note='';
@@ -217,6 +239,9 @@ function partHTML(p){const id=p.id,info=PT[p.type];let vis='',ctl='',note='';
   case'button':vis=`<button class="pbtn ${p.pressed?'on':''}" data-press="${id}" aria-label="Press the button" title="Press and hold (or hold Space while it has focus)"></button>`;ctl=`<div class="row">${pinSel(id,'pin',p.pin)}<span class="val">${p.pressed?'pressed':'released'}</span></div><div class="row"><select data-id="${id}" data-k="wiring" aria-label="Wiring"><option value="gnd" ${p.wiring!=='vcc'?'selected':''}>Pin to GND: use INPUT_PULLUP</option><option value="vcc" ${p.wiring==='vcc'?'selected':''}>Pin to 5V, with pull-down resistor</option></select></div>`;
    {const st=ST.sim&&ST.sim.pins[p.pin];if(st&&st.touched&&p.wiring!=='vcc'&&st.mode===0)note='This pin is INPUT without a pull-up, so it floats and reads random values. Use INPUT_PULLUP'}break;
   case'switch':vis=`<button class="tog ${p.on?'on':''}" data-toggle="${id}" aria-label="Switch"></button>`;ctl=`<div class="row">${pinSel(id,'pin',p.pin)}<span class="val">${p.on?'on':'off'}</span></div><div class="row"><select data-id="${id}" data-k="wiring"><option value="gnd" ${p.wiring!=='vcc'?'selected':''}>Pin to GND: use INPUT_PULLUP</option><option value="vcc" ${p.wiring==='vcc'?'selected':''}>Pin to 5V, with pull-down resistor</option></select></div>`;break;
+  case'joyx':case'joyy':case'soil':case'gas':case'flex':case'water':case'mic':{const v=Math.round(p.value);const[lbl]=ANA_PT[p.type];vis=`<svg width="46" height="46" viewBox="0 0 46 46"><rect x="6" y="6" width="34" height="34" rx="5" fill="${p.type==='soil'||p.type==='water'?'#1f6f3f':p.type==='gas'?'#4a4f57':'#2b5fa8'}"/><rect x="10" y="${36-28*v/1023}" width="26" height="${28*v/1023}" fill="#8fd3ff" opacity=".8"/><text x="23" y="26" font-size="9" fill="#fff" text-anchor="middle" font-family="IBM Plex Mono">${v}</text></svg>`;
+   ctl=`<div class="row">${pinSel(id,'pin',p.pin,APINS)}<span class="val">${lbl} ${v}</span></div><div class="row"><input type="range" min="0" max="1023" value="${v}" data-id="${id}" data-k="value" aria-label="${lbl}"></div>`;break}
+  case'tilt':case'touch':case'sound':case'ir':case'reed':case'hall':{const[on,off]=DIG_PT[p.type];vis=`<button class="tog ${p.on?'on':''}" data-toggle="${id}" aria-label="${on}"></button>`;ctl=`<div class="row">${pinSel(id,'pin',p.pin)}<span class="val">${p.on?on:off}</span></div>`;break}
   case'pir':vis=`<button class="tog ${p.on?'on':''}" data-toggle="${id}" aria-label="Motion"></button>`;ctl=`<div class="row">${pinSel(id,'pin',p.pin)}<span class="val">${p.on?'motion':'no motion'}</span></div>`;break;
   case'pot':{const v=Math.round(p.value);vis=`<svg width="48" height="48" viewBox="0 0 48 48"><circle cx="24" cy="24" r="19" fill="#2b5fa8" stroke="#1d4277" stroke-width="2"/><circle cx="24" cy="24" r="11" fill="#e8edf3"/><line x1="24" y1="24" x2="${24+10*Math.cos((-225+v/1023*270)*Math.PI/180)}" y2="${24+10*Math.sin((-225+v/1023*270)*Math.PI/180)}" stroke="#1b2230" stroke-width="3" stroke-linecap="round"/></svg>`;ctl=`<div class="row">${pinSel(id,'pin',p.pin,APINS)}<span class="val">${v} · ${(v*5/1023).toFixed(2)} V</span></div><div class="row"><input type="range" min="0" max="1023" value="${v}" data-id="${id}" data-k="value" aria-label="Potentiometer position"></div>`;break}
   case'ldr':vis=`<svg width="46" height="46" viewBox="0 0 46 46"><circle cx="23" cy="23" r="15" fill="#f2e2c4" stroke="#c9a96b" stroke-width="2"/><path d="M14 18h18M14 23h18M14 28h18" stroke="#c0392b" stroke-width="2"/><circle cx="23" cy="23" r="21" fill="#ffd60a" opacity="${p.value/220}"/></svg>`;ctl=`<div class="row">${pinSel(id,'pin',p.pin,APINS)}<span class="val">light ${Math.round(p.value)}%</span></div><div class="row"><input type="range" min="0" max="100" value="${p.value}" data-id="${id}" data-k="value" aria-label="Light level"></div>`;break;
@@ -312,7 +337,9 @@ function showRef(){const o=document.createElement('div');o.className='ov';o.inne
 <h4>Keys</h4><p>F5 run or pause · Shift+F5 stop · Ctrl+R verify · Ctrl+S save · Ctrl+/ comment lines</p></div></div>`;document.body.appendChild(o);o.onclick=e=>{if(e.target===o||e.target.id==='refX')o.remove()}}
 window.addEventListener('beforeunload',()=>{try{localStorage.setItem('cesim.ino.doc',JSON.stringify({name:ST.name,src:src.value,parts:ST.parts.map(p=>{const o=Object.assign({},p);delete o.pressed;return o})}))}catch(e){}});
 let svT=null;function saveLocal(){clearTimeout(svT);svT=setTimeout(()=>{try{localStorage.setItem('cesim.ino.doc',JSON.stringify({name:ST.name,src:src.value,parts:ST.parts.map(p=>{const o=Object.assign({},p);delete o.pressed;return o})}))}catch(e){}},300)}
-function start(){boardSVG();let d=null;if(!/blank/.test(location.search)){try{d=JSON.parse(localStorage.getItem('cesim.ino.doc')||'null')}catch(e){}}
+function initBoardSel(){const el=$('#boardSel');el.innerHTML=Object.entries(BOARDS).map(([k,b])=>`<option value="${k}" ${b===BOARD?'selected':''}>${b.name}</option>`).join('');
+ el.onchange=()=>{BOARD=BOARDS[el.value];try{localStorage.setItem('cesim.ino.board',el.value)}catch(e){}boardPins();boardSVG();if(typeof renderParts==='function')renderParts();ST.dirty=true;if(ST.running)pause();toast(`Board: ${BOARD.name}. Press Run to upload the sketch to it`)}}
+function start(){initBoardSel();boardSVG();let d=null;if(!/blank/.test(location.search)){try{d=JSON.parse(localStorage.getItem('cesim.ino.doc')||'null')}catch(e){}}
  if(d&&typeof d.src==='string'){src.value=d.src;setName(d.name);ST.parts=(d.parts||[]).map(p=>Object.assign({},p,{id:ST.uid++}))}else{const ex=INO_EXAMPLES['Blink'];src.value=ex.code;setName('blink');ST.parts=ex.parts.map(p=>Object.assign({id:ST.uid++},defaults(p.type),p))}
  renderEditor();renderParts();renderProblems();renderAll();refreshButtons();updPos()}
 window.CEI={ST,verify,run,pause,stop,reset,loadSketch,showTab,renderAll,get sim(){return ST.sim},src,sketchText};

@@ -266,7 +266,9 @@ function map(c,info){const p=c.p||{},t=c.t;const two=(k,a,b)=>[k,[a,b]];
   case "netlabel":return{key:"ONPAGE_CONNECTOR",pins:["1"],net:1};
   case "xmm":return{key:"XMM",pins:["1","2"]};
   case "xwm":return{key:"XWM",pins:["1","2","3","4"]};
-  case "xfg":{const w={sine:0,triangle:1,square:2}[p.wave]||0;return{key:"XFG",pins:["1","2","3"],instEdit:q=>setInst(q,{NI_EWB_WAVE_MODE:w,NI_EWB_FREQUENCY_VALUE:num(p.freq),NI_EWB_AMPLITUDE_VALUE:num(p.amp),NI_EWB_OFFSET_VALUE:num(p.offset),NI_EWB_DEPUTY_CYCLE_VALUE:num(p.duty||50)})}}
+  case "xfg":{/* sawtooth: a triangle with 99 % duty; pulse: a square shifted up; noise, sweep and arbitrary have no match and go as a sine */
+   const wv=p.wave;const w={sine:0,triangle:1,square:2,sawtooth:1,pulse:2}[wv]||0;const amp=num(p.amp),off=num(p.offset);
+   return{key:"XFG",pins:["1","2","3"],instEdit:q=>setInst(q,{NI_EWB_WAVE_MODE:w,NI_EWB_FREQUENCY_VALUE:num(p.freq),NI_EWB_AMPLITUDE_VALUE:wv==="pulse"?amp/2:amp,NI_EWB_OFFSET_VALUE:wv==="pulse"?off+amp/2:off,NI_EWB_DEPUTY_CYCLE_VALUE:wv==="sawtooth"?99:num(p.duty||50)})}}
   case "xsc":return{key:"XSC",pins:["1","2","4"],extra:"xsc",instEdit:q=>setInst(q,{NI_EWB_TIMEBASE_SCALE_VALUE:num(p.tb),NI_EWB_A_CHANNEL_SCALE_VALUE:num(p.va),NI_EWB_B_CHANNEL_SCALE_VALUE:num(p.vb)})};
  }return null}
 /* pot wiper position: the "setting" variable in the part's interactive script, and its % label */
@@ -309,7 +311,17 @@ function orient(local,target){const n=local.length;if(n<2)return{M:[1,0,0,1],off
  return best}
 
 /* ---------------- export a CEsim document ---------------- */
-async function exportDoc(doc,H){const T=await templates();const B=new Builder(T);const G=9,S=0.9;const warn=[];
+/* wires that only led to a part with no .ms14 match (a Bode plotter, say) go too, so no loose ends are left */
+function pruneWires(doc,H){const keep=[];for(const c of doc.comps){if(c.t==="text")continue;let ok=true;try{ok=!!map(c,{conn:H.conn.get(c.id),H})}catch(e){}if(!ok)continue;H.LIB[c.t].pins.forEach((_,i)=>{const q=H.pinPos(c,i);keep.push(q.x+","+q.y)})}
+ const anchors=new Set(keep);let ws=doc.wires.slice();
+ const onW=(p,w)=>{for(let j=1;j<w.pts.length;j++){const a=w.pts[j-1],b=w.pts[j];if((a.x===b.x&&p.x===a.x&&p.y>=Math.min(a.y,b.y)&&p.y<=Math.max(a.y,b.y))||(a.y===b.y&&p.y===a.y&&p.x>=Math.min(a.x,b.x)&&p.x<=Math.max(a.x,b.x)))return true}return false};
+ for(let ch=true;ch;){ch=false;for(let i=ws.length-1;i>=0;i--){const w=ws[i];const ends=[w.pts[0],w.pts[w.pts.length-1]];
+   if(ends.some(p=>!anchors.has(p.x+","+p.y)&&!ws.some(o=>o!==w&&onW(p,o)))){ws.splice(i,1);ch=true}}}
+ /* a ground symbol left touching nothing goes as well */
+ const pinPts=c=>H.LIB[c.t].pins.map((_,i)=>H.pinPos(c,i));
+ const comps=doc.comps.filter(c=>{if(c.t!=="gnd")return true;const q=pinPts(c)[0];return ws.some(w=>onW(q,w))||doc.comps.some(o=>o!==c&&o.t!=="gnd"&&pinPts(o).some(r=>r.x===q.x&&r.y===q.y))});
+ return ws.length===doc.wires.length&&comps.length===doc.comps.length?doc:Object.assign({},doc,{wires:ws,comps})}
+async function exportDoc(doc,H){doc=pruneWires(doc,H);const T=await templates();const B=new Builder(T);const G=9,S=0.9;const warn=[];
  const sn=v=>Math.round(v/G)*G;
  let minx=1e9,miny=1e9;for(const c of doc.comps){const b=H.bbox(c);minx=Math.min(minx,b[0]);miny=Math.min(miny,b[1])}for(const w of doc.wires)for(const q of w.pts){minx=Math.min(minx,q.x);miny=Math.min(miny,q.y)}
  if(!isFinite(minx)){minx=0;miny=0}

@@ -251,6 +251,25 @@ Every part in the library exports. Logic gates (AND, OR, NAND, NOR, XOR, XNOR, N
 - **Reference** lists the supported instructions, directives, interrupts and ports.
 - The **DOS** tab is a DOS prompt with its own drive C:. It has `DIR`, `CD`, `MD`, `RD`, `TYPE`, `COPY` (also `COPY CON`), `DEL`, `REN`, `TREE`, `CLS`, `ECHO`, `DATE`, `TIME`, `VER`, `VOL`, `MEM` and batch files. `SAVE NAME.ASM` saves the program in the editor there, `ASM NAME.ASM` assembles it to `NAME.COM` or `NAME.EXE`, typing `NAME` runs it on the same screen (with keyboard input and a command tail), and `EDIT NAME.ASM` opens a file in the editor. The examples are in `C:\EXAMPLES`, and `FORMAT C:` puts them back.
 
+## Arduino boards and Raspberry Pi on the breadboard
+
+The Boards group has the **Uno R3, Uno R4, Leonardo, Nano, Nano Every, Nano 33 IoT, Nano 33 BLE, Micro, Pro Mini, MKR WiFi 1010, Mega 2560 and Due**, each with its own pins, voltage, analog inputs and PWM pins, plus the **Pico W** and **Pico 2**. The Arduino tool can switch its board between the Uno, Uno R4, Leonardo, Nano, Nano Every, Pro Mini and Mega.
+
+The Raspberry Pi group has the **Pi 1 B+, Pi 2 B, Pi 3 B, Pi 3 B+, Pi 4 B, Pi 400, Pi 5, Pi Zero and Pi Zero 2 W** with the 40-pin header. They run a **Python program**: RPi.GPIO (BCM or BOARD numbers, pull-up and pull-down, PWM, edge events) and gpiozero (LED, PWMLED, Button, Buzzer, MotionSensor, RGBLED, TrafficLights, Servo), with time, random and math. print goes to the Output panel.
+
+New parts: RGB LED, PIR motion sensor, tilt switch and joystick. In the Arduino tool: joystick, soil moisture, gas, flex, water level, microphone, touch, sound, IR, reed and Hall sensors.
+
+## Drawing and selecting
+
+- Drag from a pin to draw a wire. Right-click while drawing to drop a resistor, capacitor, LED or another quick part at the wire end.
+- Press **W** to start a wire anywhere. Drag a free wire end to make it longer or shorter, and drag a wire segment to move it.
+- Drag on empty space to select several parts and wires, then move or delete them together. Shift or Ctrl adds to the selection, and Ctrl+A selects everything. The breadboard and PCB tools select the same way.
+- Pan with Space and drag, the middle button, or a right-drag.
+
+## Oscillators
+
+Parts: crystal, ceramic resonator, crystal oscillator module, VCO and CD4060 oscillator and counter. The function generator has sine, triangle, square, sawtooth, pulse, noise, sweep (linear or log) and arbitrary waves. **File > Open oscillator example** has Wien bridge, phase shift, Colpitts, Hartley, op-amp relaxation, ring, CD4060, VCO and sweep circuits.
+
 ## Arduino
 
 - Open an example, press **F5**, and use the parts on the right: press buttons, turn the potentiometer, change the light, temperature or distance.

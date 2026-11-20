@@ -190,7 +190,7 @@ kbd{font:11px var(--font-mono);border:1px solid var(--ui-border);border-bottom-w
   <div class="toolbar" id="tb1"></div>
   <div class="toolbar" id="tb2"></div>
   <div id="main">
-    <div id="cvwrap"><canvas id="cv" tabindex="0"></canvas><div class="hint" id="hint"><h2>Design1</h2>Place parts from the component toolbar or press <kbd>Ctrl</kbd>+<kbd>W</kbd>.<br>Drag from a pin to draw a wire. Press <kbd>F5</kbd> to run.<br>Example circuits are in the tabs below.</div></div>
+    <div id="cvwrap"><canvas id="cv" tabindex="0"></canvas><div class="hint" id="hint"><h2>Design1</h2>Place parts from the component toolbar or press <kbd>Ctrl</kbd>+<kbd>W</kbd>.<br>Drag from a pin to draw a wire, right-click while drawing for quick parts. Drag on empty space to select. Press <kbd>F5</kbd> to run.<br>Example circuits are in the tabs below.</div></div>
     <div id="instbar"></div>
   </div>
   <div id="tabs"></div>
@@ -198,7 +198,7 @@ kbd{font:11px var(--font-mono);border:1px solid var(--ui-border);border-bottom-w
 </div>
 <div id="splash" role="dialog" aria-label="CEsim"><div class="sp-box"><canvas id="sp-cv"></canvas><div class="sp-in">
  <div class="sp-row"><div class="sp-logo">CE</div><div><div class="sp-name">CE<span>sim</span></div><div class="sp-sub">Circuit Design &amp; Simulation Suite</div></div></div>
- <div class="sp-ver">Version 1.31.0</div><div class="sp-bar"><i id="sp-bar"></i></div><div class="sp-foot"><span id="sp-msg">Loading component database…</span><span class="sp-by">BY. YOUSEF</span></div>
+ <div class="sp-ver">Version 1.32.0</div><div class="sp-bar"><i id="sp-bar"></i></div><div class="sp-foot"><span id="sp-msg">Loading component database…</span><span class="sp-by">BY. YOUSEF</span></div>
 </div></div></div>
 <script src="lib/canvas2svg.js"></script>
 <script src="ms14.js"></script>
@@ -654,12 +654,58 @@ def("xmm",{name:"Multimeter",ar:"ملتيميتر",prefix:"XMM",instrument:1,pin
  build(c,n,E){const st=E.st;st.m=0;st.s=0;const mode=c.p.mode;let k=-1;if(mode==="A")k=E.V(n[0],n[1],()=>0);else if(mode==="Ω")E.I(n[0],n[1],()=>1e-3);else E.R(n[0],n[1],1e9);
   E.post(()=>{const a=(st._n=(st._n||0)+1)>1?Math.min(1,E.dt()/0.05):1;let x;if(mode==="A")x=E.x(k);else x=E.v(n[0])-E.v(n[1]);st.x=x;st.m+=(x-st.m)*a;st.s+=(x*x-st.s)*a;const ac=c.p.ac==="AC";const val=ac?Math.sqrt(Math.max(0,st.s-st.m*st.m)):st.m;
    if(mode==="Ω"){const R=st.m/1e-3;st.r=R>2e8||R<0?"OL":rd(R,"Ω")}else st.r=rd(val,mode)})}});
-def("xfg",{name:"Function generator",ar:"مولد إشارات",prefix:"XFG",instrument:1,pins:[[-20,30,"+"],[0,30,"COM"],[20,30,"-"]],bb:[-28,-26,28,30],props:{wave:"sine",freq:"1k",amp:"1",offset:"0",duty:"50"},
- fields:[fSel("wave","Waveform",["sine","triangle","square"]),fSI("freq","Frequency","Hz"),fSI("amp","Amplitude (Vp)","V"),fSI("offset","Offset","V"),fSI("duty","Duty cycle","%")],
+/* function generator: the usual three waves, plus sawtooth, pulse, noise, a frequency sweep and an arbitrary wave from points */
+const FG_WAVES=["sine","triangle","square","sawtooth","pulse","noise","sweep","arbitrary"];
+function fgPoints(c){const k=c.p.points||"0,1,0,-1";if(c._ptsK===k)return c._pts;const v=String(k).split(/[\s,;]+/).map(Number).filter(isFinite);c._ptsK=k;c._pts=v.length>=2?v:[0,1,0,-1];return c._pts}
+function fgHash(n){n=(n^61)^(n>>>16);n=n+(n<<3);n=n^(n>>>4);n=Math.imul(n,0x27d4eb2d);n=n^(n>>>15);return(n>>>0)/4294967295}
+/* ---- oscillators ---- */
+/* crystal and ceramic resonator: Butterworth-Van Dyke model, R-L-C in series with C0 across.
+   A lower Q starts faster: real quartz has Q of 10k to 100k and takes many cycles to build up */
+const xtalBuild=(c,n,E)=>{const p=P(c);const x=c._xn;const w=2*PI*Math.max(1,p.freq);const R=Math.max(0.01,p.esr||50),Q=Math.max(10,p.q||1000);const Lm=Q*R/w,Cm=1/(w*w*Lm);
+ E.R(n[0],x[0],R);E.Lx(x[0],x[1],()=>Lm);E.C(x[1],n[1],()=>Cm,0);E.C(n[0],n[1],()=>Math.max(1e-15,p.c0||5e-12),0);E.R(n[0],n[1],1e9)};
+const xtalDraw=(c,st,tx)=>{L(c,-30,0,-9,0);L(c,9,0,30,0);L(c,-9,-11,-9,11);L(c,9,-11,9,11);RECT(c,-5,-8,5,8,CV.bg)};
+def("xtal",{name:"Quartz crystal",ar:"كريستال كوارتز",prefix:"Y",pins:[[-30,0,"1"],[30,0,"2"]],bb:[-30,-12,30,12],props:{freq:"1M",esr:"50",q:"2000",c0:"5p"},
+ fields:[fSI("freq","Frequency","Hz"),fSI("esr","Series resistance (ESR)","Ω"),fSI("q","Quality factor Q",""),fSI("c0","Shunt capacitance C0","F")],draw:xtalDraw,
+ val(c){return [si(PV(c,"freq"),"Hz")]},extraNodes(){return 2},build:xtalBuild,fmax(c){return P(c).freq*1.2},
+ spice(c,n){const p=P(c);const w=2*PI*p.freq;const Lm=p.q*p.esr/w,Cm=1/(w*w*Lm);return `R${c.label}a ${n[0]} ${c.label}_1 ${p.esr}\nL${c.label} ${c.label}_1 ${c.label}_2 ${Lm.toExponential(4)}\nC${c.label}m ${c.label}_2 ${n[1]} ${Cm.toExponential(4)}\nC${c.label}0 ${n[0]} ${n[1]} ${p.c0}`}});
+def("resonator",{name:"Ceramic resonator",ar:"رنان سيراميكي",prefix:"Y",pins:[[-30,0,"1"],[30,0,"2"]],bb:[-30,-12,30,12],props:{freq:"4M",esr:"10",q:"300",c0:"20p"},
+ fields:[fSI("freq","Frequency","Hz"),fSI("esr","Series resistance","Ω"),fSI("q","Quality factor Q",""),fSI("c0","Shunt capacitance C0","F")],draw(c,st,tx){xtalDraw(c,st,tx);c.save();c.fillStyle="#d8b46a";c.fillRect(-4,-7,8,14);c.restore()},
+ val(c){return [si(PV(c,"freq"),"Hz")]},extraNodes(){return 2},build:xtalBuild,fmax(c){return P(c).freq*1.2},spice(c,n){return LIB.xtal.spice(c,n)}});
+/* crystal oscillator module: a square wave at its frequency while it has power */
+def("xo",{name:"Crystal oscillator module",ar:"وحدة مذبذب كريستالي",prefix:"X",pins:[[-30,-10,"VCC"],[-30,10,"GND"],[30,0,"OUT"]],bb:[-30,-22,30,22],props:{freq:"1M"},fields:[fSI("freq","Frequency","Hz")],
+ draw(c,st,tx){RECT(c,-22,-20,22,20,CV.bg);c.save();c.beginPath();c.arc(-16,-14,2,0,7);c.fill();c.restore();L(c,-30,-10,-22,-10);L(c,-30,10,-22,10);L(c,22,0,30,0);tx("VCC",-19,-7,6,"pin","left");tx("GND",-19,13,6,"pin","left");tx("OUT",19,3,6,"pin","right");L(c,-6,4,-6,-4,0,-4,0,4,6,4,6,-4)},
+ val(c){return [si(PV(c,"freq"),"Hz")]},
+ build(c,n,E){const acc=phAcc(c,E);E.R(n[0],n[1],1000);E.Th(n[2],n[1],()=>{const vcc=E.v(n[0])-E.v(n[1]);if(vcc<1.5)return[0,1e6];return[((acc()%1)+1)%1<0.5?vcc:0,50]})},fmax(c){return P(c).freq*5}});
+/* VCO: the frequency follows the control voltage, f = f0 + k * Vin */
+def("vco",{name:"Voltage-controlled oscillator",ar:"مذبذب يتحكم فيه الجهد",prefix:"U",pins:[[-30,-10,"VIN"],[-30,10,"GND"],[30,0,"OUT"]],bb:[-30,-22,30,22],props:{f0:"1k",k:"1k",amp:"5",wave:"square"},
+ fields:[fSI("f0","Frequency at 0 V","Hz"),fSI("k","Gain (Hz per volt)","Hz/V"),fSI("amp","Output amplitude","V"),fSel("wave","Output",["square","sine","triangle"])],
+ draw(c,st,tx){RECT(c,-22,-20,22,20,CV.bg);L(c,-30,-10,-22,-10);L(c,-30,10,-22,10);L(c,22,0,30,0);tx("VIN",-19,-7,6,"pin","left");tx("GND",-19,13,6,"pin","left");tx("VCO",4,3,7.5,"part","center");if(st&&st.f!=null)tx(si(st.f,"Hz"),0,30,7,"value","center")},
+ val(c){const p=P(c);return [si(p.f0,"Hz")+" + "+si(p.k,"Hz/V")]},
+ build(c,n,E){const st=E.st;const s={t:0,ph:0};E.R(n[0],n[1],1e6);
+  const ph=()=>{const t=E.t();const p=P(c);if(t!==s.t){const f=Math.max(0,p.f0+p.k*(E.v(n[0])-E.v(n[1])));st.f=f;s.ph+=(t-s.t)*f;s.t=t}return((s.ph%1)+1)%1};
+  E.Th(n[2],n[1],()=>{const p=P(c);const q=ph();const w=c.p.wave;const y=w==="sine"?0.5+0.5*Math.sin(2*PI*q):w==="triangle"?(q<0.5?2*q:2-2*q):(q<0.5?1:0);return[p.amp*y,50]})},
+ fmax(c){const p=P(c);return Math.max(p.f0,p.f0+p.k*10)*4}});
+/* CD4060: oscillator (RS, RTC, CTC pins with an outside R and C) and a 14-stage counter */
+const C4060=[[-40,-30,"RS"],[-40,-10,"RTC"],[-40,10,"CTC"],[-40,30,"RST"],[0,-50,"VDD"],[0,50,"VSS"],...["Q4","Q5","Q6","Q7","Q8","Q9","Q10","Q12","Q13","Q14"].map((q,i)=>[40,-45+i*10,q])];
+def("cd4060",{name:"CD4060 oscillator and 14-stage counter",ar:"مذبذب وعداد CD4060",prefix:"U",pins:C4060,bb:[-40,-55,40,55],props:{},
+ draw(c,st,tx){RECT(c,-30,-50,30,50,CV.bg);for(const[x,y,nm]of C4060){if(x<0){L(c,-40,y,-30,y);tx(nm,-27,y+3,6,"pin","left")}else if(x>0){L(c,30,y,40,y);tx(nm,27,y+3,6,"pin","right")}else{L(c,0,y<0?-50:50,0,y);tx(nm,0,y<0?-42:46,6,"pin","center")}}tx("4060",-6,4,9,"part","center");if(st&&st.n!=null)tx(String(st.n),-6,16,7,"value","center")},
+ val(){return ["CD4060"]},fmax(){return 2e4},
+ build(c,n,E){const st=E.st;st.n=0;st.in=0;st.prev=0;const[RS,RTC,CTC,RST,VDD,VSS]=n;E.R(RS,VSS,1e9);E.R(RST,VSS,1e7);
+  E.pre(()=>{const vdd=E.v(VDD)-E.v(VSS);st.vdd=vdd;const vin=E.v(RS)-E.v(VSS);/* the input has a little hysteresis so the RC oscillator swings cleanly */
+   if(st.in&&vin<vdd*0.45)st.in=0;else if(!st.in&&vin>vdd*0.55)st.in=1;
+   if(E.v(RST)-E.v(VSS)>vdd/2){st.n=0}else if(st.prev&&!st.in)st.n=(st.n+1)&16383;st.prev=st.in});
+  E.Th(RTC,VSS,()=>[st.vdd>2&&!st.in?st.vdd:0,200]);E.Th(CTC,VSS,()=>[st.vdd>2&&st.in?st.vdd:0,200]);
+  ["Q4","Q5","Q6","Q7","Q8","Q9","Q10","Q12","Q13","Q14"].forEach((q,i)=>{const bit=+q.slice(1)-1;E.Th(n[6+i],VSS,()=>[st.vdd>2&&(st.n>>bit)&1?st.vdd:0,100])})}});
+def("xfg",{name:"Function generator",ar:"مولد إشارات",prefix:"XFG",instrument:1,pins:[[-20,30,"+"],[0,30,"COM"],[20,30,"-"]],bb:[-28,-26,28,30],props:{wave:"sine",freq:"1k",amp:"1",offset:"0",duty:"50",f2:"10k",tsweep:"10m",sweep:"linear",points:"0,1,0,-1"},
+ fields:[fSel("wave","Waveform",FG_WAVES),fSI("freq","Frequency (sweep: start)","Hz"),fSI("amp","Amplitude (Vp)","V"),fSI("offset","Offset","V"),fSI("duty","Duty cycle","%"),fSI("f2","Sweep: stop frequency","Hz"),fSI("tsweep","Sweep: time","s"),fSel("sweep","Sweep: scale",["linear","log"]),fTxt("points","Arbitrary: points of one period")],
  draw(c,st,tx){RECT(c,-28,-26,28,20,CV.bg);RECT(c,-22,-21,22,-5,"#0b1620");c.save();c.strokeStyle="#7CFFB2";c.beginPath();for(let i=0;i<=30;i++){const x=-19+i*38/30,y=-13-5*Math.sin(i/30*4*PI);i?c.lineTo(x,y):c.moveTo(x,y)}c.stroke();c.restore();[-20,0,20].forEach(x=>{CIR(c,x,12,3);L(c,x,15,x,30)});tx("+",-20,3,7,"part","center");tx("C",0,3,7,"part","center");tx("−",20,3,7,"part","center")},
  val(c){const p=P(c);return [c.p.wave+" "+si(p.freq,"Hz")]},
- build(c,n,E){const acc=phAcc(c,E);const w=()=>{const p=P(c);const ph=((acc()%1)+1)%1;let s;if(c.p.wave==="square")s=ph<p.duty/100?1:-1;else if(c.p.wave==="triangle")s=ph<0.5?4*ph-1:3-4*ph;else s=Math.sin(2*PI*ph);return p.amp*s};
-  E.V(n[0],n[1],()=>w()+P(c).offset);E.V(n[1],n[2],()=>w()-P(c).offset);E.R(n[1],0,1e7)},fmax(c){return P(c).freq*(c.p.wave==="sine"?1:4)}});
+ build(c,n,E){const acc=phAcc(c,E);const sw={t:0,ph:0};
+  const sweepPh=()=>{const p=P(c);const t=E.t();const T=Math.max(1e-6,p.tsweep||1e-2);const f1=p.freq,f2=p.f2||p.freq;const u=(t%T)/T;const f=c.p.sweep==="log"&&f1>0&&f2>0?f1*Math.pow(f2/f1,u):f1+(f2-f1)*u;if(t!==sw.t){sw.ph+=(t-sw.t)*f;sw.t=t}return sw.ph};
+  const w=()=>{const p=P(c);const wv=c.p.wave;if(wv==="noise"){const k=Math.floor(E.t()*p.freq*8);return p.amp*(fgHash(k+7919)*2-1)}const ph=(((wv==="sweep"?sweepPh():acc())%1)+1)%1;let s;
+   if(wv==="square")s=ph<p.duty/100?1:-1;else if(wv==="triangle")s=ph<0.5?4*ph-1:3-4*ph;else if(wv==="sawtooth")s=2*ph-1;else if(wv==="pulse")s=ph<p.duty/100?1:0;
+   else if(wv==="arbitrary"){const pts=fgPoints(c);const m=pts.length;const x=ph*m;const i=Math.floor(x)%m;const f=x-Math.floor(x);s=pts[i]+(pts[(i+1)%m]-pts[i])*f}else s=Math.sin(2*PI*ph);return p.amp*s};
+  E.V(n[0],n[1],()=>w()+P(c).offset);E.V(n[1],n[2],()=>w()-P(c).offset);E.R(n[1],0,1e7)},fmax(c){const p=P(c);const w=c.p.wave;return w==="sine"?p.freq:w==="sweep"?Math.max(p.freq,p.f2||0)*1.2:w==="noise"?p.freq*8:w==="arbitrary"?p.freq*fgPoints(c).length:p.freq*4}});
 def("xsc",{name:"Oscilloscope (2-channel)",ar:"راسم إشارة",prefix:"XSC",instrument:1,pins:[[-20,30,"A"],[0,30,"B"],[20,30,"Ext/−"]],bb:[-30,-26,30,30],props:{tb:"1m",va:"1",vb:"1",pa:"0",pb:"0",trig:"0",tmode:"Auto",tsrc:"A"},
  draw(c,st,tx){RECT(c,-30,-26,30,20,CV.bg);RECT(c,-25,-22,25,-2,"#081018");c.save();c.strokeStyle="#ffcc3d";c.beginPath();for(let i=0;i<=40;i++){const x=-22+i*44/40,y=-12-6*Math.sin(i/40*4*PI);i?c.lineTo(x,y):c.moveTo(x,y)}c.stroke();c.strokeStyle="#4cc9ff";c.beginPath();for(let i=0;i<=40;i++){const x=-22+i*44/40,y=-12+4*Math.cos(i/40*4*PI);i?c.lineTo(x,y):c.moveTo(x,y)}c.stroke();c.restore();[-20,0,20].forEach(x=>{CIR(c,x,12,3);L(c,x,15,x,30)});tx("A",-20,5,7,"part","center");tx("B",0,5,7,"part","center");tx("G",20,5,7,"part","center")},
  build(c,n,E){const st=E.st;const N=24000;st.buf=new Float64Array(N*3);st.len=0;st.head=0;st.last=-1;const ref=E.conn(2)?n[2]:0;
@@ -697,7 +743,8 @@ const DB=[
  {g:"Transistors",icon:"bjt",fams:[["BJT_NPN","npn",()=>Object.keys(MODELS.npn).map(m=>({n:m,p:{model:m}}))],["BJT_PNP","pnp",()=>Object.keys(MODELS.pnp).map(m=>({n:m,p:{model:m}}))],["MOS_N","nmos",()=>Object.keys(MODELS.nmos).map(m=>({n:m,p:{model:m}}))],["MOS_P","pmos",()=>Object.keys(MODELS.pmos).map(m=>({n:m,p:{model:m}}))],["JFET_N","njfet",()=>Object.keys(MODELS.njfet).map(m=>({n:m,p:{model:m}}))],["JFET_P","pjfet",()=>Object.keys(MODELS.pjfet).map(m=>({n:m,p:{model:m}}))]]},
  {g:"Analog",icon:"opa",fams:[["OPAMP","opamp",()=>Object.keys(MODELS.opamp).map(m=>({n:m,p:{model:m}}))],["COMPARATOR","comparator",()=>Object.keys(MODELS.comparator).map(m=>({n:m,p:{model:m}}))]]},
  {g:"TTL / CMOS",icon:"gate",fams:["and","or","not","buf","nand","nor","xor","xnor"].map(t=>[t.toUpperCase()+"_GATES",t,()=>["74HC","74LS","74HCT","CD4000"].map(f=>({n:LIB[t].val({p:{family:f}})[0],p:{family:f}}))]).concat([["FLIP_FLOPS","dff",()=>[{n:"74HC74 (D)"}]],["FLIP_FLOPS ","jkff",()=>[{n:"74HC107 (JK)"}]],["COUNTERS","counter",()=>[{n:"74HC161 (4-bit)"}]]]).concat([["74STD","ic7400",()=>Object.keys(CHIPS).filter(k=>!CHIPS[k].cmos).map(k=>({t:"ic"+k,n:"74LS"+k.slice(2)+" "+CHIPS[k].d,p:{family:"74LS"}}))],["74HC","ic7400",()=>Object.keys(CHIPS).filter(k=>!CHIPS[k].cmos).map(k=>({t:"ic"+k,n:"74HC"+k.slice(2)+" "+CHIPS[k].d,p:{family:"74HC"}}))],["CMOS_4000","ic4001",()=>Object.keys(CHIPS).filter(k=>CHIPS[k].cmos).map(k=>({t:"ic"+k,n:"CD"+k+"B "+CHIPS[k].d,p:{family:"CD4000"}}))]])},
- {g:"Mixed",icon:"chip",fams:[["TIMER","timer555",()=>["NE555","LM555","TLC555 (CMOS)","ICM7555"].map(m=>({n:m,p:{model:m}}))]]},
+ {g:"Mixed",icon:"chip",fams:[["TIMER","timer555",()=>["NE555","LM555","TLC555 (CMOS)","ICM7555"].map(m=>({n:m,p:{model:m}}))],["OSC_COUNTER","cd4060",()=>[{n:"CD4060"}]],["VCO","vco",()=>[{n:"VCO (square)"},{n:"VCO (sine)",p:{wave:"sine"}},{n:"VCO (triangle)",p:{wave:"triangle"}}]]]},
+ {g:"Oscillators",icon:"chip",fams:[["CRYSTAL","xtal",()=>[["32.768k","32.768kHz watch crystal",{esr:"35k",q:"5000",c0:"1.5p"}],["1M","1 MHz"],["4M","4 MHz"],["8M","8 MHz"],["12M","12 MHz"],["16M","16 MHz"],["20M","20 MHz"]].map(([f,nm,o])=>({n:"HC-49 "+nm,p:Object.assign({freq:f},o||{})}))],["CERAMIC_RESONATOR","resonator",()=>["455k","2M","4M","8M","16M"].map(f=>({n:"CERALOCK "+f+"Hz",p:{freq:f}}))],["CRYSTAL_OSCILLATOR","xo",()=>["32.768k","1M","4M","8M","10M","16M"].map(f=>({n:"XO "+f+"Hz",p:{freq:f}}))]]},
  {g:"Indicators",icon:"ind",fams:[["VOLTMETER","voltmeter",()=>[{n:"VOLTMETER_DC",p:{mode:"DC"}},{n:"VOLTMETER_AC",p:{mode:"AC"}}]],["AMMETER","ammeter",()=>[{n:"AMMETER_DC",p:{mode:"DC"}},{n:"AMMETER_AC",p:{mode:"AC"}}]],["PROBE","probe",()=>[{n:"VOLTAGE_PROBE"}]],["LOGIC_PROBE","lprobe",()=>Object.keys(LEDC).slice(0,6).map(m=>({n:"PROBE_DIG_"+m.toUpperCase(),p:{color:m}}))],
    ["LAMP","lamp",()=>[[6,1],[12,5],[12,10],[24,10],[120,40],[230,60]].map(([v,w])=>({n:"LAMP "+v+"V "+w+"W",p:{voltage:String(v),power:String(w)}}))],["BUZZER","buzzer",()=>[{n:"BUZZER 5V"},{n:"BUZZER 12V",p:{voltage:"12",res:"300"}}]],["HEX_DISPLAY","hexdisp",()=>["red","green","blue","yellow"].map(m=>({n:"DCD_HEX_"+m.toUpperCase(),p:{color:m}}))],["SEVEN_SEG","seg7",()=>["red","green","blue"].map(m=>({n:"SEVEN_SEG_COM_K_"+m.toUpperCase(),p:{color:m}}))]]},
  {g:"Power",icon:"pwr",fams:[["VOLTAGE_REGULATOR","reg",()=>Object.keys(MODELS.reg).map(m=>({n:m,p:{model:m}}))],["ADJ_REGULATOR","lm317",()=>[{n:"LM317"}]],["FUSE","fuse",()=>[0.1,0.25,0.5,1,2,3,5,10].map(a=>({n:"FUSE "+a+"A",p:{rating:String(a)}}))]]},
@@ -928,7 +975,9 @@ function wireEndAt(wx,wy){const r=6/D.view.z;for(const w of D.wires){const a=w.p
 function routeScore(seq){let sc=0;const pts=[];for(const c of D.comps){const bb=wbbox(c);for(let i=1;i<seq.length;i++){const p=seq[i-1],q=seq[i];const x1=bb[0]+1,x2=bb[2]-1,y1=bb[1]+1,y2=bb[3]-1;if(p.y===q.y&&p.y>y1&&p.y<y2&&Math.max(p.x,q.x)>x1&&Math.min(p.x,q.x)<x2)sc+=10;if(p.x===q.x&&p.x>x1&&p.x<x2&&Math.max(p.y,q.y)>y1&&Math.min(p.y,q.y)<y2)sc+=10}LIB[c.t].pins.forEach((_,i)=>pts.push(pinPos(c,i)))}for(const w of D.wires){pts.push(w.pts[0],w.pts[w.pts.length-1])}for(let i=1;i<seq.length;i++)for(const p of pts)if(onSeg(p,seq[i-1],seq[i]))sc+=25;return sc}
 function routePts(a,b){if(a.x===b.x||a.y===b.y)return[b];const h=[{x:b.x,y:a.y},b],v=[{x:a.x,y:b.y},b];const sh=routeScore([a].concat(h)),sv=routeScore([a].concat(v));if(sh!==sv)return sh<sv?h:v;const dx=Math.abs(b.x-a.x),dy=Math.abs(b.y-a.y);return dx>=dy?h:v}
 function cleanWire(w){const p=[];for(const q of w.pts){const l=p[p.length-1];if(l&&l.x===q.x&&l.y===q.y)continue;p.push({x:q.x,y:q.y})}for(let i=1;i<p.length-1;){const a=p[i-1],b=p[i],c=p[i+1];if((a.x===b.x&&b.x===c.x)||(a.y===b.y&&b.y===c.y)){p.splice(i,1)}else i++}w.pts=p;return p.length>=2}
-function finishWire(end){if(!wireDraft)return;const pts=wireDraft.pts.concat(end?routePts(wireDraft.pts[wireDraft.pts.length-1],end):[]);const w={id:uid(),pts};if(cleanWire(w)){pushUndo();D.wires.push(w);structural()}wireDraft=null;mode="select";dirty=1}
+function finishWire(end){if(!wireDraft)return;const pts=wireDraft.pts.concat(end?routePts(wireDraft.pts[wireDraft.pts.length-1],end):[]);const w={id:uid(),pts};if(cleanWire(w)){pushUndo();D.wires.push(w);splitWiresAt(w);structural()}wireDraft=null;mode=wireTool?"wire":"select";dirty=1}
+/* a new wire that ends on the middle of another wire joins it there */
+function splitWiresAt(nw){for(const p of [nw.pts[0],nw.pts[nw.pts.length-1]])for(const w of D.wires.slice()){if(w===nw)continue;for(let j=1;j<w.pts.length;j++){if(onSeg(p,w.pts[j-1],w.pts[j])){const w2={id:uid(),pts:[{x:p.x,y:p.y}].concat(w.pts.slice(j).map(q=>({x:q.x,y:q.y})))};w.pts=w.pts.slice(0,j).map(q=>({x:q.x,y:q.y})).concat([{x:p.x,y:p.y}]);D.wires.push(w2);break}}}}
 function startPlace(t,props){cancelModes();mode="place";ghost={id:"ghost",t,x:snap(mouse.wx),y:snap(mouse.wy),r:0,f:0,label:"",p:Object.assign({},LIB[t].props,props||{})};cv.focus();setHint("Click to place "+LIB[t].name+". Ctrl+R rotates, Esc cancels, hold Shift to place several.");dirty=1}
 function cancelModes(){mode="select";ghost=null;wireDraft=null;boxSel=null;drag=null;dirty=1;setHint("For Help, press F1")}
 function hitLabel(wx,wy){for(let i=D.comps.length-1;i>=0;i--){const c=D.comps[i];const b=c._lb;if(b&&wx>=b[0]-2&&wx<=b[2]+2&&wy>=b[1]-1&&wy<=b[3]+1&&hitComp(wx,wy)!==c)return c}return null}
@@ -949,37 +998,89 @@ function selectAll(){sel.clear();D.comps.forEach(c=>sel.add(c));D.wires.forEach(
 function structural(){netCache=null;dirty=1;updateInUse();if(sim&&sim.doc===D&&running){rebuildSim()}}
 function setHint(s){$("#st-hint").textContent=s}
 cv.addEventListener("contextmenu",e=>e.preventDefault());
+/* wiring: a click in wire mode (or the release of a drag) adds a corner, or ends the wire on a pin or another wire */
+function wireClickAt(wx,wy,dbl){const pin=hitPin(wx,wy);const pt={x:snap(wx),y:snap(wy)};
+ if(!wireDraft){const q=pin?{x:pin.x,y:pin.y}:onWirePoint(wx,wy)||pt;wireDraft={pts:[q],cur:q};setHint("Click to add a corner; click a pin or wire to connect; right-click for quick parts; double-click to end; Esc cancels.");dirty=1;return}
+ const last=wireDraft.pts[wireDraft.pts.length-1];
+ if(pin){if(pin.x===wireDraft.pts[0].x&&pin.y===wireDraft.pts[0].y&&wireDraft.pts.length===1)return;finishWire({x:pin.x,y:pin.y});return}
+ const q=onWirePoint(wx,wy);if(q&&!(q.x===wireDraft.pts[0].x&&q.y===wireDraft.pts[0].y)){finishWire(q);return}
+ if(!(pt.x===last.x&&pt.y===last.y))wireDraft.pts.push(...routePts(last,pt));if(dbl)finishWire(null);dirty=1}
+function onWirePoint(wx,wy){const w=hitWire(wx,wy);if(!w)return null;let q={x:snap(wx),y:snap(wy)};for(let j=1;j<w.pts.length;j++){const a=w.pts[j-1],b=w.pts[j];if(a.x===b.x&&Math.abs(wx-a.x)<6)q={x:a.x,y:snap(wy)};else if(a.y===b.y&&Math.abs(wy-a.y)<6)q={x:snap(wx),y:a.y}}return q}
+/* is this point joined to something other than wire w (a pin, or another wire)? */
+function attachedAt(p,w){for(const c of D.comps)for(let i=0;i<LIB[c.t].pins.length;i++){const q=pinPos(c,i);if(q.x===p.x&&q.y===p.y)return true}
+ for(const o of D.wires){if(o===w)continue;for(let j=0;j<o.pts.length;j++){const q=o.pts[j];if(q.x===p.x&&q.y===p.y)return true;if(j&&onSeg(p,o.pts[j-1],q))return true}}return false}
+function hitSeg(wx,wy){const r=5/Math.max(D.view.z,0.6);for(const w of D.wires)for(let j=1;j<w.pts.length;j++)if(segDist({x:wx,y:wy},w.pts[j-1],w.pts[j])<=r)return{w,j};return null}
+/* quick parts: right-click while drawing a wire puts a part on its end */
+const QUICK=[["res","Resistor"],["cap","Capacitor"],["ind","Inductor"],["diode","Diode"],["led","LED"],["spst","Switch"],["gnd","Ground"],["vcc","VCC rail"],["netlabel","Net label"],["dcv","DC voltage source"],["voltmeter","Voltmeter"],["ammeter","Ammeter"]];
+function quickPart(t){if(!wireDraft)return;const last=wireDraft.pts[wireDraft.pts.length-1];let end=wireDraft.qcur||wireDraft.cur||last;if(hitPin(end.x,end.y))end=last;
+ const pts=wireDraft.pts.concat(end.x===last.x&&end.y===last.y?[]:routePts(last,end));const prev=pts.length>1?pts[pts.length-2]:null;
+ let dx=prev?end.x-prev.x:1,dy=prev?end.y-prev.y:0;if(!dx&&!dy)dx=1;const L_=LIB[t];const p0=L_.pins[0];let best={r:0,f:0,sc:-1e9};
+ if(L_.pins.length>1&&t!=="gnd"&&t!=="vcc")for(let r=0;r<4;r++){const[ox,oy]=rotP(-p0[0],-p0[1],r,0);const l=Math.hypot(ox,oy)||1;const sc=(ox*dx+oy*dy)/(l*Math.hypot(dx,dy));if(sc>best.sc+1e-9)best={r,f:0,sc}}
+ else if(t==="vcc"&&dy>0)best={r:2,f:0};
+ const[px,py]=rotP(p0[0],p0[1],best.r,best.f);pushUndo();const w={id:uid(),pts};if(cleanWire(w))D.wires.push(w);
+ const c=mkComp(D,t,end.x-px,end.y-py);c.r=best.r;c.f=best.f;D.comps.push(c);splitAtPins(D,[c]);wireDraft=null;mode="select";sel.clear();sel.add(c);structural();
+ /* keep drawing from the far pin of a two-pin part */
+ if(L_.pins.length===2&&t!=="gnd"&&t!=="vcc"&&t!=="netlabel"){const q=pinPos(c,1);mode="wire";wireDraft={pts:[{x:q.x,y:q.y}],cur:{x:q.x,y:q.y}};setHint("Keep drawing from the other end of the part, or press Esc.")}
+ dirty=1}
+function quickMenu(x,y){closeMenus();if(wireDraft)wireDraft.qcur=Object.assign({},wireDraft.cur);const items=QUICK.map(([t,n])=>[n,"",()=>quickPart(t)]);items.push("-",["End the wire here","Esc",()=>finishWire(null)],["Cancel the wire","",()=>cancelModes()]);showMenu(items,x,y,null)}
+let spaceDown=false,wireTool=false;
 cv.addEventListener("mousedown",e=>{cv.focus();closeMenus();const r=cv.getBoundingClientRect();const sx=e.clientX-r.left,sy=e.clientY-r.top;const[wx,wy]=s2w(sx,sy);mouse={x:sx,y:sy,wx,wy};if(explainOn&&e.button===0&&mode==="select"){const hc=hitComp(wx,wy);if(hc&&LIB[hc.t].build&&!LIB[hc.t].instrument)openExplain(hc)}
- if(e.button===1||(e.button===0&&e.altKey)){pan={sx,sy,vx:D.view.x,vy:D.view.y};return}
- if(e.button===2){e.stopPropagation();if(mode!=="select"){if(mode==="wire"&&wireDraft&&wireDraft.pts.length>1){finishWire(null)}else cancelModes();return}const c=hitComp(wx,wy),w=c?null:hitWire(wx,wy);if(c||w){if(!sel.has(c||w)){sel.clear();sel.add(c||w)}dirty=1}showCtx(e.clientX,e.clientY,c,w);return}
+ if(e.button===1||(e.button===0&&(e.altKey||spaceDown))){pan={sx,sy,vx:D.view.x,vy:D.view.y};return}
+ if(e.button===2){e.stopPropagation();if(mode==="wire"&&wireDraft){quickMenu(e.clientX,e.clientY);return}if(mode!=="select"){cancelModes();return}
+  const c=hitComp(wx,wy),w=c?null:hitWire(wx,wy);if(c||w){if(!sel.has(c||w)){sel.clear();sel.add(c||w)}dirty=1;showCtx(e.clientX,e.clientY,c,w);return}
+  pan={sx,sy,vx:D.view.x,vy:D.view.y,ctx:{x:e.clientX,y:e.clientY}};return}
  if(mode==="place"){placeGhost();return}
- if(mode==="wire"){const pin=hitPin(wx,wy);const last=wireDraft.pts[wireDraft.pts.length-1];const pt={x:snap(wx),y:snap(wy)};
-  if(pin){finishWire({x:pin.x,y:pin.y});return}
-  const onW=hitWire(wx,wy);if(onW&&!(pt.x===wireDraft.pts[0].x&&pt.y===wireDraft.pts[0].y)){let q=pt;for(let j=1;j<onW.pts.length;j++){const a=onW.pts[j-1],b=onW.pts[j];if(a.x===b.x&&Math.abs(wx-a.x)<6)q={x:a.x,y:snap(wy)};else if(a.y===b.y&&Math.abs(wy-a.y)<6)q={x:snap(wx),y:a.y}}finishWire(q);return}
-  wireDraft.pts.push(...routePts(last,pt));if(e.detail>=2)finishWire(null);dirty=1;return}
+ if(mode==="wire"){wireClickAt(wx,wy,e.detail>=2);if(wireDraft)wireDraft.down={sx,sy};return}
  const pin=hitPin(wx,wy);
- if(pin&&!(running&&LIB[pin.c.t].interactive&&hitComp(wx,wy)===pin.c&&false)){mode="wire";wireDraft={pts:[{x:pin.x,y:pin.y}],cur:{x:pin.x,y:pin.y}};setHint("Click to add a corner; click a pin or wire to connect; double-click to end; Esc cancels.");dirty=1;return}
+ if(pin){mode="wire";wireDraft={pts:[{x:pin.x,y:pin.y}],cur:{x:pin.x,y:pin.y},down:{sx,sy}};setHint("Drag or click to a pin or wire; click to add corners; right-click for quick parts; Esc cancels.");dirty=1;return}
  {const lc=hitLabel(wx,wy);if(lc&&!e.shiftKey){sel.clear();sel.add(lc);drag={label:lc,sx:wx,sy:wy,lo0:Object.assign({x:0,y:0},lc.lo),moved:false,snap:snapshot()};setHint("Drag to move the label. Double-click the part to reset its position.");dirty=1;showSelInfo();return}}
  const c=hitComp(wx,wy);
  if(c){if(running&&LIB[c.t].interactive){if(LIB[c.t].momentary){c._pressed=true;drag={press:c};return}if(LIB[c.t].toggle){LIB[c.t].toggle(c);dirty=1;return}}
   if(e.shiftKey||e.ctrlKey||e.metaKey){sel.has(c)?sel.delete(c):sel.add(c)}else if(!sel.has(c)){sel.clear();sel.add(c)}drag={sx:snap(wx),sy:snap(wy),lx:snap(wx),ly:snap(wy),moved:false,snap:snapshot()};dirty=1;showSelInfo();return}
- const end=wireEndAt(wx,wy);if(end&&!e.shiftKey){mode="wire";wireDraft={pts:[end],cur:end};dirty=1;return}
- const w=hitWire(wx,wy);if(w){if(e.ctrlKey||e.metaKey){mode="wire";let q={x:snap(wx),y:snap(wy)};for(let j=1;j<w.pts.length;j++){const a=w.pts[j-1],b=w.pts[j];if(a.x===b.x&&Math.abs(wx-a.x)<6)q={x:a.x,y:snap(wy)};else if(a.y===b.y&&Math.abs(wy-a.y)<6)q={x:snap(wx),y:a.y}}wireDraft={pts:[q],cur:q};dirty=1;return}
-  if(e.shiftKey)sel.has(w)?sel.delete(w):sel.add(w);else{sel.clear();sel.add(w)}drag={sx:snap(wx),sy:snap(wy),lx:snap(wx),ly:snap(wy),moved:false,snap:snapshot()};dirty=1;return}
- if(e.shiftKey){boxSel=[wx,wy,wx,wy];return}
- sel.clear();showSelInfo();pan={sx,sy,vx:D.view.x,vy:D.view.y,click:true};dirty=1});
+ /* a free wire end: drag it to make the wire longer or shorter; click it to keep drawing */
+ const end=wireEndAt(wx,wy);if(end&&!e.shiftKey){const own=D.wires.filter(w=>{const a=w.pts[0],b=w.pts[w.pts.length-1];return(a.x===end.x&&a.y===end.y)||(b.x===end.x&&b.y===end.y)});
+  if(own.length===1&&!attachedAt(end,own[0])){const w=own[0];const i=w.pts[0].x===end.x&&w.pts[0].y===end.y?0:w.pts.length-1;sel.clear();sel.add(w);drag={end:{w,i},sx,sy,lx:end.x,ly:end.y,moved:false,snap:snapshot()};dirty=1;return}
+  mode="wire";wireDraft={pts:[end],cur:end,down:{sx,sy}};dirty=1;return}
+ const hs=hitSeg(wx,wy);if(hs){const w=hs.w;if(e.ctrlKey||e.metaKey){mode="wire";const q=onWirePoint(wx,wy);wireDraft={pts:[q],cur:q,down:{sx,sy}};dirty=1;return}
+  if(e.shiftKey){sel.has(w)?sel.delete(w):sel.add(w);dirty=1;return}
+  const multi=sel.has(w)&&sel.size>1;if(!multi){sel.clear();sel.add(w)}
+  drag={sx:snap(wx),sy:snap(wy),lx:snap(wx),ly:snap(wy),moved:false,snap:snapshot(),seg:multi?null:hs};dirty=1;return}
+ /* empty space: drag a box to select; click to clear the selection */
+ if(wireTool){mode="wire";wireClickAt(wx,wy,false);if(wireDraft)wireDraft.down={sx,sy};return}
+ boxSel=[wx,wy,wx,wy];boxSel.add=e.shiftKey||e.ctrlKey||e.metaKey;boxSel.sx=sx;boxSel.sy=sy;dirty=1});
+/* move one wire segment sideways; the segments next to it stretch, and an end on a pin stays put */
+function moveSeg(g,dx,dy){const w=g.w;let j=g.j;const P_=w.pts;const a=P_[j-1],b=P_[j];const hz=a.y===b.y,vt=a.x===b.x;if(hz)dx=0;else if(vt)dy=0;else return;if(!dx&&!dy)return;
+ if(!g.prep){g.prep=true;if(j-1===0&&attachedAt(P_[0],w)){P_.unshift({x:P_[0].x,y:P_[0].y});j++}if(j===P_.length-1&&attachedAt(P_[j],w)){P_.push({x:P_[j].x,y:P_[j].y})}g.j=j}
+ const A=P_[g.j-1],B=P_[g.j];A.x+=dx;A.y+=dy;B.x+=dx;B.y+=dy;netCache=null;dirty=1}
 window.addEventListener("mousemove",e=>{const r=cv.getBoundingClientRect();const sx=e.clientX-r.left,sy=e.clientY-r.top;const[wx,wy]=s2w(sx,sy);mouse={x:sx,y:sy,wx,wy};
- if(pan){D.view.x=pan.vx+(sx-pan.sx);D.view.y=pan.vy+(sy-pan.sy);if(Math.abs(sx-pan.sx)+Math.abs(sy-pan.sy)>3)pan.click=false;dirty=1;return}
+ if(pan){if(Math.abs(sx-pan.sx)+Math.abs(sy-pan.sy)>3){pan.click=false;pan.moved=true}if(pan.moved){D.view.x=pan.vx+(sx-pan.sx);D.view.y=pan.vy+(sy-pan.sy);dirty=1}return}
  if(boxSel){boxSel[2]=wx;boxSel[3]=wy;dirty=1;return}
  if(drag&&drag.label){const dx=Math.round(wx-drag.sx),dy=Math.round(wy-drag.sy);if(dx||dy||drag.moved){drag.label.lo={x:drag.lo0.x+dx,y:drag.lo0.y+dy};drag.moved=true;dirty=1}return}
+ if(drag&&drag.end){if(!drag.moved&&Math.abs(sx-drag.sx)+Math.abs(sy-drag.sy)<4)return;const nx=snap(wx),ny=snap(wy);const dx=nx-drag.lx,dy=ny-drag.ly;if(dx||dy){dragEnd(drag.end.w,drag.end.i,dx,dy);drag.lx=nx;drag.ly=ny;drag.moved=true;netCache=null;dirty=1}return}
+ if(drag&&drag.seg){const nx=snap(wx),ny=snap(wy);const dx=nx-drag.lx,dy=ny-drag.ly;if(dx||dy){moveSeg(drag.seg,dx,dy);drag.lx=nx;drag.ly=ny;drag.moved=true}return}
  if(drag&&!drag.press){const nx=snap(wx),ny=snap(wy);const dx=nx-drag.lx,dy=ny-drag.ly;if(dx||dy){moveSel(dx,dy);drag.lx=nx;drag.ly=ny;drag.moved=true}return}
  if(mode==="place"&&ghost){ghost.x=snap(wx);ghost.y=snap(wy);dirty=1}
- if(mode==="wire"&&wireDraft){const pin=hitPin(wx,wy);wireDraft.cur=pin?{x:pin.x,y:pin.y}:{x:snap(wx),y:snap(wy)};hoverPin=pin;dirty=1;return}
+ if(mode==="wire"&&wireDraft){const pin=hitPin(wx,wy);wireDraft.cur=pin?{x:pin.x,y:pin.y}:(onWirePoint(wx,wy)||{x:snap(wx),y:snap(wy)});if(wireDraft.down&&e.buttons&1&&Math.abs(sx-wireDraft.down.sx)+Math.abs(sy-wireDraft.down.sy)>6)wireDraft.dragging=true;hoverPin=pin;dirty=1;return}
  if(e.target!==cv)return;
  const hp=hitPin(wx,wy);if((hp&&hp!==hoverPin)||(!hp&&hoverPin)){hoverPin=hp;dirty=1}
+ /* the pointer shows what a drag will do */
+ let cur="";if(spaceDown)cur="grab";else if(wireTool)cur="crosshair";else if(hp)cur="crosshair";else if(!hitComp(wx,wy)){const end=wireEndAt(wx,wy);if(end)cur="move";else{const hs=hitSeg(wx,wy);if(hs){const a=hs.w.pts[hs.j-1],b=hs.w.pts[hs.j];cur=a.y===b.y?"ns-resize":"ew-resize"}}}
+ if(cv.style.cursor!==cur)cv.style.cursor=cur;
  hoverInfo(wx,wy,hp)});
-window.addEventListener("mouseup",e=>{if(pan){pan=null}if(boxSel){const[x1,y1,x2,y2]=boxSel;const a=Math.min(x1,x2),b=Math.min(y1,y2),c_=Math.max(x1,x2),d=Math.max(y1,y2);if(!e.shiftKey)sel.clear();for(const c of D.comps){const[bx1,by1,bx2,by2]=wbbox(c);if(bx1>=a&&bx2<=c_&&by1>=b&&by2<=d)sel.add(c)}for(const w of D.wires)if(w.pts.every(p=>p.x>=a&&p.x<=c_&&p.y>=b&&p.y<=d))sel.add(w);boxSel=null;dirty=1;showSelInfo()}
- if(drag){if(drag.press){drag.press._pressed=false;dirty=1}else if(drag.label){if(drag.moved){D.undo.push(drag.snap);D.redo=[];autosave()}dirty=1}else if(drag.moved){D.undo.push(drag.snap);D.redo=[];splitAtPins(D,D.comps.filter(c=>sel.has(c)));D.wires.forEach(cleanWire);D.wires=D.wires.filter(w=>w.pts.length>=2);structural();autosave()}drag=null}});
+window.addEventListener("mouseup",e=>{
+ if(pan){const p=pan;pan=null;if(p.ctx&&!p.moved){showCtx(p.ctx.x,p.ctx.y,null,null)}else if(p.click&&!p.ctx){sel.clear();dirty=1}}
+ if(mode==="wire"&&wireDraft&&wireDraft.dragging&&e.button===0){const r=cv.getBoundingClientRect();const[wx,wy]=s2w(e.clientX-r.left,e.clientY-r.top);wireDraft.dragging=false;wireDraft.down=null;wireClickAt(wx,wy,false);return}
+ if(wireDraft)wireDraft.down=null;
+ if(boxSel){const[x1,y1,x2,y2]=boxSel;const small=Math.abs(e.clientX-cv.getBoundingClientRect().left-boxSel.sx)+Math.abs(e.clientY-cv.getBoundingClientRect().top-boxSel.sy)<4;const a=Math.min(x1,x2),b=Math.min(y1,y2),c_=Math.max(x1,x2),d=Math.max(y1,y2);
+  if(!boxSel.add)sel.clear();
+  if(!small){/* dragged right: parts fully inside; dragged left: anything the box touches */const touch=x2<x1;
+   for(const c of D.comps){const[bx1,by1,bx2,by2]=wbbox(c);if(touch?(bx2>=a&&bx1<=c_&&by2>=b&&by1<=d):(bx1>=a&&bx2<=c_&&by1>=b&&by2<=d))sel.add(c)}
+   for(const w of D.wires){const inside=p=>p.x>=a&&p.x<=c_&&p.y>=b&&p.y<=d;if(touch?w.pts.some(inside)||w.pts.some((p,i)=>i&&segBox(w.pts[i-1],p,a,b,c_,d)):w.pts.every(inside))sel.add(w)}}
+  boxSel=null;dirty=1;showSelInfo();if(sel.size>1)setHint(sel.size+" items selected: drag one to move them all, Delete removes them, Ctrl+C copies.")}
+ if(drag){if(drag.press){drag.press._pressed=false;dirty=1}else if(drag.label){if(drag.moved){D.undo.push(drag.snap);D.redo=[];autosave()}dirty=1}
+  else if(drag.end&&!drag.moved){const w=drag.end.w,p=w.pts[drag.end.i];mode="wire";wireDraft={pts:[{x:p.x,y:p.y}],cur:{x:p.x,y:p.y}};setHint("Click to add a corner; click a pin or wire to connect; right-click for quick parts; Esc cancels.");dirty=1}
+  else if(drag.moved){D.undo.push(drag.snap);D.redo=[];splitAtPins(D,D.comps.filter(c=>sel.has(c)));D.wires.forEach(cleanWire);D.wires=D.wires.filter(w=>w.pts.length>=2);structural();autosave()}drag=null}});
+function segBox(p,q,a,b,c,d){if(p.x===q.x)return p.x>=a&&p.x<=c&&Math.max(p.y,q.y)>=b&&Math.min(p.y,q.y)<=d;if(p.y===q.y)return p.y>=b&&p.y<=d&&Math.max(p.x,q.x)>=a&&Math.min(p.x,q.x)<=c;return false}
 cv.addEventListener("dblclick",e=>{const[wx,wy]=s2w(mouse.x,mouse.y);if(mode!=="select")return;const c=hitComp(wx,wy)||hitLabel(wx,wy);if(c){if(LIB[c.t].instrument)openInstWin(c);else openProps(c)}});
 cv.addEventListener("wheel",e=>{e.preventDefault();if(e.ctrlKey||e.metaKey||Math.abs(e.deltaY)>=Math.abs(e.deltaX)){const z0=D.view.z;const f=Math.exp(-e.deltaY*(e.ctrlKey?0.01:0.0018));const z=clamp(z0*f,0.2,6);const r=cv.getBoundingClientRect();const sx=e.clientX-r.left,sy=e.clientY-r.top;D.view.x=sx-(sx-D.view.x)*z/z0;D.view.y=sy-(sy-D.view.y)*z/z0;D.view.z=z}else{D.view.x-=e.deltaX}dirty=1},{passive:false});
 function hoverInfo(wx,wy,hp){let s="";const net=nets();const S=sim&&sim.doc===D?sim:null;
@@ -996,7 +1097,7 @@ window.addEventListener("keydown",e=>{const tag=(e.target&&e.target.tagName)||""
  if(ctrl&&e.shiftKey&&k.toLowerCase()==="l"){e.preventDefault();openLibrary();return}if(ctrl&&k.toLowerCase()==="s"){e.preventDefault();saveLocal(true);return}if(ctrl&&k.toLowerCase()==="o"){e.preventDefault();$("#fileIn").click();return}if(ctrl&&k.toLowerCase()==="n"){e.preventDefault();addDoc();return}if(ctrl&&k.toLowerCase()==="k"){e.preventDefault();openCodeEditor();return}if(ctrl&&k.toLowerCase()==="e"){e.preventDefault();openExportDlg();return}if(ctrl&&k.toLowerCase()==="m"){e.preventDefault();const c=[...sel].find(x=>x.t);if(c)openProps(c);return}
  if(e.altKey&&k.toLowerCase()==="y"){e.preventDefault();flipSel(false);return}if(e.altKey&&k.toLowerCase()==="x"){e.preventDefault();flipSel(true);return}
  if(k==="F5"){e.preventDefault();running?stopSim():runSim();return}if(k==="F6"){e.preventDefault();pauseSim();return}if(k==="F7"){e.preventDefault();zoomFit();return}if(k==="F8"){e.preventDefault();toggleRec();return}if(k==="F9"){e.preventDefault();toggleFlow();return}if(k==="F10"){e.preventDefault();toggleExplain();return}if(k==="F1"){e.preventDefault();showHelp();return}
- if(k==="Escape"){if(mode==="wire"&&wireDraft&&wireDraft.pts.length>1)finishWire(null);else cancelModes();closeMenus();return}
+ if(k==="Escape"){if(mode==="wire"&&wireDraft&&wireDraft.pts.length>1)finishWire(null);else{cancelModes();if(wireTool){wireTool=false;cv.style.cursor=""}}closeMenus();return}
  if((k==="Delete"||k==="Backspace")&&sel.size){e.preventDefault();deleteSel();return}
  if(k==="+"||k==="="){zoomBy(1.25);return}if(k==="-"){zoomBy(0.8);return}
  // interactive keys
@@ -1004,8 +1105,10 @@ window.addEventListener("keydown",e=>{const tag=(e.target&&e.target.tagName)||""
  for(const c of D.comps){const L_=LIB[c.t];if(!L_.interactive)continue;const ck=(c.p.key||"").toString();
   if(c.t==="pot"||c.t==="ldr"){const pk=c.t==="pot"?"wiper":"light";if(ck.toUpperCase()===name){const w=num(c.p[pk])||0;c.p[pk]=String(clamp(w+(e.shiftKey?-5:5),0,100));c._pp=null;hit=true}continue}
   if(ck.toLowerCase()===name.toLowerCase()||(ck==="Space"&&name==="Space")){if(L_.momentary){c._pressed=true;keyHeld.add(c)}else L_.toggle(c);hit=true}}
- if(hit){e.preventDefault();dirty=1}});
-window.addEventListener("keyup",e=>{for(const c of keyHeld){c._pressed=false}keyHeld.clear();dirty=1});
+ if(hit){e.preventDefault();dirty=1;return}
+ if(k===" "&&!e.repeat){spaceDown=true;cv.style.cursor="grab";e.preventDefault();return}
+ if(!ctrl&&!e.altKey&&k.toLowerCase()==="w"){wireTool=!wireTool;if(!wireTool&&mode==="wire"&&!wireDraft)cancelModes();cv.style.cursor=wireTool?"crosshair":"";setHint(wireTool?"Wire tool: click anywhere to start a wire, click to add corners. W or Esc leaves the tool.":"For Help, press F1");return}});
+window.addEventListener("keyup",e=>{if(e.key===" "){spaceDown=false;cv.style.cursor=""}for(const c of keyHeld){c._pressed=false}keyHeld.clear();dirty=1});
 function zoomBy(f,cx,cy){const z0=D.view.z,z=clamp(z0*f,0.2,6);cx=cx??W/2;cy=cy??H/2;D.view.x=cx-(cx-D.view.x)*z/z0;D.view.y=cy-(cy-D.view.y)*z/z0;D.view.z=z;dirty=1}
 function zoomFit(){let x1=1e9,y1=1e9,x2=-1e9,y2=-1e9;for(const c of D.comps){const b=wbbox(c);x1=Math.min(x1,b[0]);y1=Math.min(y1,b[1]);x2=Math.max(x2,b[2]);y2=Math.max(y2,b[3])}for(const w of D.wires)for(const p of w.pts){x1=Math.min(x1,p.x);y1=Math.min(y1,p.y);x2=Math.max(x2,p.x);y2=Math.max(y2,p.y)}if(x1>x2){x1=0;y1=0;x2=SHEET.w;y2=SHEET.h}x1-=60;y1-=60;x2+=60;y2+=60;const z=clamp(Math.min(W/(x2-x1),H/(y2-y1)),0.2,3);D.view.z=z;D.view.x=W/2-(x1+x2)/2*z;D.view.y=H/2-(y1+y2)/2*z;dirty=1}
 
@@ -1015,7 +1118,7 @@ let sim=null,running=false,paused=false,speed=1,dtUser=0,lastTs=0,simRate=0;
 function timerFmax(doc){let f=0;const ts=doc.comps.filter(c=>c.t==="timer555");if(!ts.length)return 0;const net=buildNets(doc);for(const t of ts){const pn=net.pinNodes.get(t.id)||[];const thr=pn[3],dis=pn[4];let C=0,R=Infinity;
   for(const c of doc.comps){const q=net.pinNodes.get(c.id)||[];if(c.t==="cap"&&(q.includes(thr))&&q.some(k=>k!==thr))C+=num(c.p.capacitance)||0;if(c.t==="res"&&(q.includes(thr)||q.includes(dis)))R=Math.min(R,num(c.p.resistance)||Infinity)}
   if(C>0&&isFinite(R)&&R>0)f=Math.max(f,1/(0.693*R*C))}return f}
-function autoDt(doc){let f=0;for(const c of doc.comps){const L_=LIB[c.t];if(L_.fmax)f=Math.max(f,L_.fmax(c)||0)}try{f=Math.max(f,timerFmax(doc))}catch(e){}if(dtUser>0)return dtUser;if(f>0)return clamp(1/(f*200),2e-9,2e-4);return 1e-4}
+function autoDt(doc){let f=0;for(const c of doc.comps){const L_=LIB[c.t];if(L_.fmax)f=Math.max(f,L_.fmax(c)||0);/* an oscilloscope's timebase tells how fast the circuit is expected to move */if(c.t==="xsc"&&num(c.p.tb)>0)f=Math.max(f,1/(num(c.p.tb)*2))}try{f=Math.max(f,timerFmax(doc))}catch(e){}if(dtUser>0)return dtUser;if(f>0)return clamp(1/(f*200),2e-9,2e-4);return 1e-4}
 function rebuildSim(){const t=sim?sim.t:0;try{sim=new Sim(D);sim.t=t;sim.dt=autoDt(D)}catch(err){console.error(err);simError("Could not build the circuit: "+err.message)}refreshInstWins();dirty=1}
 function runSim(){if(paused&&sim&&sim.doc===D){paused=false;updMode();return}const net=nets();if(!D.comps.length){toast("Place some components first.");return}
  if(!net.hasGnd)toast("No ground in the circuit. Add a Ground symbol so voltages have a reference.",true);
@@ -1051,7 +1154,7 @@ function svg(n){return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColo
 
 /* ================= menus & toolbars ================= */
 const MENUS=[
- ["File",[["New design","Ctrl+N",()=>addDoc()],["Open…","Ctrl+O",()=>$("#fileIn").click()],["Save","Ctrl+S",()=>saveLocal(true)],["Save as… (.cesim)","",()=>exportDesign()],["Version history…","",()=>openHistory()],"-",["Share link…","",()=>shareLink()],["Open a share link…","",()=>openSharedDlg()],["Merge changes from a copy…","",()=>openMerge()],"-",["Open example",null,null,()=>EXAMPLES.map(([n])=>[n,"",()=>openExample(n)])],"-",["Export…","Ctrl+E",()=>openExportDlg()],["Export SPICE netlist (.cir)…","",()=>exportCir()],["Export design (.ms14)…","",()=>exportMs14()],["Export image (PNG)…","",()=>exportPngFile()],["Export SVG…","",()=>doExportC({fmt:"svg",area:"all",bg:"theme"})],["Export PDF…","",()=>exportPdfFile()],["Export Bill of Materials (CSV)…","",()=>bomCsv()],["Export node voltages (CSV)…","",()=>voltsCsv()],"-",["Screenshot to clipboard","",()=>copyShot()],"-",["Close design","",()=>closeDoc(docs.indexOf(D))]]],
+ ["File",[["New design","Ctrl+N",()=>addDoc()],["Open…","Ctrl+O",()=>$("#fileIn").click()],["Save","Ctrl+S",()=>saveLocal(true)],["Save as… (.cesim)","",()=>exportDesign()],["Version history…","",()=>openHistory()],"-",["Share link…","",()=>shareLink()],["Open a share link…","",()=>openSharedDlg()],["Merge changes from a copy…","",()=>openMerge()],"-",["Open example",null,null,()=>EXAMPLES.map(([n])=>[n,"",()=>openExample(n)])],["Open oscillator example",null,null,()=>OSC_EXAMPLES.map(([n])=>[n,"",()=>openExample(n)])],"-",["Export…","Ctrl+E",()=>openExportDlg()],["Export SPICE netlist (.cir)…","",()=>exportCir()],["Export design (.ms14)…","",()=>exportMs14()],["Export image (PNG)…","",()=>exportPngFile()],["Export SVG…","",()=>doExportC({fmt:"svg",area:"all",bg:"theme"})],["Export PDF…","",()=>exportPdfFile()],["Export Bill of Materials (CSV)…","",()=>bomCsv()],["Export node voltages (CSV)…","",()=>voltsCsv()],"-",["Screenshot to clipboard","",()=>copyShot()],"-",["Close design","",()=>closeDoc(docs.indexOf(D))]]],
  ["Edit",[["Undo","Ctrl+Z",undo],["Redo","Ctrl+Y",redo],"-",["Cut","Ctrl+X",()=>{if(copySel())deleteSel()}],["Copy","Ctrl+C",copySel],["Paste","Ctrl+V",paste],["Delete","Del",deleteSel],["Select all","Ctrl+A",selectAll],"-",["Rotate 90° clockwise","Ctrl+R",()=>rotateSel(1)],["Rotate 90° counter-clockwise","Ctrl+Shift+R",()=>rotateSel(-1)],["Flip vertically","Alt+Y",()=>flipSel(false)],["Flip horizontally","Alt+X",()=>flipSel(true)],"-",["Properties","Ctrl+M",()=>{const c=[...sel].find(x=>x.t);if(c)openProps(c);else toast("Select a component first.")}]]],
  ["View",[["Zoom in","+",()=>zoomBy(1.25)],["Zoom out","−",()=>zoomBy(0.8)],["Zoom to fit","F7",zoomFit],"-",["Show grid","",()=>{showGrid=!showGrid;dirty=1},()=>showGrid],["Show current flow","F9",toggleFlow,()=>flowOn],["Explain mode","F10",toggleExplain,()=>explainOn],["Show sheet border","",()=>{showBorder=!showBorder;dirty=1},()=>showBorder]]],
  ["Place",[["Component…","Ctrl+W",()=>openBrowser()],["Create a part…","",()=>openPartMaker()],["Wire","Ctrl+Q",()=>toast("Drag from any pin to draw a wire. Ctrl+click a wire to branch from it.")],"-",["Ground","",()=>startPlace("gnd")],["VCC rail","",()=>startPlace("vcc")],["Voltage probe","",()=>startPlace("probe")],"-",["Text / note","Ctrl+T",()=>startPlace("text")],["Net label","Ctrl+L",()=>startPlace("netlabel")],["Title block…","",editTitleBlock]]],
@@ -1149,11 +1252,16 @@ function dmmWin(c){const body=el(`<div class="dmm" id="d">0.000</div><div class=
  body.onclick=e=>{const b=e.target.closest("button");if(!b)return;if(b.dataset.m)c.p.mode=b.dataset.m;if(b.dataset.a)c.p.ac=b.dataset.a;body.querySelectorAll("button").forEach(x=>x.classList.toggle("on",x.dataset.m===c.p.mode||x.dataset.a===c.p.ac));if(sim&&running)rebuildSim();dirty=1};
  return{body,update(){const st=getSt(c);body.querySelector("#d").textContent=st&&st.r?st.r:"0.000 "+c.p.mode}}}
 function wmWin(c){const body=el(`<div class="dmm" id="d">0.000 W</div><p style="font-size:11.5px;color:var(--ui-dim);margin:8px 0 0">Connect V+/V− across the load and I+/I− in series with it. Shows average power.</p>`);return{body,update(){const st=getSt(c);body.querySelector("#d").textContent=st&&st.r?st.r:"0.000 W"}}}
-function fgWin(c){const body=el(`<div class="seg" role="group" aria-label="Waveform" style="margin-top:0">${["sine","triangle","square"].map(m=>`<button data-w="${m}" class="${c.p.wave===m?"on":""}" style="font-size:16px">${m==="sine"?"∿":m==="triangle"?"⋀":"⊓"}</button>`).join("")}</div>
- <div class="form" style="margin-top:12px">${[["freq","Frequency","Hz"],["duty","Duty cycle","%"],["amp","Amplitude","Vp"],["offset","Offset","V"]].map(([k,l,u])=>`<label for="fg-${k}">${l}</label><input id="fg-${k}" data-k="${k}" value="${esc(c.p[k])}"><span class="u">${u}</span>`).join("")}</div>
+function fgWin(c){const ICO={sine:"∿",triangle:"⋀",square:"⊓",sawtooth:"⩘",pulse:"⎍",noise:"≋",sweep:"⇝",arbitrary:"✎"};
+ const rows=()=>{const w=c.p.wave;const R=[["freq",w==="sweep"?"Start frequency":w==="noise"?"Bandwidth":"Frequency","Hz"]];if(w==="square"||w==="pulse")R.push(["duty","Duty cycle","%"]);R.push(["amp","Amplitude","Vp"],["offset","Offset","V"]);if(w==="sweep")R.push(["f2","Stop frequency","Hz"],["tsweep","Sweep time","s"]);return R};
+ const body=el(`<div class="seg" role="group" aria-label="Waveform" style="margin-top:0;flex-wrap:wrap">${FG_WAVES.map(m=>`<button data-w="${m}" class="${c.p.wave===m?"on":""}" style="font-size:15px" title="${m}">${ICO[m]}</button>`).join("")}</div><div id="fg-name" style="font-size:11.5px;color:var(--ui-dim);margin-top:4px"></div><div class="form" id="fg-form" style="margin-top:10px"></div>
  <p style="font-size:11.5px;color:var(--ui-dim);margin:10px 0 0">Signal appears between + and COM, and inverted between COM and −.</p>`);
- body.onclick=e=>{const b=e.target.closest("button[data-w]");if(!b)return;c.p.wave=b.dataset.w;c._pp=null;body.querySelectorAll("button[data-w]").forEach(x=>x.classList.toggle("on",x.dataset.w===c.p.wave));if(sim&&running)sim.dt=autoDt(D);dirty=1};
- body.oninput=e=>{const k=e.target.dataset.k;if(!k)return;if(isFinite(num(e.target.value))){c.p[k]=e.target.value;c._pp=null;if(sim&&running&&k==="freq")sim.dt=autoDt(D);dirty=1}};return{body}}
+ const form=()=>{const w=c.p.wave;body.querySelector("#fg-name").textContent=w[0].toUpperCase()+w.slice(1)+(w==="pulse"?": from 0 to the amplitude":w==="noise"?": random, changing about 8 times per period of the bandwidth":w==="sweep"?": the frequency moves from start to stop, again and again":w==="arbitrary"?": one period drawn by the points, from -1 to 1 times the amplitude":"");
+  let h=rows().map(([k,l,u])=>`<label for="fg-${k}">${l}</label><input id="fg-${k}" data-k="${k}" value="${esc(c.p[k]??"")}"><span class="u">${u}</span>`).join("");
+  if(w==="sweep")h+=`<label for="fg-sweep">Scale</label><select id="fg-sweep" data-k="sweep">${["linear","log"].map(x=>`<option ${c.p.sweep===x?"selected":""}>${x}</option>`).join("")}</select><span></span>`;
+  if(w==="arbitrary")h+=`<label for="fg-points">Points</label><input id="fg-points" data-k="points" data-t="1" value="${esc(c.p.points||"0,1,0,-1")}" title="Values from -1 to 1, spread evenly over one period"><span class="u"></span>`;body.querySelector("#fg-form").innerHTML=h};form();
+ body.onclick=e=>{const b=e.target.closest("button[data-w]");if(!b)return;c.p.wave=b.dataset.w;c._pp=null;body.querySelectorAll("button[data-w]").forEach(x=>x.classList.toggle("on",x.dataset.w===c.p.wave));form();if(sim&&running)sim.dt=autoDt(D);dirty=1};
+ body.oninput=e=>{const k=e.target.dataset.k;if(!k)return;if(e.target.dataset.t||e.target.tagName==="SELECT"||isFinite(num(e.target.value))){c.p[k]=e.target.value;c._pp=null;if(sim&&running&&/freq|f2|points|tsweep/.test(k))sim.dt=autoDt(D);dirty=1}};body.onchange=body.oninput;return{body}}
 const TB=[1e-6,2e-6,5e-6,10e-6,20e-6,50e-6,100e-6,200e-6,500e-6,1e-3,2e-3,5e-3,10e-3,20e-3,50e-3,100e-3,200e-3,500e-3,1];
 const VD=[1e-3,2e-3,5e-3,10e-3,20e-3,50e-3,0.1,0.2,0.5,1,2,5,10,20,50,100];
 function scopeWin(c){const body=el(`<div class="scope"><div><canvas id="sc" width="520" height="340" aria-label="Oscilloscope screen"></canvas><div class="meas" id="ms" style="margin-top:8px"></div></div><div class="ctl">
@@ -1257,7 +1365,7 @@ function bom(){const m=new Map();for(const c of D.comps){if(c.t==="gnd")continue
  const rows=[...m.values()].map(r=>`<tr><td>${r.refs.length}</td><td>${esc(r.n)}</td><td>${esc(r.v)}</td><td>${esc(r.refs.join(", "))}</td></tr>`).join("");makeWin("Bill of Materials — "+D.name,el(`<table class="bom"><tr><th>Qty</th><th>Component</th><th>Value / Model</th><th>RefDes</th></tr>${rows||'<tr><td colspan="4">No components.</td></tr>'}</table>`),{modal:true})}
 function erc(){const net=nets();const issues=[];if(!net.hasGnd)issues.push("No ground symbol. Add Ground so voltages have a reference.");for(const c of D.comps){const cn=net.conn.get(c.id);LIB[c.t].pins.forEach((p,i)=>{if(!cn[i]&&!(c.t==="opamp"||c.t==="comparator")&&!(c.t==="timer555"&&(i===1||i===6))&&!(c.t==="xsc")&&!(c.t==="netlabel")&&!(c.t==="xfg"&&i!==0))issues.push(`${c.label||LIB[c.t].name}: pin ${p[2]} is not connected.`)})}
  makeWin("Electrical rules check",el(issues.length?"<ul style='margin:0;padding-left:18px;max-width:480px'>"+issues.map(s=>"<li>"+esc(s)+"</li>").join("")+"</ul>":"<p style='margin:0'>No problems found.</p>"),{modal:true})}
-function showHelp(){makeWin("Keyboard shortcuts",el(`<table class="bom" style="min-width:420px">${[["Place component","Ctrl+W"],["Draw wire","Drag from a pin · Ctrl+click a wire to branch"],["Rotate","Ctrl+R / Ctrl+Shift+R"],["Record video of the running circuit","F8"],["Show current flow","F9"],["Explain mode (click a part)","F10"],["Flip","Alt+X / Alt+Y"],["Properties","Double-click · Ctrl+M"],["Delete","Del"],["Undo / Redo","Ctrl+Z / Ctrl+Y"],["Run / Stop","F5"],["Pause","F6"],["Zoom","Mouse wheel · + / −"],["Zoom to fit","F7"],["Pan","Drag empty space · middle mouse"],["Box select","Shift+drag"],["Toggle a switch","Its key (Space by default) or click while running"],["Potentiometer","Its key (A) increases · Shift+key decreases"]].map(([a,b])=>`<tr><td>${a}</td><td>${b}</td></tr>`).join("")}</table>`),{modal:true})}
+function showHelp(){makeWin("Keyboard shortcuts",el(`<table class="bom" style="min-width:420px">${[["Place component","Ctrl+W"],["Draw wire","Drag or click from a pin · W: wire tool, start anywhere · Ctrl+click a wire to branch"],["Quick parts while drawing","Right-click: resistor, capacitor, LED, ground…"],["Longer or shorter wire","Drag a free wire end · drag a wire segment sideways"],["Rotate","Ctrl+R / Ctrl+Shift+R"],["Record video of the running circuit","F8"],["Show current flow","F9"],["Explain mode (click a part)","F10"],["Flip","Alt+X / Alt+Y"],["Properties","Double-click · Ctrl+M"],["Delete","Del"],["Undo / Redo","Ctrl+Z / Ctrl+Y"],["Run / Stop","F5"],["Pause","F6"],["Zoom","Mouse wheel · + / −"],["Zoom to fit","F7"],["Pan","Right-drag · Space+drag · middle mouse · Alt+drag"],["Box select","Drag on empty space (to the left: everything it touches) · Shift adds"],["Toggle a switch","Its key (Space by default) or click while running"],["Potentiometer","Its key (A) increases · Shift+key decreases"]].map(([a,b])=>`<tr><td>${a}</td><td>${b}</td></tr>`).join("")}</table>`),{modal:true})}
 function about(){makeWin("About CEsim",el(`<div style="max-width:420px;line-height:1.55"><b style="font-size:15px">CEsim</b> — circuit simulator<br>Schematic capture with an interactive transient engine (modified nodal analysis, Newton-Raphson, backward Euler).<br><br>${countDB().toLocaleString()} components in the master database. Designs save in the browser and as .cesim files; netlists export to SPICE (.cir).</div>`),{modal:true})}
 function showCtx(x,y,c,w){closeMenus();const items=c?[["Properties","Ctrl+M",()=>LIB[c.t].instrument?openInstWin(c):openProps(c)],"-",["Rotate 90° clockwise","Ctrl+R",()=>rotateSel(1)],["Rotate 90° counter-clockwise","Ctrl+Shift+R",()=>rotateSel(-1)],["Flip horizontally","Alt+X",()=>flipSel(true)],["Flip vertically","Alt+Y",()=>flipSel(false)],"-",["Cut","Ctrl+X",()=>{if(copySel())deleteSel()}],["Copy","Ctrl+C",copySel],["Delete","Del",deleteSel]]:w?[["Delete wire","Del",deleteSel]]:[["Place component…","Ctrl+W",()=>openBrowser()],["Paste","Ctrl+V",paste],["Zoom to fit","F7",zoomFit]];showMenu(items,x,y,null)}
 
@@ -1524,7 +1632,19 @@ const EXAMPLES=[
   b.add("voltmeter",540,330,1);b.w(480,300,540,300);b.add("gnd",540,380);b.w(540,360,540,380);return b.d}],
 ];
 function splitAtPins(d,only){for(const c of (only||d.comps))LIB[c.t].pins.forEach((_,i)=>{const p=pinPos(c,i);for(const w of d.wires.slice()){for(let j=1;j<w.pts.length;j++){const a=w.pts[j-1],b=w.pts[j];if(onSeg(p,a,b)){const w2={id:uid(),pts:[{x:p.x,y:p.y}].concat(w.pts.slice(j).map(q=>({x:q.x,y:q.y})))};w.pts=w.pts.slice(0,j).map(q=>({x:q.x,y:q.y})).concat([{x:p.x,y:p.y}]);d.wires.push(w2);return}}}});return d}
-function openExample(n){const ex=EXAMPLES.find(e=>e[0]===n);if(!ex)return;const i=docs.findIndex(d=>d.name===n);if(i>=0){switchDoc(i);return}addDoc(splitAtPins(ex[1]()))}
+/* oscillator examples are kept as netlists and laid out when opened, so they do not crowd the first launch */
+const OSC_EXAMPLES=[
+ ["wien_bridge_oscillator","* Wien bridge oscillator: f = 1/(2 pi R C) = 1.59 kHz. Rf/Rg = 2.2 gives the gain of 3.2 it needs to start\nV1 vp 0 12\nV2 0 vn 12\nR1 out a 10k\nC1 a b 10n ic=0.2\nR2 b 0 10k\nC2 b 0 10n\nRF out m 22k\nRG m 0 10k\nXU1 b m out vp vn uA741\nPART xsc XSC1 out b 0 tb=500u va=5 vb=5\n"],
+ ["phase_shift_oscillator","* RC phase-shift oscillator: three RC sections give 180 degrees at f = 1/(2 pi sqrt(6) R C) = 650 Hz; the op-amp gain of 33 makes up the loss of 29\nV1 vp 0 12\nV2 0 vn 12\nC1 out a 10n ic=0.2\nR1 a 0 10k\nC2 a b 10n\nR2 b 0 10k\nC3 b c 10n\nR3 c n 10k\nRF n out 330k\nXU1 0 n out vp vn uA741\nPART xsc XSC1 out 0 0 tb=1m va=5 vb=5\n"],
+ ["colpitts_oscillator","* Colpitts oscillator: the tank L1 with C1 and C2 in series sets f = 1/(2 pi sqrt(L1 C1 C2/(C1+C2))) = about 22 kHz\nV1 vcc 0 12\nRB1 vcc b 47k\nRB2 b 0 10k\nRE e 0 1k\nCE e 0 10u\nRC vcc c 2.2k\nC1 c 0 10n ic=0.5\nC2 x 0 10n\nL1 c x 10m\nCB x b 100n\nQ1 c b e 2N2222A\nPART xsc XSC1 c 0 0 tb=50u va=5 vb=5\n"],
+ ["hartley_oscillator","* Hartley oscillator: a coil tapped at ground (L1 and L2) with C1 sets f = 1/(2 pi sqrt((L1+L2) C1)) = about 11 kHz\nV1 vcc 0 12\nRB1 vcc b 47k\nRB2 b 0 10k\nRE e 0 1k\nCE e 0 10u\nRC vcc c 2.2k\nCC c x 100n\nL1 x 0 10m\nL2 0 y 10m\nC1 x y 10n ic=0.5\nCB y b 100n\nQ1 c b e 2N2222A\nPART xsc XSC1 c 0 0 tb=100u va=5 vb=5\n"],
+ ["op_amp_relaxation_oscillator","* Relaxation oscillator (op-amp astable): C charges through R until the input crosses the threshold set by R1 and R2. f = 1/(2 R C ln 3) = 455 Hz\nV1 vp 0 12\nV2 0 vn 12\nR out m 10k\nC m 0 100n\nR1 out p 10k\nR2 p 0 10k\nXU1 p m out vp vn uA741\nPART xsc XSC1 out m 0 tb=1m va=10 vb=5\n"],
+ ["ring_oscillator","* Ring oscillator: three inverters in a loop, each slowed by an RC. The loop can never settle, so it oscillates\nV1 vcc 0 5\nPART not U1 c a1 family=74HC\nR1 a1 a 10k\nC1 a 0 10n ic=0.5\nPART not U2 a b1 family=74HC\nR2 b1 b 10k\nC2 b 0 10n\nPART not U3 b c1 family=74HC\nR3 c1 c 10k\nC3 c 0 10n\nPART xsc XSC1 a1 c 0 tb=200u va=5 vb=5\n"],
+ ["cd4060_rc_oscillator","* CD4060: an RC oscillator (Rt, Ct, Rs) of about 1/(2.3 Rt Ct) = 925 Hz, divided by 2^4 on Q4 and by 2^10 on Q10 (blinks the LED)\nV1 vdd 0 9\nPART cd4060 U1 rs rtc ctc 0 vdd 0 q4 nc1 nc2 nc3 nc4 nc5 q10 nc6 nc7 nc8\nRT rtc j 10k\nCT ctc j 47n\nRS rs j 47k\nR1 q10 led 470\nD1 led 0 LED\nPART xsc XSC1 ctc q4 0 tb=5m va=10 vb=10\n"],
+ ["vco_frequency_control","* VCO: turn the pot to change the control voltage, and the frequency follows: f = 1 kHz + 1 kHz per volt\nV1 vcc 0 5\nPOT vcc ctl 0 10k 30%\nPART vco U1 ctl 0 out f0=1k k=1k amp=5\nPART xsc XSC1 out ctl 0 tb=1m va=5 vb=5\n"],
+ ["function_generator_sweep","* Frequency sweep into an RC low-pass filter (fc = 1.6 kHz): the output shrinks as the sweep goes up from 100 Hz to 10 kHz\nPART xfg XFG1 in 0 nc wave=sweep freq=100 f2=10k tsweep=20m amp=1\nR1 in out 1k\nC1 out 0 100n\nPART xsc XSC1 in out 0 tb=2m va=1 vb=1\n"]
+].map(([n,src])=>[n,()=>importCir(src,n)]);
+function openExample(n){const ex=EXAMPLES.find(e=>e[0]===n)||OSC_EXAMPLES.find(e=>e[0]===n);if(!ex)return;const i=docs.findIndex(d=>d.name===n);if(i>=0){switchDoc(i);return}addDoc(splitAtPins(ex[1]()))}
 
 /* ================= boot ================= */
 window.addEventListener("resize",()=>{resize()});

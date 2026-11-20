@@ -471,13 +471,13 @@ class Sim{
  dr(p,l){p=this.pinOk(p,l);const s=this.pins[p];if(s.mode===1)return s.v;return this.level(p)}
  level(p){const s=this.pins[p];let drive=null;
   for(const pt of this.parts){if(pt.type==='button'&&pt.pin===p||pt.type==='switch'&&pt.pin===p){const on=pt.type==='button'?!!pt.pressed:!!pt.on;if(pt.wiring==='vcc'){drive=on?1:0}else{if(on)drive=0;else if(drive==null)drive=null}}
-   else if(pt.type==='pir'&&pt.pin===p)drive=pt.on?1:0;
+   else if(['pir','tilt','ir','touch','sound','reed','hall'].includes(pt.type)&&pt.pin===p)drive=(pt.type==='ir'||pt.type==='reed'||pt.type==='hall'?!pt.on:pt.on)?1:0;
    else if(pt.type==='ultrasonic'&&pt.echo===p)drive=0}
   if(drive!=null)return drive;if(s.mode===2)return 1;if(s.mode===1)return s.v;
   if(this.parts.some(pt=>(pt.type==='button'||pt.type==='switch')&&pt.pin===p))return(this.rand()>>8)&1;
   return(this.rand()>>8)&1}
- ar(p,l){p=p|0;if(p>=0&&p<=5)p+=14;if(p<14||p>19)throw new RErr(`analogRead() needs an analog pin: A0 to A5 (got ${p})`,l);this.us+=100;this.readA=this.readA||new Set();this.readA.add(p);
-  for(const pt of this.parts){if(pt.pin!==p)continue;if(pt.type==='pot')return Math.max(0,Math.min(1023,Math.round(pt.value)));if(pt.type==='ldr')return Math.round(Math.max(0,Math.min(100,pt.value))*10.23*0.92+20);if(pt.type==='lm35')return Math.max(0,Math.min(1023,Math.round(pt.value*1023/500)));if(pt.type==='joyx'||pt.type==='soil')return Math.round(pt.value)}
+ ar(p,l){p=p|0;const ab=this.abase??14,na=this.na??6;if(p>=0&&p<na)p+=ab;if(p<ab||p>ab+na-1)throw new RErr(`analogRead() needs an analog pin: A0 to A${na-1} (got ${p})`,l);this.us+=100;this.readA=this.readA||new Set();this.readA.add(p);
+  for(const pt of this.parts){if(pt.pin!==p)continue;if(pt.type==='pot')return Math.max(0,Math.min(1023,Math.round(pt.value)));if(pt.type==='ldr')return Math.round(Math.max(0,Math.min(100,pt.value))*10.23*0.92+20);if(pt.type==='lm35')return Math.max(0,Math.min(1023,Math.round(pt.value*1023/500)));if(['joyx','joyy','soil','gas','flex','water','mic'].includes(pt.type))return Math.max(0,Math.min(1023,Math.round(pt.value)))}
   const s=this.pins[p];if(s.mode===1)return s.v?1023:0;if(s.mode===2)return 1015+(this.rand()&7);return 300+(this.rand()%160)}
  aw(p,v,l){p=this.pinOk(p,l);v=Math.max(0,Math.min(255,v|0));const s=this.pins[p];s.touched=true;s.mode=1;if(!PWM.has(p)){s.pwm=-1;s.v=v>=128?1:0;if(!this.pwmWarned){this.pwmWarned=true;this.warn(l,`Pin ${p} has no PWM. analogWrite() works on pins 3, 5, 6, 9, 10 and 11. Other pins are only fully on or off`)}}else{s.pwm=v;s.v=v>0?1:0}this.emit('pins')}
  tone(p,f,d){p=p|0;this.pins[p].tone=f;this.pins[p].lastTone=f;this.pins[p].mode=1;this.pins[p].toneEnd=d?this.us+d*1000:0;this.emit('pins')}
