@@ -345,4 +345,5 @@ function start(){initBoardSel();boardSVG();let d=null;if(!/blank/.test(location.
 window.CEI={ST,verify,run,pause,stop,reset,loadSketch,showTab,renderAll,get sim(){return ST.sim},src,sketchText};
 start();
 </script>
+<script>/* opened from the System model tool */(function(){let h=null;try{h=JSON.parse(localStorage.getItem("cesim.handoff.open.arduino")||"null");localStorage.removeItem("cesim.handoff.open.arduino")}catch(e){}if(!h||!h.text)return;let n=0;const go=()=>{if(typeof window.cesimOpenText==="function"){window.cesimOpenText(h.name,h.text,null);return}if(++n<60)setTimeout(go,100)};setTimeout(go,250)})();</script>
 </body></html>

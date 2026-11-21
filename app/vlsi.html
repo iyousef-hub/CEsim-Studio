@@ -226,4 +226,5 @@ window.CEX2={ST,loadLayout,fit,W2S,setTool,setLayer,toggleSim,get ex(){return ST
 (function start(){buildPalette();setTool('paint');let d=null;if(!/blank/.test(location.search)){try{d=JSON.parse(localStorage.getItem('cesim.vlsi.doc')||'null')}catch(e){}}
  if(d&&d.doc)loadLayout(VL.Layout.from(d.doc),d.name,null,d.doc.note);else{const r=VL_EXAMPLES.EX['Inverter (NOT)']();loadLayout(r.L,'inverter',null,r.note)}hint(TOOLHINT.paint)})();
 </script>
+<script>/* opened from the System model tool */(function(){let h=null;try{h=JSON.parse(localStorage.getItem("cesim.handoff.open.vlsi")||"null");localStorage.removeItem("cesim.handoff.open.vlsi")}catch(e){}if(!h||!h.text)return;let n=0;const go=()=>{if(typeof window.cesimOpenText==="function"){window.cesimOpenText(h.name,h.text,null);return}if(++n<60)setTimeout(go,100)};setTimeout(go,250)})();</script>
 </body></html>

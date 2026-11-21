@@ -20,6 +20,7 @@ CEsim Studio is a launcher that opens several tools, each in its own window:
 | **8086** | Assembler and emulator for the 8086. Step forward and back, breakpoints, registers and flags, memory, stack, variables, machine-code listing, a DOS console (INT 21h, 10h, 16h) and virtual ports with LEDs, a 7-segment display and switches. Saves `.COM` programs. | `.asm` · `.com` |
 | **Arduino** | Runs Arduino sketches on a virtual Uno in real time: LEDs, RGB LED, buttons, switches, potentiometer, light, temperature, ultrasonic and motion sensors, servo, buzzer and a 16×2 LCD. Serial Monitor, Serial Plotter and live variables. | `.ino` |
 | **Diagram** | Flowcharts, networks, UML, BPMN, data structures, charts, 3D shapes and neural networks: 367 shapes in 21 groups. Hover arrows add connected shapes, a sketch page turns hand-drawn lines into straight lines and shapes, a shape maker saves your own shapes, and a neural-network framework draws or trains networks. | `.cediag` · `.drawio` · `.mmd` |
+| **System model** | Plan a whole project in one place: pick a board, then sensors, motors, batteries (LiPo included), drone parts and logic gates. Every pin is joined to a free board pin or to the part it belongs with, and one click opens the project, under its own name, in Breadboard (with a ready sketch), Circuit (a schematic), Diagram (a block diagram with arrows that show which way each signal goes), 3D (each part's model), Arduino and VLSI (the logic gates laid out as CMOS transistors). | `.cesys` |
 | **3D** | Millimetre-accurate modelling with holes, groups, arrays, shells, a board library and enclosure maker. Adjustable zoom / rotate / pan speed. | `.ce3d` · `.stl` · `.obj` · `.3mf` · `.glb` |
 
 The Studio window has five themes and eight accent colours (plus a custom colour).
@@ -260,6 +261,30 @@ The Raspberry Pi group has the **Pi 1 B+, Pi 2 B, Pi 3 B, Pi 3 B+, Pi 4 B, Pi 40
 
 New parts: RGB LED, PIR motion sensor, tilt switch and joystick. In the Arduino tool: joystick, soil moisture, gas, flex, water level, microphone, touch, sound, IR, reed and Hall sensors.
 
+## System model
+
+The System model tool ties the other tools together. Give the project a name, choose a board (Uno, Nano, Mega, Leonardo, Micro, Pro Mini, Nano Every, ESP32, ESP32-S3, Pico, Pico W, Pico 2) and add parts from the list:
+
+- **Sensors:** soil moisture, rain, gas (MQ-2, MQ-3, MQ-4, MQ-7, MQ-135), flame, sound, light, Hall, line, water level, Sharp distance, current, NTC, UV, pulse, force, flex, pH, turbidity, IR obstacle, touch, reed, tilt, limit switch, radar, knock, door switch, ultrasonic, PIR, LM35, SHT31-D, MPU6050, LiDAR, thermal camera, microphone, joystick and more.
+- **Motors and outputs:** TT, N20, coreless, 370, 775, 280 and JGA25 gear motors, servos (MG90S, SG92R, DS3218, MG995), steppers, linear actuator, pumps, Peltier, laser, relay, drivers (L298N, DRV8833, TB6612, PCA9685), LED, buzzer, LCD and OLED.
+- **Communication:** GPS, Bluetooth, nRF24, RFID, SD card, RTC, keypad, ELRS and RC receivers, telemetry radio, FPV camera and video transmitter, WS2812 LEDs.
+- **Drone:** LiPo packs from 1S to 6S, ESCs from 6 A to 60 A, brushless motors from 0802 to 4114, power distribution board, flight controller, XT60 and finder buzzer.
+- **Power:** AA, AAA, C, D, 9 V, coin cells, 18650 and 21700 cells, packs and holders, NiMH, lead-acid, LiFePO4, power bank, solar panel, buck and boost converters, charger and BMS.
+- **Logic gates (VLSI):** NOT, NAND, NOR, AND, OR and XOR.
+
+Pins are joined for you: power and ground, I2C to the board's SDA and SCL, analog outputs to analog pins, servo and ESC signals to PWM pins, an ESC to its brushless motor, a driver or relay to its motor or pump, the flight controller to the ESCs and the receiver, the camera to the video transmitter, and the battery to what it feeds. Every link can be changed from a list, and the sketch is written from the parts (the first sensor drives the outputs, and the logic gates are tested through all their inputs).
+
+**Open in** sends the project to each tool under its name:
+
+| Tool | What you get |
+|---|---|
+| Breadboard | The board, each part and every wire, with the sketch on the board, ready to run. Small parts sit on the breadboard (an LED gets its 220 Ω resistor), modules sit beside it, and logic gates become 74LS chips. |
+| Circuit | A schematic: a block for the board and each part, joined by net labels. |
+| Diagram | A block diagram: inputs on the left, outputs on the right, parts that send and receive below, batteries above, and parts driven by another part next to it. Each arrow points the way the signal goes; a part that sends and receives gets an arrow head at both ends. Battery power is drawn in dashed red. |
+| 3D | The 3D model of the board and every part, laid out side by side on the plate. |
+| Arduino | The sketch. |
+| VLSI | The logic gates as CMOS transistors, with the design-rule check and the truth table. |
+
 ## Sensors, drone parts and motors
 
 **Sensors** on the breadboard, each with its own library in the sketch:
@@ -380,7 +405,7 @@ The DOS machine uses the js-dos emulators package (DOSBox compiled to WebAssembl
 
 ### بالعربي
 
-**CEsim Studio** برنامج سطح مكتب فيه محاكي دوائر، ولوحة تجارب Breadboard تشتغل مباشرة، وتصميم لوحات PCB مع تصدير ملفات التصنيع، وتصميم شرائح VLSI بترانزستورات CMOS، ومحاكي دوائر رقمية وأدوات الجبر البولياني، ومحاكي Verilog مع عارض الإشارات، ومحاكي معمارية MIPS وRISC-V مع مسار البيانات والـ Pipeline، ومحاكي 8086 بلغة التجميع، ومحاكي Arduino بقطع افتراضية، وأداة رسم مخططات، وتصميم ثلاثي الأبعاد بقياسات حقيقية، وأداة تحول صورة الدائرة إلى دائرة قابلة للمحاكاة عن طريق ذكاء اصطناعي يشتغل على جهازك (Ollama). ويقدر يسجّل فيديو للدائرة وهي تشتغل، وفيه Bode Plotter وIV Analyzer وDC Sweep مع رسم النتائج وجداولها، وMonte Carlo، ومولد كلمات ومحلل منطقي، وحاسبات تصميم تبني الدائرة لك، ومولد تقارير معامل Word وPDF، ووضع الأعطال للمعلم، واختبارات، ولوحة Arduino Uno على البريدبورد، وجهاز DOS كامل، وتصدير المخطط إلى .asc و.kicad_sch، وفتح ملفات .ms14 و.asc و.kicad_sch و.gds و.cif و.sch وGerber و.hex و.COM، ووضع "اشرح لي"، وحركة التيار على الأسلاك، والحل اليدوي بطريقة جهود العقد، وسجل النسخ، ومكتبة 144 دائرة، والواجبات اللي تنصحح تلقائيًا، والكفاءة، ولوحات ESP32 وPico مع محركات وشاشات وحساسات وصوت على البريدبورد، ونسخة ويب تشتغل على الآيباد، وروابط مشاركة، ودمج تعديلات الزملاء، وتقدر تبني قطعك الخاصة من دائرة صغيرة ويتأكد منها البرنامج ويكتب جنبها Verified.
+**CEsim Studio** برنامج سطح مكتب فيه محاكي دوائر، ولوحة تجارب Breadboard تشتغل مباشرة، وتصميم لوحات PCB مع تصدير ملفات التصنيع، وتصميم شرائح VLSI بترانزستورات CMOS، ومحاكي دوائر رقمية وأدوات الجبر البولياني، ومحاكي Verilog مع عارض الإشارات، ومحاكي معمارية MIPS وRISC-V مع مسار البيانات والـ Pipeline، ومحاكي 8086 بلغة التجميع، ومحاكي Arduino بقطع افتراضية، وأداة رسم مخططات، وأداة System model تجمع مشروعك كامل (اللوحة والحساسات والمحركات والبطاريات وقطع الدرون والبوابات المنطقية) وتفتحه باسمه في البريدبورد والدوائر والدايقرام والـ 3D والأردوينو والـ VLSI، وتصميم ثلاثي الأبعاد بقياسات حقيقية، وأداة تحول صورة الدائرة إلى دائرة قابلة للمحاكاة عن طريق ذكاء اصطناعي يشتغل على جهازك (Ollama). ويقدر يسجّل فيديو للدائرة وهي تشتغل، وفيه Bode Plotter وIV Analyzer وDC Sweep مع رسم النتائج وجداولها، وMonte Carlo، ومولد كلمات ومحلل منطقي، وحاسبات تصميم تبني الدائرة لك، ومولد تقارير معامل Word وPDF، ووضع الأعطال للمعلم، واختبارات، ولوحة Arduino Uno على البريدبورد، وجهاز DOS كامل، وتصدير المخطط إلى .asc و.kicad_sch، وفتح ملفات .ms14 و.asc و.kicad_sch و.gds و.cif و.sch وGerber و.hex و.COM، ووضع "اشرح لي"، وحركة التيار على الأسلاك، والحل اليدوي بطريقة جهود العقد، وسجل النسخ، ومكتبة 144 دائرة، والواجبات اللي تنصحح تلقائيًا، والكفاءة، ولوحات ESP32 وPico مع محركات وشاشات وحساسات وصوت على البريدبورد، ونسخة ويب تشتغل على الآيباد، وروابط مشاركة، ودمج تعديلات الزملاء، وتقدر تبني قطعك الخاصة من دائرة صغيرة ويتأكد منها البرنامج ويكتب جنبها Verified.
 النسخ متوفرة للماك (Apple Silicon) والويندوز واللينكس من صفحة **Releases**.
 
 BY. YOUSEF A.ALGHAMDI

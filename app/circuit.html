@@ -198,7 +198,7 @@ kbd{font:11px var(--font-mono);border:1px solid var(--ui-border);border-bottom-w
 </div>
 <div id="splash" role="dialog" aria-label="CEsim"><div class="sp-box"><canvas id="sp-cv"></canvas><div class="sp-in">
  <div class="sp-row"><div class="sp-logo">CE</div><div><div class="sp-name">CE<span>sim</span></div><div class="sp-sub">Circuit Design &amp; Simulation Suite</div></div></div>
- <div class="sp-ver">Version 1.36.0</div><div class="sp-bar"><i id="sp-bar"></i></div><div class="sp-foot"><span id="sp-msg">Loading component database…</span><span class="sp-by">BY. YOUSEF</span></div>
+ <div class="sp-ver">Version 1.37.0</div><div class="sp-bar"><i id="sp-bar"></i></div><div class="sp-foot"><span id="sp-msg">Loading component database…</span><span class="sp-by">BY. YOUSEF</span></div>
 </div></div></div>
 <script src="lib/canvas2svg.js"></script>
 <script src="ms14.js"></script>
@@ -646,7 +646,7 @@ def("text",{name:"Text / note",ar:"نص",prefix:"",noLabel:1,pins:[],props:{text
  draw(c){const sz=+c.p.size||14;c.font=(c.p.bold==="yes"?"600 ":"400 ")+sz+"px "+CV.font;c.fillStyle=c.p.color||CV.value;c.textAlign="left";c.textBaseline="alphabetic";const lines=String(c.p.text||"").split("\\n");lines.forEach((l,i)=>c.fillText(l,0,i*sz*1.25));if(c.p.frame==="yes"){const w=Math.max(...lines.map(l=>c.measureText(l).width));c.strokeRect(-6,-sz-4,w+12,(lines.length-1)*sz*1.25+sz+10)}}});
 def("netlabel",{name:"Net label",ar:"اسم توصيلة",prefix:"",noLabel:1,pins:[[0,0,"NET"]],props:{name:"SIG1"},fields:[fTxt("name","Net name")],
  bbFn(c){const w=textW(c.p.name,11,1);return[0,-9,w+22,9]},bb:[0,-9,60,9],
- draw(c){const w=textW(c.p.name,11,1);c.beginPath();c.moveTo(0,0);c.lineTo(8,-8);c.lineTo(w+18,-8);c.lineTo(w+18,8);c.lineTo(8,8);c.closePath();c.fillStyle=CV.bg;c.fill();c.stroke();c.font="600 11px "+CV.font;c.fillStyle=CV.wire;c.textBaseline="middle";c.textAlign="left";c.fillText(c.p.name||"",12,0.5)},
+ draw(c,st,tx,comp){const w=textW(c.p.name,11,1);c.beginPath();c.moveTo(0,0);c.lineTo(8,-8);c.lineTo(w+18,-8);c.lineTo(w+18,8);c.lineTo(8,8);c.closePath();c.fillStyle=CV.bg;c.fill();c.stroke();c.font="600 11px "+CV.font;c.fillStyle=CV.wire;c.textBaseline="middle";if(comp&&(comp.r&3)===2&&!comp.f){c.save();c.translate(12+w/2,0);c.rotate(Math.PI);c.textAlign="center";c.fillText(c.p.name||"",0,0.5);c.restore()}else{c.textAlign="left";c.fillText(c.p.name||"",12,0.5)}},
  spice(){return ""}});
 
 /* ---- instruments ---- */
@@ -835,8 +835,15 @@ function nextLabel(doc,t){const L_=LIB[t];if(!L_.prefix)return "";const k=L_.pre
 function mkComp(doc,t,x,y,props){const L_=LIB[t];const c={id:uid(),t,x,y,r:0,f:0,label:nextLabel(doc,t),p:Object.assign({},L_.props,props||{})};return c}
 function snap(v){return Math.round(v/10)*10}
 const K=(x,y)=>x+","+y;
-function serialize(doc){const mine=[...new Set(doc.comps.map(c=>LIB[c.t]&&LIB[c.t].mine).filter(Boolean))].map(id=>MYP[id]).filter(Boolean).map(r=>({id:r.id,name:r.name,prefix:r.prefix,pins:r.pins,code:r.code}));return JSON.stringify({format:"CEsim",version:2,name:doc.name,...(mine.length?{myparts:mine}:{}),meta:doc.meta||{},cnt:doc.cnt,comps:doc.comps.map(c=>Object.assign({id:c.id,t:c.t,x:c.x,y:c.y,r:c.r,f:c.f,label:c.label,p:c.p},c.lo?{lo:c.lo}:{},c.lc?{lc:c.lc}:{},c.fault?{fz:fEnc({type:c.fault.type,found:c.fault.found||0})}:{})),wires:doc.wires.map(w=>({pts:w.pts.map(p=>[p.x,p.y])}))})}
+function serialize(doc){const mine=[...new Set(doc.comps.map(c=>LIB[c.t]&&LIB[c.t].mine).filter(Boolean))].map(id=>MYP[id]).filter(Boolean).map(r=>({id:r.id,name:r.name,prefix:r.prefix,pins:r.pins,code:r.code}));const sysb=[...new Set(doc.comps.map(c=>LIB[c.t]&&LIB[c.t].sysb).filter(Boolean))].map(id=>SYSB[id]).filter(Boolean);return JSON.stringify({format:"CEsim",version:2,name:doc.name,...(mine.length?{myparts:mine}:{}),...(sysb.length?{sysblocks:sysb}:{}),meta:doc.meta||{},cnt:doc.cnt,comps:doc.comps.map(c=>Object.assign({id:c.id,t:c.t,x:c.x,y:c.y,r:c.r,f:c.f,label:c.label,p:c.p},c.lo?{lo:c.lo}:{},c.lc?{lc:c.lc}:{},c.fault?{fz:fEnc({type:c.fault.type,found:c.fault.found||0})}:{})),wires:doc.wires.map(w=>({pts:w.pts.map(p=>[p.x,p.y])}))})}
+/* blocks that come from a System model project: a box with named pins, for drawing only */
+const SYSB={};
+function sysRegister(r){const t="sys_"+r.id;SYSB[r.id]=r;const g=mypGeom(r.pins.length,r.name);const hw=g.hw;
+ def(t,{name:r.name,ar:r.name,prefix:r.prefix||"U",sysb:r.id,pins:g.pins.map((p,i)=>[p[0],p[1],r.pins[i]]),bb:[-hw-10,-g.h/2,hw+10,g.h/2],props:{},
+  draw(c,st,tx){RECT(c,-hw,-g.h/2,hw,g.h/2,CV.bg);g.pins.forEach((p,i)=>{const lf=p[0]<0;L(c,lf?-hw-10:hw,p[1],lf?-hw:hw+10,p[1]);tx(r.pins[i],lf?-hw+3:hw-3,p[1]+3,7,"pin",lf?"left":"right")});tx(r.name.length>28?r.name.slice(0,27)+"…":r.name,0,-g.h/2+11,7,"part","center")},
+  spice(c){return `* ${c.label} (${r.name}) is a System model block and is left out of the SPICE netlist`}})}
 function deserialize(s,name){const o=typeof s==="string"?JSON.parse(s):s;if(o.format!=="CEsim")throw new Error("Not a CEsim design");
+ if(Array.isArray(o.sysblocks))for(const r0 of o.sysblocks){if(!r0||!r0.id||!Array.isArray(r0.pins))continue;sysRegister({id:String(r0.id).replace(/[^\w]/g,"_"),name:String(r0.name||r0.id),prefix:r0.prefix||"U",pins:r0.pins.map(String)})}
  if(Array.isArray(o.myparts))for(const r0 of o.myparts){if(!r0||!r0.id||!Array.isArray(r0.pins)||MYP[r0.id])continue;const r={id:String(r0.id).replace(/[^\w]/g,"_"),name:String(r0.name||r0.id),prefix:r0.prefix||"U",pins:r0.pins.map(String),code:String(r0.code||"")};MYP[r.id]=r;mypRegister(r);let v={ok:false};try{v=mypVerify(r)}catch(e){}mypSave(r,v)}const d=newDoc(name||o.name||"Design");d.cnt=o.cnt||{};d.meta=Object.assign(d.meta,o.meta||{});d.comps=o.comps.filter(c=>LIB[c.t]).map(c=>({id:c.id||uid(),t:c.t,x:c.x,y:c.y,r:c.r||0,f:c.f||0,label:c.label||"",p:Object.assign({},LIB[c.t].props,c.p),lo:c.lo||null,lc:c.lc||null,...(c.fz?{fault:fDec(c.fz)}:{})}));d.wires=o.wires.map(w=>({id:uid(),pts:w.pts.map(([x,y])=>({x,y}))}));if((o.version||1)<2){splitAtPins(d);d.comps.forEach(c=>{if(c.t==="voltmeter"&&c.p.rin==="10M")c.p.rin="1G"})}return d}
 function snapshot(){return serialize(D)}
 function pushUndo(){D.undo.push(snapshot());if(D.undo.length>100)D.undo.shift();D.redo=[];D.dirty=true;netCache=null;autosave()}
@@ -1411,9 +1418,14 @@ function toggleRec(){if(REC.mr)return stopRec();const mime=recMime();if(!mime||!
 function stopRec(){const mr=REC.mr;if(!mr)return;REC.mr=null;clearInterval(REC.tick);clearInterval(REC.draw);recUi(false);try{mr.requestData();mr.stop()}catch(e){}}
 async function saveFileNative(asNew){const N_=window.cesimNative;if(!N_)return false;const text=serialize(D);const native=D.filePath&&/\.cesim$/i.test(D.filePath);if(native&&!asNew){const r=await N_.write(D.filePath,text);if(r){toast("Saved "+D.filePath.split(/[\\/]/).pop());return true}}const r=await N_.save(D.name.replace(/[^\w.-]+/g,"_")+".cesim",text);if(r){D.filePath=r;D.name=r.split(/[\\/]/).pop().replace(/\.cesim$/i,"");renderTabs();toast("Saved "+r.split(/[\\/]/).pop())}return true}
 function saveLocal(show){if(show&&window.cesimNative){saveFileNative(false);try{localStorage.setItem("cesim.docs",JSON.stringify(docs.map(d=>serialize(d))))}catch(e){}return}try{localStorage.setItem("cesim.docs",JSON.stringify(docs.map(d=>serialize(d))));localStorage.setItem("cesim.active",String(docs.indexOf(D)));if(show)toast("Saved in this browser. Use File → Save as file to keep a .cesim copy.")}catch(e){if(show)toast("This browser blocked saving. Use File → Save as file.",true)}}
-const EXV=2;
+const EXV=3;
 function loadLocal(){try{const s=localStorage.getItem("cesim.docs");if(!s)return false;const arr=JSON.parse(s);arr.forEach(x=>docs.push(deserialize(x)));
- if(+(localStorage.getItem("cesim.exv")||1)<EXV){try{localStorage.setItem("cesim.docs.backup",s)}catch(e){}EXAMPLES.forEach(([n,f])=>{const i=docs.findIndex(d=>d.name===n);if(i>=0){try{docs[i]=splitAtPins(f())}catch(e){}}});localStorage.setItem("cesim.exv",String(EXV))}
+ if(+(localStorage.getItem("cesim.exv")||1)<EXV){try{localStorage.setItem("cesim.docs.backup",s)}catch(e){}
+  /* examples are no longer opened as tabs: close the example tabs nobody changed (they stay in the Examples menu) */
+  const sig=d=>d.comps.map(c=>c.t).sort().join(",")+"|"+d.comps.length;
+  for(const[n,f]of EXAMPLES.concat(OSC_EXAMPLES)){const i=docs.findIndex(d=>d.name===n);if(i<0)continue;let fresh=null;try{fresh=typeof f==="function"?splitAtPins(f()):importCir(f,n)}catch(e){}if(!fresh||sig(fresh)===sig(docs[i]))docs.splice(i,1)}
+  if(!docs.length)docs.push(newDoc("Design1"));try{localStorage.setItem("cesim.active","0")}catch(e){}
+  localStorage.setItem("cesim.exv",String(EXV))}
  return docs.length>0}catch(e){return false}}
 $("#fileIn").onchange=async e=>{const f=e.target.files[0];e.target.value="";if(!f)return;const base=f.name.replace(/\.[^.]+$/,"");try{if(/\.ms\d+$/i.test(f.name)){openMs14(new Uint8Array(await f.arrayBuffer()),base,null);return}const text=await f.text();if(/\.(asc|kicad_sch)$/i.test(f.name)){openSchematic(f.name,text,null);return}if(/\.(cir|net|sp|txt)$/i.test(f.name)&&!/^\s*\{/.test(text)){const d=importCir(text,base);addDoc(d);toast("Imported SPICE netlist with "+d.comps.length+" parts. Arrange them as you like.")}else{const d=deserialize(text,base);addDoc(d)}}catch(err){toast("Could not open "+f.name+": "+err.message,true)}};
 window.cesimOpenText=(name,text,path)=>{const base=name.replace(/\.[^.]+$/,"");try{if(/\.(asc|kicad_sch)$/i.test(name)){openSchematic(name,text,path);return}let d;if(/\.(cir|net|sp)$/i.test(name))d=importCir(text,base);else d=deserialize(text,base);d.filePath=path||null;addDoc(d)}catch(err){toast("Could not open "+name+": "+err.message,true)}};
@@ -2413,7 +2425,7 @@ function openMerge(){const inp=document.createElement("input");inp.type="file";i
  cv.addEventListener("pointerup",up,{passive:false});cv.addEventListener("pointercancel",up,{passive:false})})();
 
 try{mypLoad()}catch(e){console.warn(e)}
-if(!loadLocal()){try{localStorage.setItem("cesim.exv",String(EXV))}catch(e){}docs.push(newDoc("Design1"));EXAMPLES.forEach(([n,f])=>{try{docs.push(splitAtPins(f()))}catch(e){console.error(n,e)}})}
+if(!loadLocal()){try{localStorage.setItem("cesim.exv",String(EXV))}catch(e){}docs.push(newDoc("Design1"))}
 let ai=0;try{ai=+localStorage.getItem("cesim.active")||0}catch(e){}D=docs[clamp(ai,0,docs.length-1)];
 resize();renderTabs();updateInUse();updMode();requestAnimationFrame(t=>{lastTs=t;loop(t)});
 if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{dirty=1});
@@ -3333,5 +3345,6 @@ function takeHandoff(){let h=null;try{h=JSON.parse(localStorage.getItem("cesim.h
 setTimeout(takeHandoff,300);window.addEventListener("focus",()=>setTimeout(takeHandoff,50));window.addEventListener("storage",e=>{if(e.key==="cesim.handoff.circuit"&&e.newValue)takeHandoff()});
 window.CE={ms14Bytes,pinPos:(c,i)=>pinPos(c,i),mkComp:(doc,t,x,y,props)=>mkComp(doc,t,x,y,props),openInstWin:c=>openInstWin(c),spiceOf:doc=>{const keep=D;D=doc;netCache=null;try{const net=nets();const probes={};for(const c of doc.comps)if(c.t==="xsc")probes[c.label]=(net.pinNodes.get(c.id)||[]).map(k=>k===0?"0":String(k));return{text:toCir(),probes}}finally{D=keep;netCache=null}},sendToPcb,nets:()=>nets(),openCodeEditor,circuitToCode,lintCode,CODE_PROMPT,CODE_EXAMPLE,openImageTool,aiToSpice,parseAiJson,importCir,serialize,deserialize,addDoc,hitLabel,openProps,openExportDlg,doExportC,renderExport,voltsCsv,render:()=>{resize();render()},docs:()=>docs,D:()=>D,sim:()=>sim,openExample,runSim,stopSim,Sim,switchDoc,LIB,zoomFit,countDB,EXAMPLES,setTheme};
 </script>
+<script>/* opened from the System model tool */(function(){let h=null;try{h=JSON.parse(localStorage.getItem("cesim.handoff.open.circuit")||"null");localStorage.removeItem("cesim.handoff.open.circuit")}catch(e){}if(!h||!h.text)return;let n=0;const go=()=>{if(typeof window.cesimOpenText==="function"){window.cesimOpenText(h.name,h.text,null);return}if(++n<60)setTimeout(go,100)};setTimeout(go,250)})();</script>
 </body>
 </html>

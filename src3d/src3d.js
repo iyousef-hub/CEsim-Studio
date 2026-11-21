@@ -15,6 +15,8 @@ import fontJson from 'three/examples/fonts/helvetiker_bold.typeface.json';
 import { Brush, Evaluator, ADDITION, SUBTRACTION } from 'three-bvh-csg';
 import { zipSync, strToU8 } from 'three/examples/jsm/libs/fflate.module.js';
 
+import BBXmod from '../app/parts-extra.js';
+const BBX = BBXmod || (typeof window !== 'undefined' ? window.BBX : null);
 THREE.Object3D.DEFAULT_UP.set(0, 0, 1);
 const $ = s => document.querySelector(s);
 const FONT = new FontLoader().parse(fontJson);
@@ -330,8 +332,67 @@ function build3dExtra(model, G, box, cyl, holes, header, M) {
     case 'Digital multimeter': box(0, 0, 0, 90, 180, 45, '#f2b705'); box(8, 110, 45, 82, 165, 46, '#c7d6a3'); cyl(45, 70, 45, 52, 22, '#2a2a2a'); for (let i = 0; i < 4; i++) cyl(15 + i * 20, 18, 45, 50, 4, ['#222', '#d33', '#d33', '#d33'][i]); break;
     case 'Bench power supply': box(0, 0, 0, 160, 260, 110, '#2a2d33'); box(10, -0.5, 55, 150, 0.5, 100, '#132015'); for (let i = 0; i < 2; i++) add(new THREE.CylinderGeometry(9, 9, 8, 32), '#c9ccd1', 40 + i * 80, -4, 35); for (let i = 0; i < 3; i++) add(new THREE.CylinderGeometry(5, 5, 12, 16), ['#d33', '#222', '#30d158'][i], 40 + i * 40, -6, 12); break;
     case 'Coreless motor 8520': add(new THREE.CylinderGeometry(4.25, 4.25, 20, 32), '#c9ccd1', 10, 4.25, 4.25, Math.PI / 2); break;
+    default: { const X = X3D[model]; if (X) buildX(X, { add, box, cyl, holes, header, bar, pcbM, tube }); }
   }
 }
+/* generic models for the parts in parts-extra.js */
+const X3D = {};
+const X3D_GROUP = { Power: 'Power', Sensors: 'Sensors', Drone: 'Drone', 'Motors and outputs': 'Motors' };
+function buildX(X, T) {
+  const { add, box, cyl, holes, header, bar, pcbM, tube } = T; const w = X.w, d = X.d, c = X.col || '#1f5fae';
+  const el = (e, cx, cy, z) => { switch (e) {
+    case 'can': cyl(cx, cy, z, z + 9, 9.5, '#c9ccd1'); cyl(cx, cy, z + 9, z + 9.3, 7.5, '#8d949c'); break;
+    case 'irled': case 'irpair': cyl(cx - 3, cy, z, z + 6, 2.5, '#e9ecef'); cyl(cx + 3, cy, z, z + 6, 2.5, '#1b1b1b'); break;
+    case 'mic': cyl(cx, cy, z, z + 5, 4.9, '#c9ccd1'); cyl(cx, cy, z + 5, z + 5.1, 4, '#222'); break;
+    case 'ldr': cyl(cx, cy, z, z + 2, 2.5, '#f1e3c6'); break;
+    case 'to92': box(cx - 2, cy - 1.5, z, cx + 2, cy + 1.5, z + 4.5, '#1f1f1f'); break;
+    case 'chip': box(cx - 2.5, cy - 2.5, z, cx + 2.5, cy + 2.5, z + 1, '#1d1d1d'); break;
+    case 'bead': cyl(cx, cy, z + 3, z + 5, 1.4, '#3b2a1a'); break;
+    case 'patch': box(cx - 12.5, cy - 12.5, z, cx + 12.5, cy + 12.5, z + 4, '#c9a227'); box(cx - 9, cy - 9, z + 4, cx + 9, cy + 9, z + 4.3, '#e3c86b'); break;
+    case 'antenna': bar(cx - 6, cy, cx + 30, cy, 1, z, z + 1, '#222'); break;
+    case 'sma': add(new THREE.CylinderGeometry(3, 3, 10, 24), '#c9a227', cx, cy - 5, z + 3); add(new THREE.CylinderGeometry(4, 4, 40, 24), '#1b1b1b', cx, cy - 30, z + 3); break;
+    case 'lens': box(cx - 6, cy - 6, z, cx + 6, cy + 6, z + 5, '#1b1b1b'); cyl(cx, cy, z + 5, z + 10, 4.5, '#2b2b2b'); cyl(cx, cy, z + 10, z + 10.2, 3, '#24406b'); break;
+    case 'grille': break;
+    case 'leds': for (let i = 0; i < 8; i++) box(2 + i * 6.2, d / 2 - 2.5, z, 7 + i * 6.2, d / 2 + 2.5, z + 1.6, '#f6f6f6'); break;
+    case 'coil': box(cx - 6, cy - 6, z, cx + 6, cy + 6, z + 7, '#3a3a3a'); break;
+    case 'coin': cyl(cx, cy, z, z + 4, 10, '#1d1d1d'); cyl(cx, cy, z + 4, z + 7.2, 10, '#c9ccd1'); break;
+    case 'sd': box(cx - 8, cy - 7, z, cx + 8, cy + 7, z + 2, '#c9ccd1'); break;
+    case 'terminal': box(cx - 5, cy - 4, z, cx + 5, cy + 4, z + 9, '#2f6fd6'); break;
+    case 'usb': box(cx - 4.5, -1, z, cx + 4.5, 6, z + 3.2, '#c9ccd1'); break;
+    case 'pads': for (let i = 0; i < 4; i++) box(4 + i * 8, 2, z, 9 + i * 8, 8, z + 0.3, '#d4a83c'); break;
+    case 'slider': box(cx - 30, cy - 2, z, cx + 30, cy + 2, z + 6, '#555'); box(cx - 3, cy - 5, z + 6, cx + 3, cy + 5, z + 15, '#e9ecef'); break;
+    case 'bnc': cyl(cx, cy, z, z + 10, 4.5, '#c9ccd1'); break;
+    case 'traces': for (let i = 0; i < 4; i++) box(3, 3 + i * 3, z, w - 3, 4 + i * 3, z + 0.1, '#d4a83c'); break;
+    case 'pad': cyl(cx, cy, z, z + 0.2, 6, '#f6f6f6'); break;
+    default: break; } };
+  switch (X.shape) {
+    case 'cell': { const r = w / 2; add(new THREE.CylinderGeometry(r, r, d - 1.5, 40), c, r, d / 2, r); add(new THREE.CylinderGeometry(r * 1.002, r * 1.002, d * 0.22, 40), X.band || '#d4a83c', r, d * 0.85, r); add(new THREE.CylinderGeometry(r * 0.35, r * 0.35, 1.5, 24), '#c9ccd1', r, d - 0.4, r); break; }
+    case 'coin': cyl(w / 2, w / 2, 0, X.h || 3.2, w / 2, c); cyl(w / 2, w / 2, (X.h || 3.2), (X.h || 3.2) + 0.1, w / 2 * 0.8, '#b9bec6'); break;
+    case 'pack': { const n = X.n || 2, r = Math.min(w / n, 19) / 2; for (let i = 0; i < n; i++) add(new THREE.CylinderGeometry(r, r, d - 2, 32), c, r + i * 2 * r, d / 2, r); box(0, -2, 0, n * 2 * r, 0, 2 * r, '#3a3a3a'); bar(r, -2, r, -18, 1.6, r, r + 1.6, '#d33'); bar(3 * r, -2, 3 * r, -18, 1.6, r, r + 1.6, '#222'); break; }
+    case 'holder': { const n = X.n || 2; box(0, 0, 0, w, d, 2, c); for (let i = 0; i < n; i++) { box(i * w / n, 0, 0, i * w / n + 1.2, d, 15, c); add(new THREE.CylinderGeometry(7.2, 7.2, 50, 32), '#2b2f36', (i + 0.5) * w / n, d / 2, 8.5); } box(-0.5, 0, 0, 0.7, d, 15, c); bar(w / 2 - 3, 0, w / 2 - 3, -20, 1.4, 1, 2.4, '#d33'); bar(w / 2 + 3, 0, w / 2 + 3, -20, 1.4, 1, 2.4, '#222'); break; }
+    case 'box': box(0, 0, 0, w, d, X.h || 20, c); if (X.top) box(0, 0, (X.h || 20), w, d, (X.h || 20) + 1, X.top); break;
+    case 'solar': box(0, 0, 0, w, d, X.h || 3, '#d9dde2'); for (let i = 0; i < 6; i++) for (let j = 0; j < 3; j++) box(2 + i * (w - 4) / 6, 2 + j * (d - 4) / 3, X.h || 3, 1 + (i + 1) * (w - 4) / 6, 1 + (j + 1) * (d - 4) / 3, (X.h || 3) + 0.2, '#24406b'); break;
+    case 'lipo': box(0, 0, 0, w, d, X.h || 20, c); box(3, -0.1, 2, w - 3, 0.2, (X.h || 20) - 2, '#ffcc00'); bar(w, d * 0.3, w + 20, d * 0.3, 2.2, 3, 5, '#d33'); bar(w, d * 0.5, w + 20, d * 0.5, 2.2, 3, 5, '#222'); box(w + 20, d * 0.2, 1, w + 36, d * 0.6, 9, '#e3c21b'); break;
+    case 'fork': pcbM(w, d * 0.35, c); box(2, d * 0.35, 0, w * 0.38, d, 1.6, c); box(w * 0.62, d * 0.35, 0, w - 2, d, 1.6, c); box(3, d * 0.4, 1.6, w * 0.36, d - 2, 1.7, '#d4a83c'); box(w * 0.64, d * 0.4, 1.6, w - 3, d - 2, 1.7, '#d4a83c'); header(w / 2 - 2.5, 1.3, 2, 2.5); break;
+    case 'plate': pcbM(w, d, c); for (let i = 0; i < 8; i++) box(3, 3 + i * (d - 6) / 8, 1.6, w - 3, 4.2 + i * (d - 6) / 8, 1.7, '#d4a83c'); break;
+    case 'sharp': box(0, 0, 0, w, d, 13.5, c); cyl(w * 0.3, d / 2, 13.5, 16, 4.5, '#2a2a2a'); cyl(w * 0.7, d / 2, 13.5, 16, 4.5, '#2a2a2a'); box(w / 2 - 4, d - 2, 0, w / 2 + 4, d + 4, 5, '#f2f2f2'); break;
+    case 'disc': cyl(w / 2, d / 2, 0, 3, w / 2, c); cyl(w / 2, d / 2, 3, 3.5, w / 2 * 0.55, '#f2f2f2'); break;
+    case 'fsr': cyl(w / 2, w / 2, 0, 0.4, w / 2, c); box(w / 2 - 3, w, 0, w / 2 + 3, d, 0.4, '#d4a83c'); break;
+    case 'strip': box(0, 0, 0, w, d, 0.5, c); box(w * 0.2, d - 8, 0.5, w * 0.8, d, 2, '#1d1d1d'); break;
+    case 'probe': add(new THREE.CylinderGeometry(w / 2, w / 2, d, 24), '#c9ccd1', w / 2, d / 2, w / 2); bar(w / 2, d, w / 2, d + 60, 4, 0, 4, '#1d1d1d'); break;
+    case 'puck': cyl(w / 2, d / 2, 0, 15, w / 2, c); cyl(w / 2, d / 2, 15, 15.5, w / 2 * 0.6, '#3a3a3a'); add(new THREE.ConeGeometry(4, 5, 3), '#f2f2f2', w / 2, d / 2, 17); break;
+    case 'cam': box(0, 0, 0, w, d, 19, c); cyl(w / 2, d / 2, 19, 26, 6, '#2b2b2b'); cyl(w / 2, d / 2, 26, 26.3, 4, '#24406b'); break;
+    case 'servo': box(0, 0, 0, w * 0.72, d, d * 1.85, c); box(-w * 0.14, 0, d * 1.25, w * 0.86, d, d * 1.4, c); cyl(w * 0.22, d / 2, d * 1.85, d * 2.2, d * 0.35, '#e9edf2'); break;
+    case 'limit': box(0, 0, 0, w, d * 0.6, 10, c); bar(2, d * 0.3, w + 4, d * 0.3 + 6, 4, 10, 11, '#c9ccd1'); break;
+    case 'actuator': add(new THREE.CylinderGeometry(d * 0.45, d * 0.45, w * 0.6, 32), c, w * 0.3, d / 2, d / 2, Math.PI / 2); add(new THREE.CylinderGeometry(d * 0.18, d * 0.18, w * 0.4, 24), '#e9ecef', w * 0.8, d / 2, d / 2, Math.PI / 2); box(0, d * 0.1, d * 0.9, w * 0.25, d * 0.9, d * 1.35, '#2a2d33'); break;
+    case 'can': add(new THREE.CylinderGeometry(d / 2, d / 2, w * 0.85, 32), c, w * 0.45, d / 2, d / 2, Math.PI / 2); add(new THREE.CylinderGeometry(1.2, 1.2, w * 0.15, 16), '#b9bec6', w * 0.92, d / 2, d / 2, Math.PI / 2); break;
+    case 'ttmotor': box(0, 0, 0, 37, d, 19, '#f2c21b'); add(new THREE.CylinderGeometry(9.5, 9.5, 33, 32), '#c9ccd1', 53.5, d / 2, 9.5, Math.PI / 2); add(new THREE.CylinderGeometry(2.7, 2.7, 37, 16), '#f2f2f2', 11, d / 2, 9.5); break;
+    case 'gearmotor': add(new THREE.CylinderGeometry(d / 2, d / 2, w * 0.55, 32), '#c9ccd1', w * 0.45, d / 2, d / 2, Math.PI / 2); add(new THREE.CylinderGeometry(d / 2, d / 2, w * 0.3, 32), '#d4a83c', w * 0.12 + 1, d / 2, d / 2, Math.PI / 2); add(new THREE.CylinderGeometry(2, 2, 10, 16), '#b9bec6', -4, d / 2, d / 2, Math.PI / 2); break;
+    default: { // module board with its main part
+      pcbM(w, d, c); if (w > 20 && d > 12) holes([[2.5, d - 2.5], [w - 2.5, d - 2.5]], 1.4, 1.6); el(X.el, w / 2, d / 2 + 1, 1.6); header(w / 2 - (Math.min(8, Math.max(2, Math.round(w / 2.54) - 2)) * 2.54) / 2, 1.3, Math.min(8, Math.max(2, Math.round(w / 2.54) - 2)), 2.5); }
+  }
+}
+if (BBX) for (const e of BBX.LIST) { const m = e.m3d; if (!m || !m.name || BOARDS[m.name]) continue; X3D[m.name] = m; BOARDS[m.name] = { w: m.w, d: m.d, g: X3D_GROUP[e.group] || 'Modules', note: e.name } }
 
 
 /* ---------------- document ---------------- */
@@ -775,10 +836,17 @@ function importGeometryObject(name, g) {
   toast(`Imported ${name}: ${st.natural.map(v => v.toFixed(1)).join(' × ')} mm`);
 }
 function mergeObject3D(obj) { const gs = []; obj.updateMatrixWorld(true); obj.traverse(m => { if (m.isMesh) { const g = m.geometry.clone(); g.applyMatrix4(m.matrixWorld); gs.push(ensureAttrs(g)) } }); if (!gs.length) throw new Error('No mesh found in the file.'); return gs.length === 1 ? gs[0] : mergeGeometries(gs); }
+/* lay parts out in rows by their real footprint (used by the System model tool) */
+function packObjs(list, maxW) {
+  const W = +maxW > 0 ? +maxW : 260, gap = 10; let x = 0, y = 0, rowD = 0; const at = [];
+  for (const o of list) { const sz = o.size || o.natural || [20, 20, 20]; const w = sz[0], d = sz[1]; if (x > 0 && x + w > W) { x = 0; y += rowD + gap; rowD = 0; } at.push([o, x + w / 2, y + d / 2]); x += w + gap; rowD = Math.max(rowD, d); }
+  const tw = Math.max(0, ...at.map(([o, cx]) => cx + (o.size || o.natural || [20])[0] / 2)), td = y + rowD;
+  for (const [o, cx, cy] of at) { o.pos = [+(cx - tw / 2).toFixed(2), +(td / 2 - cy).toFixed(2), o.pos ? o.pos[2] : 0]; }
+}
 async function openFile(name, data) {
   const ext = name.split('.').pop().toLowerCase(); const base = name.replace(/\.[^.]+$/, '');
   try {
-    if (ext === 'ce3d' || ext === 'json') { const o = JSON.parse(typeof data === 'string' ? data : new TextDecoder().decode(data)); if (o.format !== 'CEsim3D') throw new Error('Not a CEsim 3D file.'); pushUndo(); objs = o.objs; docName = o.name || base; clearMeasures(); (o.measures || []).forEach(m => addMeasure(new THREE.Vector3(...m.a), new THREE.Vector3(...m.b))); sel.clear(); rebuildAll(); fitView(objs); dirtyTitle(false); return; }
+    if (ext === 'ce3d' || ext === 'json') { const o = JSON.parse(typeof data === 'string' ? data : new TextDecoder().decode(data)); if (o.format !== 'CEsim3D') throw new Error('Not a CEsim 3D file.'); pushUndo(); objs = o.objs; docName = o.name || base; clearMeasures(); (o.measures || []).forEach(m => addMeasure(new THREE.Vector3(...m.a), new THREE.Vector3(...m.b))); sel.clear(); rebuildAll(); if (o.pack) { packObjs(objs, o.pack); rebuildAll(); } fitView(objs); dirtyTitle(false); return; }
     const buf = typeof data === 'string' ? new TextEncoder().encode(data).buffer : data;
     if (ext === 'stl') importGeometryObject(base, new STLLoader().parse(buf));
     else if (ext === 'obj') importGeometryObject(base, mergeObject3D(new OBJLoader().parse(new TextDecoder().decode(buf))));

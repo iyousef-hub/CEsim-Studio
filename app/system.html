@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link href="fonts/fonts.css" rel="stylesheet"><title>CEsim System model</title>
+<style>
+:root{--bg:#eef1f5;--panel:#f7f8fa;--line:#cdd3dc;--text:#1b2230;--dim:#5e6979;--hover:#e1e7ef;--accent:#185fa5;--font:"IBM Plex Sans",-apple-system,"Segoe UI",Roboto,Arial,sans-serif;--mono:"IBM Plex Mono",ui-monospace,Menlo,monospace}
+*{box-sizing:border-box}html,body{height:100%;margin:0}body{background:var(--bg);color:var(--text);font:13px/1.4 var(--font);display:flex;flex-direction:column;overflow:hidden}
+#top{display:flex;align-items:center;gap:6px;padding:6px 12px;background:var(--panel);border-bottom:1px solid var(--line);flex-wrap:wrap}
+.logo{width:24px;height:24px;border-radius:6px;background:var(--accent);color:#fff;display:grid;place-items:center;font:600 10px var(--mono)}
+.title{font-weight:600;margin-right:6px}
+.btn{height:30px;padding:0 12px;border:1px solid var(--line);border-radius:5px;background:#fff;color:var(--text);cursor:pointer;font:12.5px var(--font);white-space:nowrap}.btn:hover{background:var(--hover)}.btn.pri{background:var(--accent);border-color:var(--accent);color:#fff}.btn.pri:hover{filter:brightness(.92)}.btn:disabled{opacity:.45;cursor:default}
+.sep{width:1px;height:22px;background:var(--line);margin:0 4px}
+input.nm{height:30px;border:1px solid var(--line);border-radius:5px;padding:0 9px;font:600 13px var(--font);width:220px}
+select.sl{height:30px;border:1px solid var(--line);border-radius:5px;padding:0 6px;font:12.5px var(--font);background:#fff}
+.lab{font-size:12px;color:var(--dim)}
+#body{flex:1;display:grid;grid-template-columns:290px minmax(0,1fr) minmax(0,1.05fr);min-height:0}
+#cat{border-right:1px solid var(--line);background:var(--panel);display:flex;flex-direction:column;min-height:0}
+#q{margin:10px;height:32px;border:1px solid var(--line);border-radius:5px;padding:0 9px;font:13px var(--font)}
+#catList{overflow:auto;flex:1;padding:0 10px 14px}
+.grp{font-weight:600;font-size:12px;color:var(--dim);margin:12px 2px 4px;display:flex;justify-content:space-between;cursor:pointer;user-select:none}
+.it{display:block;width:100%;text-align:left;border:1px solid transparent;background:none;padding:5px 8px;border-radius:5px;cursor:pointer;font:12.5px var(--font);color:var(--text)}.it:hover{background:#fff;border-color:var(--line)}
+#mid{overflow:auto;padding:12px 14px;min-height:0}
+#right{border-left:1px solid var(--line);display:flex;flex-direction:column;min-height:0;background:#fff}
+.tabs{display:flex;gap:2px;padding:6px 8px;border-bottom:1px solid var(--line);background:var(--panel)}
+.tab{height:28px;padding:0 12px;border:1px solid transparent;border-radius:6px;background:none;cursor:pointer;font:12.5px var(--font);color:var(--text)}.tab:hover{background:var(--hover)}.tab.on{background:#d3e4f7;border-color:#93b8e0;font-weight:600}
+#prev{flex:1;overflow:auto;min-height:0}
+#prev svg{display:block}
+#code{flex:1;border:0;padding:10px 12px;font:12px/1.5 var(--mono);resize:none;outline:none;min-height:0;color:var(--text)}
+.card{background:#fff;border:1px solid var(--line);border-radius:10px;margin-bottom:10px}
+.ch{display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid #eef1f4}
+.ch input{flex:1;border:1px solid transparent;border-radius:4px;font:600 13px var(--font);padding:3px 5px;min-width:0}.ch input:hover,.ch input:focus{border-color:var(--line)}
+.ch .ty{font-size:11.5px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:45%}
+.x{border:0;background:none;cursor:pointer;color:#8a94a3;font-size:16px;line-height:1;padding:2px 6px;border-radius:4px}.x:hover{background:#fde8e8;color:#b3261e}
+.dot{width:10px;height:10px;border-radius:3px;flex:none}
+table.pins{width:100%;border-collapse:collapse;font-size:12px}
+.pins td{padding:3px 10px;border-bottom:1px solid #f2f4f7}.pins tr:last-child td{border-bottom:0}
+.pins td.pn{font-family:var(--mono);width:28%}.pins td.rl{width:18%}
+.pins select{width:100%;height:26px;border:1px solid var(--line);border-radius:4px;font:12px var(--font);background:#fff}
+.role{font-size:10.5px;padding:1px 6px;border-radius:8px;background:#eef2f7;color:#475467;white-space:nowrap}
+.role.in{background:#e3f2fd;color:#0d47a1}.role.out{background:#fff3e0;color:#8a3b00}.role.both{background:#f3e5f5;color:#5b1a78}.role.pwr{background:#ffebee;color:#9a1b1b}.role.gnd{background:#eceff1;color:#37474f}
+.warn{color:#b3261e;font-size:11.5px}
+.empty{color:var(--dim);text-align:center;padding:40px 20px;line-height:1.7}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#1b2230;color:#fff;padding:9px 14px;border-radius:6px;font-size:12.5px;z-index:90;max-width:80vw}
+.boardcard .ch{background:#f3f7fc;border-radius:10px 10px 0 0}
+.sum{font-size:12px;color:var(--dim);padding:8px 10px}
+button:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+[hidden]{display:none!important}
+</style></head><body>
+<div id="top"><div class="logo">CE</div><span class="title">System model</span>
+ <input class="nm" id="pname" aria-label="Project name" spellcheck="false">
+ <button class="btn" id="bNew">New</button><button class="btn" id="bOpen">Open</button><button class="btn" id="bSave">Save</button>
+ <span class="sep"></span><span class="lab">Board</span><select class="sl" id="board" aria-label="Board"></select>
+ <button class="btn" id="bAuto" title="Join every pin again, the way the tool would">Wire again</button>
+ <span class="sep"></span><span class="lab">Open in</span>
+ <button class="btn pri" data-open="breadboard">Breadboard</button><button class="btn pri" data-open="circuit">Circuit</button><button class="btn pri" data-open="diagram">Diagram</button><button class="btn pri" data-open="3d">3D</button><button class="btn pri" data-open="arduino">Arduino</button><button class="btn pri" data-open="vlsi" id="bVlsi">VLSI</button>
+ <input type="file" id="fileIn" accept=".cesys,.json" hidden>
+</div>
+<div id="body">
+ <aside id="cat"><input id="q" placeholder="Search parts: sensor, LiPo, motor, GPS…" aria-label="Search parts"><div id="catList"></div></aside>
+ <section id="mid"></section>
+ <section id="right"><div class="tabs"><button class="tab on" data-tab="prev">Block diagram</button><button class="tab" data-tab="code">Sketch</button><span style="flex:1"></span><button class="btn" id="bRegen" hidden title="Write the sketch again from the parts">Write again</button></div>
+  <div id="prev"></div><textarea id="code" hidden spellcheck="false" aria-label="Sketch"></textarea></section>
+</div>
+<script src="parts-extra.js"></script><script src="bb-core.js"></script><script src="system-core.js"></script>
+<script>
+const $=s=>document.querySelector(s);const N=window.cesimNative;
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function toast(m,bad){document.querySelectorAll('.toast').forEach(t=>t.remove());const d=document.createElement('div');d.className='toast';if(bad)d.style.background='#8c1d18';d.textContent=m;document.body.appendChild(d);setTimeout(()=>d.remove(),3200)}
+let PR=null,filePath=null,tab='prev';
+const KEY='cesim.system';
+function save(){try{localStorage.setItem(KEY,JSON.stringify(PR))}catch(e){}}
+function load(){try{const o=JSON.parse(localStorage.getItem(KEY)||'null');if(o&&o.format==='CEsimSystem')return o}catch(e){}return null}
+/* board list */
+$('#board').innerHTML=SYS.BOARDS.map(k=>`<option value="${k}">${esc(BB.LIB[k].name.replace(/ board$/i,''))}</option>`).join('');
+/* catalog */
+const CAT=SYS.catalog();const closed=new Set();
+function renderCat(){const q=$('#q').value.trim().toLowerCase();let h='';
+ for(const g of SYS.GROUPS){const its=CAT.filter(c=>c.group===g&&(!q||(c.name+' '+c.key+' '+(c.kw||'')).toLowerCase().includes(q)));if(!its.length)continue;const cl=closed.has(g)&&!q;
+  h+=`<div class="grp" data-g="${esc(g)}"><span>${esc(g)}</span><span>${its.length} ${cl?'▸':'▾'}</span></div>`;if(!cl)h+=its.map(c=>`<button class="it" data-k="${esc(c.key)}" title="Add to the project">${esc(c.name)}</button>`).join('')}
+ $('#catList').innerHTML=h||'<div class="empty">No part matches.</div>'}
+$('#q').oninput=renderCat;
+$('#catList').onclick=e=>{const g=e.target.closest('.grp');if(g){const n=g.dataset.g;closed.has(n)?closed.delete(n):closed.add(n);renderCat();return}const b=e.target.closest('[data-k]');if(!b)return;const id=SYS.addPart(PR,b.dataset.k);SYS.autoMap(PR,true);changed();const p=PR.parts.find(x=>x.id===id);const miss=SYS.info(p.key).pins.some((n,i)=>needs(p,i)&&!SYS.linksOf(PR,p.id+':'+i).length);toast(p.label+' added'+(miss?'. Some pins have no free board pin; pick one in the list.':'.'),miss)};
+/* roles */
+const RC={din:'in',din_pu:'in',ain:'in',uart_tx:'in',spi_in:'in',dout:'out',pwm:'out',uart_rx:'out',spi_out:'out',i2c:'both',data:'both',vcc:'pwr',v33:'pwr',vbat:'pwr','src+':'pwr','pdb+':'pwr',relay_com:'pwr',gnd:'gnd','src-':'gnd',vbatn:'gnd','pdb-':'gnd','drive-':'gnd','drive+':'out',phase:'out',phase_in:'in',drvout:'out',relay_no:'out',escsig:'out',fc_in:'in',rc_ch:'out',video:'out',video_in:'in',nc:''};
+const RT={din:'digital in',din_pu:'button in',ain:'analog in',uart_tx:'serial TX',uart_rx:'serial RX',spi_in:'SPI in',spi_out:'SPI out',dout:'digital out',pwm:'PWM out',i2c:'I2C',data:'data',vcc:'power',v33:'3.3 V',vbat:'battery +','src+':'source +','src-':'source −','pdb+':'battery out +','pdb-':'battery out −',relay_com:'switched supply',gnd:'ground',vbatn:'battery −','drive-':'motor −','drive+':'motor +',phase:'motor phase',phase_in:'phase',drvout:'motor out',relay_no:'switched out',escsig:'to ESC',fc_in:'control in',rc_ch:'channel',video:'video out',video_in:'video in',nc:'not used'};
+const PEER=new Set(['nc','src+','src-','phase_in','phase','pdb+','pdb-','relay_no','drvout','escsig','video','video_in','rc_ch','drive+','drive-']);const needs=(p,i)=>!PEER.has(SYS.role(p.key,SYS.info(p.key).pins[i]));
+function targets(p,i){const bi=SYS.boardInfo(PR.board);const o=[['','Not joined']];const used=usedLegs();
+ bi.pins.forEach((n,leg)=>{if(bi.M.gnd.includes(leg)&&leg!==bi.gnd)return;const u=used.get(leg);o.push(['B:'+leg,'Board '+n+(u&&u!==p.label&&!/GND|5V|3V3|3\.3V|VIN|VBUS/.test(n)?' (used by '+u+')':'')])});
+ for(const q of PR.parts){if(q.id===p.id)continue;const I=SYS.info(q.key);I.pins.forEach((n,j)=>o.push(['P:'+q.id+':'+j,q.label+' · '+SYS.cleanPin(n)]))}return o}
+function usedLegs(){const m=new Map();for(const[k,v]of Object.entries(PR.map))if(v&&v.startsWith('B:')){const p=PR.parts.find(x=>x.id===k.split(':')[0]);if(p&&!m.has(+v.slice(2)))m.set(+v.slice(2),p.label)}return m}
+function renderMid(){const bi=SYS.boardInfo(PR.board);let h='';
+ const free=bi.dig.filter(g=>!usedLegs().has(bi.legOf.get(g))).length;
+ h+=`<div class="card boardcard"><div class="ch"><span class="dot" style="background:#1f3a5f"></span><b style="flex:1">${esc(bi.name.replace(/ board$/i,''))}</b><span class="ty">${PR.parts.length} part${PR.parts.length===1?'':'s'} · ${free} free digital pin${free===1?'':'s'}</span></div><div class="sum">Add parts from the list on the left. Each pin is joined to a free board pin, or to the part it belongs with (an ESC to its motor, a driver to its motors, a battery to what it feeds). Change any link in the list under a part.</div></div>`;
+ if(!PR.parts.length)h+='<div class="empty">The project has no parts yet.<br>Pick sensors, motors, batteries, drone parts or logic gates on the left.</div>';
+ const col={sensor:'#1565c0',out:'#e65100',comm:'#6a1b9a',power:'#c62828',drone:'#2e7d32',logic:'#4527a0'};
+ for(const p of PR.parts){const I=SYS.info(p.key);
+  h+=`<div class="card" data-p="${p.id}"><div class="ch"><span class="dot" style="background:${col[SYS.GROUP_OF(p.key)]||'#555'}"></span><input value="${esc(p.label)}" data-lab="${p.id}" aria-label="Part name"><span class="ty" title="${esc(I.name)}">${esc(I.name)}</span><button class="x" data-del="${p.id}" title="Remove">×</button></div><table class="pins">`;
+  I.pins.forEach((n,i)=>{const r=SYS.role(p.key,n);const k=p.id+':'+i;const ls=SYS.linksOf(PR,k);const cur=PR.map[k]!=null&&PR.map[k]!==''?PR.map[k]:ls[0]||'';const peerOwned=!PR.map[k]&&ls.length;
+   const opts=targets(p,i);const miss=needs(p,i)&&!ls.length;
+   h+=`<tr><td class="pn">${esc(SYS.cleanPin(n))}</td><td class="rl"><span class="role ${RC[r]||''}">${esc(RT[r]||r)}</span></td><td><select data-pin="${k}" ${peerOwned?'title="Joined from the other part"':''}>${opts.map(([v,t])=>`<option value="${v}" ${v===cur?'selected':''}>${esc(t)}</option>`).join('')}</select>${miss?'<div class="warn">No free pin was left for this one.</div>':''}</td></tr>`});
+  h+='</table></div>'}
+ $('#mid').innerHTML=h}
+$('#mid').addEventListener('change',e=>{const s=e.target.closest('[data-pin]');if(!s)return;const k=s.dataset.pin;const v=s.value;
+ /* a peer-owned link is moved onto this pin */
+ for(const[a,b]of Object.entries(PR.map))if(b==='P:'+k)delete PR.map[a];
+ if(v.startsWith('P:')){const other=v.slice(2);if(PR.map[other]==='P:'+k)delete PR.map[other]}
+ PR.map[k]=v;PR.user=PR.user||{};PR.user[k]=1;changed()});
+$('#mid').addEventListener('input',e=>{const t=e.target.closest('[data-lab]');if(!t)return;const p=PR.parts.find(x=>x.id===t.dataset.lab);p.label=t.value.trim()||p.label;changedSoft()});
+$('#mid').addEventListener('click',e=>{const b=e.target.closest('[data-del]');if(!b)return;const id=b.dataset.del;PR.parts=PR.parts.filter(p=>p.id!==id);for(const[k,v]of Object.entries(PR.map))if(k.startsWith(id+':')||(v&&v.startsWith('P:'+id+':'))){delete PR.map[k];if(PR.user)delete PR.user[k]}SYS.autoMap(PR,true);changed()});
+/* preview: the same layout that goes to the Diagram tool */
+function renderPrev(){const d=SYS.toDiagram(PR);const it=d.pages[0].items;const sh=it.filter(x=>x.k==='shape');const by=Object.fromEntries(sh.map(s=>[s.id,s]));
+ const W=Math.max(...sh.map(s=>s.x+s.w))+60,H=Math.max(...sh.map(s=>s.y+s.h))+30;let g='';
+ const side=(a,b)=>{const ca={x:a.x+a.w/2,y:a.y+a.h/2},cb={x:b.x+b.w/2,y:b.y+b.h/2};const dx=cb.x-ca.x,dy=cb.y-ca.y;if(Math.abs(dx)*a.h>Math.abs(dy)*a.w)return dx>0?{x:a.x+a.w,y:ca.y,h:1}:{x:a.x,y:ca.y,h:1};return dy>0?{x:ca.x,y:a.y+a.h,h:0}:{x:ca.x,y:a.y,h:0}};
+ for(const e of it.filter(x=>x.k==='edge')){const a=by[e.s.id],b=by[e.e.id];if(!a||!b)continue;const p=side(a,b),q=side(b,a);let path;
+  if(p.h&&q.h){const mx=(p.x+q.x)/2;path=`M${p.x},${p.y} H${mx} V${q.y} H${q.x}`}else if(!p.h&&!q.h){const my=(p.y+q.y)/2;path=`M${p.x},${p.y} V${my} H${q.x} V${q.y}`}else if(p.h)path=`M${p.x},${p.y} H${q.x} V${q.y}`;else path=`M${p.x},${p.y} V${q.y} H${q.x}`;
+  const st=e.st;g+=`<path d="${path}" fill="none" stroke="${st.stroke}" stroke-width="1.5" ${st.dash?`stroke-dasharray="${st.dash}"`:''} ${st.arrowE==='arrow'?`marker-end="url(#ah${st.stroke.slice(1)})"`:''} ${st.arrowS==='arrow'?`marker-start="url(#as${st.stroke.slice(1)})"`:''}/>`;
+  if(e.text){const lx=p.h&&q.h?(p.x+q.x)/2:(p.x+q.x)/2,ly=(p.y+q.y)/2;g+=`<text x="${lx}" y="${ly-4}" font-size="10.5" text-anchor="middle" fill="#3c4757" paint-order="stroke" stroke="#fff" stroke-width="3">${esc(e.text)}</text>`}}
+ for(const s of sh){const st=s.st;if(s.t==='heading'){g+=`<text x="${s.x}" y="${s.y+28}" font-size="20" font-weight="600" fill="#1b2230">${esc(s.text)}</text>`;continue}if(s.t==='text'){g+=`<foreignObject x="${s.x}" y="${s.y}" width="${Math.min(s.w,W-s.x-10)}" height="${s.h+10}"><div xmlns="http://www.w3.org/1999/xhtml" style="font:11.5px var(--font);color:#55606e">${esc(s.text)}</div></foreignObject>`;continue}
+  g+=`<rect x="${s.x}" y="${s.y}" width="${s.w}" height="${s.h}" rx="10" fill="${st.fill}" stroke="${st.stroke}" stroke-width="${st.sw}"/><text x="${s.x+s.w/2}" y="${s.y+s.h/2+4}" font-size="${st.fs}" font-weight="${st.bold?600:400}" text-anchor="middle" fill="${st.fc}">${esc(s.text.length>28?s.text.slice(0,27)+'…':s.text)}</text>`}
+ const cols=['1f3a5f','c62828','6a1b9a'];const mk=cols.map(c=>`<marker id="ah${c}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#${c}"/></marker><marker id="as${c}" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M10,0 L0,5 L10,10 z" fill="#${c}"/></marker>`).join('');
+ $('#prev').innerHTML=`<svg width="100%" style="max-width:${W}px;min-width:${Math.min(W,760)}px;font-family:var(--font)" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg"><defs>${mk}</defs>${g}</svg>`}
+function renderCode(){if(!PR.codeEdited)PR.code=SYS.sketch(PR);$('#code').value=PR.code;$('#bRegen').hidden=!PR.codeEdited||tab!=='code'}
+$('#code').oninput=()=>{PR.code=$('#code').value;PR.codeEdited=true;$('#bRegen').hidden=false;save()};
+$('#bRegen').onclick=()=>{PR.codeEdited=false;renderCode();save();toast('The sketch was written again from the parts.')};
+document.querySelector('.tabs').onclick=e=>{const b=e.target.closest('[data-tab]');if(!b)return;tab=b.dataset.tab;document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t===b));$('#prev').hidden=tab!=='prev';$('#code').hidden=tab!=='code';$('#bRegen').hidden=!(tab==='code'&&PR.codeEdited)};
+function changed(){renderMid();renderPrev();renderCode();$('#bVlsi').disabled=!PR.parts.some(p=>SYS.GATES[p.key]);$('#bVlsi').title=$('#bVlsi').disabled?'Add a logic gate to lay it out in CMOS':'Lay out the logic gates as CMOS transistors';save()}
+let tmr=0;function changedSoft(){clearTimeout(tmr);tmr=setTimeout(()=>{renderPrev();renderCode();save()},250)}
+function setProject(o,path){PR=o;filePath=path||null;$('#pname').value=PR.name;$('#board').value=PR.board;document.title=PR.name+' - CEsim System model';changed()}
+$('#pname').oninput=()=>{PR.name=$('#pname').value.trim()||'My project';document.title=PR.name+' - CEsim System model';changedSoft()};
+$('#board').onchange=()=>{PR.board=$('#board').value;PR.user=PR.user||{};for(const[k,v]of Object.entries(PR.map))if(v&&v.startsWith('B:'))delete PR.user[k];SYS.autoMap(PR,true);changed();toast('Wired again for the '+BB.LIB[PR.board].name.replace(/ board$/i,'')+'.')};
+$('#bAuto').onclick=()=>{SYS.autoMap(PR,false);changed();toast('Every pin was joined again.')};
+$('#bNew').onclick=()=>{if(PR.parts.length&&!confirmNew())return;setProject(SYS.newProject('My project',PR.board))};
+function confirmNew(){return window.confirm('Start a new project? Save this one first if you want to keep it.')}
+/* files */
+const fname=()=>(PR.name||'project').replace(/[\\/:*?"<>|]+/g,'_');
+async function saveFile(){const text=JSON.stringify(PR,null,1);if(N&&N.save){if(filePath&&N.write){const p=await N.write(filePath,text);if(p){toast('Saved.');return}}const p=await N.save(fname()+'.cesys',text);if(p){filePath=p;toast('Saved.')}return}
+ const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:'application/json'}));a.download=fname()+'.cesys';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000)}
+$('#bSave').onclick=saveFile;
+$('#bOpen').onclick=()=>$('#fileIn').click();
+window.cesimOpenText=(name,text,path)=>{try{const o=JSON.parse(text);if(o.format!=='CEsimSystem'||!Array.isArray(o.parts))throw 0;o.parts=o.parts.filter(p=>SYS.info(p.key));if(!SYS.BOARDS.includes(o.board))o.board='uno';o.map=o.map||{};setProject(o,path);toast('Opened '+name)}catch(e){toast('This file is not a CEsim System model',true)}};
+$('#fileIn').addEventListener('change',async e=>{const f=e.target.files[0];e.target.value='';if(f)window.cesimOpenText(f.name,await f.text(),N&&N.pathFor?N.pathFor(f):null)});
+document.addEventListener('dragover',e=>e.preventDefault());document.addEventListener('drop',async e=>{e.preventDefault();const f=e.dataTransfer.files[0];if(f)window.cesimOpenText(f.name,await f.text(),N&&N.pathFor?N.pathFor(f):null)});
+document.addEventListener('keydown',e=>{if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='s'){e.preventDefault();saveFile()}if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='o'){e.preventDefault();$('#fileIn').click()}});
+/* open in the other tools */
+const PAGE={breadboard:'bb.html',circuit:'circuit.html?nosplash=1',diagram:'diagram.html',['3d']:'3d.html',arduino:'ino.html',vlsi:'vlsi.html'};
+function openIn(tool){if(!PR.parts.length&&tool!=='arduino'){toast('Add some parts first.',true);return}let name,text;const n=fname();
+ try{switch(tool){
+  case 'breadboard':{const d=SYS.toBreadboard(Object.assign({},PR,{code:PR.code||SYS.sketch(PR)}));name=n+'.cebb';text=JSON.stringify(d);break}
+  case 'circuit':name=n+'.cesim';text=JSON.stringify(SYS.toCircuit(PR));break;
+  case 'diagram':name=n+'.cediag';text=JSON.stringify(SYS.toDiagram(PR));break;
+  case '3d':name=n+'.ce3d';text=JSON.stringify(SYS.to3D(PR));break;
+  case 'arduino':name=n+'.ino';text=PR.code||SYS.sketch(PR);break;
+  case 'vlsi':{const sp=SYS.toSpice(PR);if(!sp){toast('Add a logic gate (NAND, NOR, AND, OR, XOR or NOT) to lay it out in VLSI.',true);return}name=n+'.sp';text=sp;break}
+ }}catch(e){toast('Could not build it: '+e.message,true);return}
+ try{localStorage.setItem('cesim.handoff.open.'+tool,JSON.stringify({name,text}))}catch(e){toast('Could not hand the project over.',true);return}
+ if(N&&N.openTool)N.openTool(tool);else window.open(PAGE[tool],'_blank');
+ toast('Opening '+PR.name+' in '+({breadboard:'Breadboard',circuit:'Circuit',diagram:'Diagram','3d':'3D',arduino:'Arduino',vlsi:'VLSI'}[tool])+'.')}
+document.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>openIn(b.dataset.open));
+window.SYSUI={openIn,get PR(){return PR},setProject};
+/* start */
+renderCat();
+const qp=new URLSearchParams(location.search);
+setProject(qp.has('blank')?SYS.newProject('My project','uno'):(load()||SYS.newProject('My project','uno')));
+</script>
+<script>/* opened from another tool */(function(){let h=null;try{h=JSON.parse(localStorage.getItem("cesim.handoff.open.system")||"null");localStorage.removeItem("cesim.handoff.open.system")}catch(e){}if(h&&h.text)window.cesimOpenText(h.name,h.text,null)})();</script>
+</body></html>

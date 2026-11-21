@@ -115,4 +115,5 @@ button:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-vis
 <input type="file" id="fileIn" accept=".cediag,.drawio,.dio,.xml,.mmd,.mermaid,.txt,.svg,.png,.jpg,.jpeg,.gif,.webp,.json" multiple style="display:none">
 <script src="diagram-shapes.js"></script><script src="diagram-shapes2.js"></script>
 <script src="diagram.js"></script><script src="diagram-nn.js"></script><script src="diagram-maker.js"></script>
+<script>/* opened from the System model tool */(function(){let h=null;try{h=JSON.parse(localStorage.getItem("cesim.handoff.open.diagram")||"null");localStorage.removeItem("cesim.handoff.open.diagram")}catch(e){}if(!h||!h.text)return;let n=0;const go=()=>{if(typeof window.cesimOpenText==="function"){window.cesimOpenText(h.name,h.text,null);return}if(++n<60)setTimeout(go,100)};setTimeout(go,250)})();</script>
 </body></html>

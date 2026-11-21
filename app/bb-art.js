@@ -314,5 +314,66 @@ function esp32s3(svg,L,st,running,glow,M){const W=100,H=210;let b=`<g filter="ur
  b+=silk(W/2,170,'ESP32-S3-DevKitC-1',5.4);
  const pts=L.legs.map(([lx,ly])=>[lx*10,ly*10]);b+=malePins(pts,i=>{const g=[...M.gpio].find(([gg,li])=>li===i);const s=g&&st.pins?st.pins[g[0]]:null;return s&&s.mode===1&&(s.v||s.pwm>0)});
  L.legs.forEach(([lx,ly],i)=>{const x=lx*10,y=ly*10;b+=`<text x="${lx?x-7:x+7}" y="${y+2}" font-size="5" fill="#f4f7f5" text-anchor="${lx?'end':'start'}" ${mono} font-weight="600">${L.pins[i].replace(/^IO/,'')}</text>`});return b}
-root.BBART={nema17,solenoid,scope,fgen,logicprobe,fc,sht31,mlx90640,lidar,camera,mpu6050,piezo,vibration,mic,lipo,esc,bldc,frame,l298n,dcMotor,esp32s3,install,pcb,breadboard,resistor,diode,led5,ceramic,electrolytic,to92,dip,tactile,slide,pot,battery9,unoBoard,piBoard,genericBoard,esp32,leg};
+/*XART*/
+/* ---------- parts from parts-extra.js ---------- */
+function xel(el,cx,cy,col,st){const lit=st&&st.lit;switch(el){
+ case'fork':return`<rect x="${cx-9}" y="${cy-6}" width="18" height="10" rx="1" fill="#1d1d1d"/>`+smd(cx-6,cy+6,5,2.4)+smd(cx+1,cy+6,5,2.4);
+ case'can':return`<circle cx="${cx}" cy="${cy}" r="11" fill="url(#aMetal)" stroke="#7d848c"/><circle cx="${cx}" cy="${cy}" r="8.5" fill="#c9ccd1" stroke="#9aa0a7" stroke-dasharray="1.2 1"/><circle cx="${cx}" cy="${cy}" r="3" fill="#8d949c"/>`;
+ case'irled':return`<rect x="${cx-3}" y="${cy-12}" width="6" height="10" rx="3" fill="#1b1b1b"/>`+smd(cx-8,cy+2,6,2.6)+smd(cx+3,cy+2,6,2.6);
+ case'irpair':return`<rect x="${cx-10}" y="${cy-10}" width="7" height="12" rx="3.5" fill="#d9dde2"/><rect x="${cx+3}" y="${cy-10}" width="7" height="12" rx="3.5" fill="#1b1b1b"/>`;
+ case'mic':return`<circle cx="${cx}" cy="${cy}" r="7" fill="url(#aMetal)" stroke="#6b7178"/><circle cx="${cx}" cy="${cy}" r="5" fill="#2a2a2a"/>`;
+ case'ldr':return`<circle cx="${cx}" cy="${cy}" r="6" fill="#f1e3c6" stroke="#b79d68"/><path d="M${cx-4} ${cy-2}h8M${cx-4} ${cy+1}h8M${cx-4} ${cy+4}h8" stroke="#c0541e" stroke-width="1"/>`;
+ case'to92':return`<path d="M${cx-5} ${cy+5}V${cy-3}a5 4 0 0 1 10 0v8z" fill="#1f1f1f"/>`;
+ case'chip':return`<rect x="${cx-6}" y="${cy-6}" width="12" height="12" rx="1" fill="#1d1d1d"/><circle cx="${cx-3.5}" cy="${cy-3.5}" r=".9" fill="#555"/>`;
+ case'bead':return`<line x1="${cx}" y1="${cy+6}" x2="${cx}" y2="${cy-4}" stroke="#bbb"/><circle cx="${cx}" cy="${cy-6}" r="3.2" fill="#3b2a1a"/>`;
+ case'heart':return`<path d="M${cx} ${cy+6} l-7 -7 a4 4 0 0 1 7 -5 a4 4 0 0 1 7 5z" fill="${lit?'#ff4d4d':'#f2f2f2'}"/>`;
+ case'pad':return`<circle cx="${cx}" cy="${cy}" r="8" fill="${lit?'#ffd0d0':'#f6f6f6'}" stroke="#bbb"/><circle cx="${cx}" cy="${cy}" r="3" fill="none" stroke="#999"/>`;
+ case'strip':return`<rect x="${cx-3}" y="${cy-14}" width="6" height="26" rx="1.5" fill="#d4a83c" stroke="#8c6a1a"/>`;
+ case'slider':return`<rect x="${cx-16}" y="${cy-2}" width="32" height="4" rx="2" fill="#555"/><rect x="${cx-4}" y="${cy-6}" width="8" height="12" rx="1" fill="#e9ecef"/>`;
+ case'bnc':return`<circle cx="${cx}" cy="${cy}" r="7" fill="url(#aMetal)" stroke="#6b7178"/><circle cx="${cx}" cy="${cy}" r="2.2" fill="#d4a83c"/>`;
+ case'traces':return`<path d="M${cx-12} ${cy-8}h24M${cx-12} ${cy-3}h24M${cx-12} ${cy+2}h24M${cx-12} ${cy+7}h24" stroke="#d4a83c" stroke-width="1.6"/>`;
+ case'plate':return`<path d="M${cx-12} ${cy-8}h24v4h-20v4h20v4h-20v4h20" stroke="#d4a83c" stroke-width="1.4" fill="none"/>`;
+ case'glass':return`<rect x="${cx-12}" y="${cy-3}" width="24" height="6" rx="3" fill="#d9eef7" opacity=".85" stroke="#8fb4c8"/><line x1="${cx-8}" y1="${cy}" x2="${cx+8}" y2="${cy}" stroke="#8d6b2a"/>`;
+ case'lever':return`<rect x="${cx-10}" y="${cy-4}" width="20" height="10" rx="1" fill="#1d1d1d"/><line x1="${cx-9}" y1="${cy-5}" x2="${cx+10}" y2="${cy-12+(lit?6:0)}" stroke="#c9ccd1" stroke-width="1.6"/>`;
+ case'spring':return`<path d="M${cx-8} ${cy}q2 -6 4 0t4 0t4 0t4 0" stroke="#c9ccd1" stroke-width="1.4" fill="none"/>`;
+ case'patch':return`<rect x="${cx-10}" y="${cy-10}" width="20" height="20" rx="1" fill="#c9a227"/><rect x="${cx-7}" y="${cy-7}" width="14" height="14" fill="#e3c86b"/><circle cx="${cx+4}" cy="${cy+4}" r="1.3" fill="#8d6b2a"/>`;
+ case'antenna':return`<path d="M${cx-10} ${cy+4}h4v-8h4v8h4v-8h4v8h4" stroke="#d4a83c" stroke-width="1.2" fill="none"/>`;
+ case'sma':return`<rect x="${cx-4}" y="${cy-12}" width="8" height="12" fill="url(#aMetal)" stroke="#6b7178"/>`;
+ case'lens':return`<circle cx="${cx}" cy="${cy}" r="8" fill="#1b1b1b" stroke="#555"/><circle cx="${cx}" cy="${cy}" r="4" fill="#24406b"/>`;
+ case'grille':return`<rect x="${cx-10}" y="${cy-12}" width="20" height="24" rx="2" fill="#f2f2f2" stroke="#bbb"/>`+[...Array(5)].map((_,i)=>`<rect x="${cx-7}" y="${cy-9+i*4.5}" width="14" height="2" fill="#cfd3d8"/>`).join('');
+ case'probe':return`<rect x="${cx-3}" y="${cy-14}" width="6" height="22" rx="3" fill="url(#aMetal)" stroke="#6b7178"/>`;
+ case'leds':return[...Array(4)].map((_,i)=>`<rect x="${cx-19+i*10}" y="${cy-4}" width="8" height="8" fill="#f6f6f6" stroke="#bbb"/>`).join('');
+ case'coil':return`<circle cx="${cx}" cy="${cy}" r="8" fill="#3a3a3a"/><circle cx="${cx}" cy="${cy}" r="4" fill="#b87333"/>`;
+ case'coin':return`<circle cx="${cx}" cy="${cy}" r="9" fill="url(#aMetal)" stroke="#6b7178"/><text x="${cx}" y="${cy+2}" font-size="4" text-anchor="middle" fill="#333">CR2032</text>`;
+ case'sd':return`<rect x="${cx-9}" y="${cy-8}" width="18" height="15" rx="1" fill="url(#aMetal)" stroke="#6b7178"/>`;
+ case'keys':return[...Array(4)].map((_,i)=>[...Array(4)].map((__,j)=>`<rect x="${cx-14+j*7}" y="${cy-14+i*7}" width="5.5" height="5.5" rx="1" fill="#e9ecef"/>`).join('')).join('');
+ case'terminal':return`<rect x="${cx-9}" y="${cy-7}" width="18" height="10" fill="#2f6fd6"/><circle cx="${cx-4.5}" cy="${cy-2}" r="2" fill="#c9ccd1"/><circle cx="${cx+4.5}" cy="${cy-2}" r="2" fill="#c9ccd1"/>`;
+ case'usb':return`<rect x="${cx-6}" y="${cy-9}" width="12" height="6" rx="2" fill="url(#aMetal)" stroke="#6b7178"/>`+smd(cx-4,cy+2,8,3,'#1d1d1d');
+ case'pads':return[...Array(4)].map((_,i)=>`<rect x="${cx-14+i*7.5}" y="${cy-8}" width="5" height="16" fill="#d4a83c"/>`).join('');
+ default:return''}}
+function xmod(svg,L,p,st,running){const e=L.x,lk=e.look||{},n=L.pins.length;const w=Math.max(46,(n-1)*10+16),x=-8,y=-62,h=50;
+ let b=modBoard(svg,x,y,w,h,lk.col||'#1f5fae',n,L.pins.map(t=>t.length>5?t.replace(/[^A-Z0-9+−]/g,'').slice(0,4)||t.slice(0,4):t),lk.title||'',lk.sub||'');
+ if(/^#(f|e|d)/i.test(lk.col||''))b=b.replace(/fill="#f4f7f5"/g,'fill="#2a2f36"').replace(/fill="#e8eef5"/g,'fill="#2a2f36"');
+ b+=xel(lk.el,x+w/2,y+33,lk.col,st);
+ if(e.sim==='asens'||e.sim==='dsens'){const on=running&&st&&st.lit;b+=`<circle cx="${x+w-7}" cy="${y+h-8}" r="2.2" fill="${on?'#ff3b30':'#5a1d1d'}"/>`+(on?`<circle cx="${x+w-7}" cy="${y+h-8}" r="5" fill="#ff3b30" opacity=".35"/>`:'')}
+ if((e.sim==='asens'||e.sim==='asens3')&&e.ui){const f=BB_FRAC?BB_FRAC(p,0):0.5;b+=`<rect x="${x+4}" y="${y+h-6}" width="${(w-16)}" height="2.4" fill="#0007"/><rect x="${x+4}" y="${y+h-6}" width="${((w-16)*f).toFixed(1)}" height="2.4" fill="#ffd60a"/>`}
+ if(e.sim==='module'&&/^(linact|pump12|peltier|xt60)$/.test(e.key)){}
+ return b}
+let BB_FRAC=null;function setFrac(f){BB_FRAC=f}
+function cell(pr,volts){const k=pr.kind||'',X=BBX_LOOK(k);const sh=X.shape||'cyl';
+ let b=`<line x1="0" y1="0" x2="0" y2="14" stroke="#d33" stroke-width="2"/><line x1="20" y1="0" x2="20" y2="14" stroke="#222" stroke-width="2"/>`;
+ const lab=`${volts} V`;
+ if(sh==='coin'){b+=`<g filter="url(#aSh)"><circle cx="10" cy="30" r="17" fill="url(#aMetal)" stroke="#6b7178"/><circle cx="10" cy="30" r="13" fill="none" stroke="#9aa0a7" stroke-width=".6"/></g><text x="10" y="29" font-size="5.5" text-anchor="middle" fill="#333" font-weight="700">${k.toUpperCase()}</text><text x="10" y="37" font-size="5" text-anchor="middle" fill="#333">${lab}</text>`}
+ else if(sh==='pack'||sh==='box'||sh==='solar'){const col=X.col||'#1d1d1d';const nn=X.n||1;const W=Math.max(40,nn*16+8);b+=`<g filter="url(#aSh)"><rect x="${10-W/2}" y="14" width="${W}" height="${sh==='solar'?40:56}" rx="3" fill="${sh==='solar'?'#1b2a4a':col}" stroke="#111"/></g>`;
+  if(sh==='solar')for(let i=0;i<4;i++)for(let j=0;j<3;j++)b+=`<rect x="${10-W/2+3+i*(W-6)/4}" y="${17+j*12}" width="${(W-6)/4-1.5}" height="10.5" fill="#24406b" stroke="#8fa9cf" stroke-width=".3"/>`;
+  else if(X.m3shape==='holder')for(let i=0;i<nn;i++)b+=`<rect x="${10-W/2+4+i*16}" y="18" width="13" height="48" rx="6" fill="#2b2f36"/><rect x="${10-W/2+4+i*16}" y="18" width="13" height="7" fill="#d4a83c"/>`;
+  else if(sh==='pack')for(let i=0;i<nn;i++)b+=`<rect x="${10-W/2+4+i*16}" y="18" width="13" height="48" rx="6" fill="${col}" opacity=".9"/><rect x="${10-W/2+4+i*16}" y="18" width="13" height="48" rx="6" fill="url(#aCyl)" opacity=".5"/>`;
+  b+=`<rect x="${10-W/2+2}" y="${sh==='solar'?55:58}" width="${W-4}" height="10" rx="2" fill="#0009"/><text x="10" y="${sh==='solar'?62:65}" font-size="6.5" text-anchor="middle" fill="#fff" font-weight="700" font-family="IBM Plex Sans">${lab}</text>`}
+ else{const col=X.col||'#2b2f36',band=X.band||'#d4a83c';const H=Math.min(80,Math.max(46,(X.d||50)*1.2)),W=Math.min(40,Math.max(16,(X.w||14)*1.6));
+  b+=`<g filter="url(#aSh)"><rect x="${10-W/2}" y="16" width="${W}" height="${H}" rx="${W*0.18}" fill="${col}"/><rect x="${10-W/2}" y="16" width="${W}" height="${H*0.25}" rx="${W*0.18}" fill="${band}"/><rect x="${10-W/2}" y="16" width="${W}" height="${H}" rx="${W*0.18}" fill="url(#aCyl)" opacity=".55"/><rect x="${10-W*0.18}" y="13" width="${W*0.36}" height="4" fill="#c9ccd1"/></g>`;
+  b+=`<text x="10" y="${16+H*0.62}" font-size="${W>24?7:5.5}" text-anchor="middle" fill="#fff" font-weight="700" font-family="IBM Plex Sans" transform="rotate(-90 10 ${16+H*0.62})">${(k||'').toUpperCase()} ${lab}</text>`}
+ b+=`<text x="0" y="-3" font-size="7" fill="#c62828" text-anchor="middle" font-weight="700">+</text><text x="20" y="-3" font-size="8" fill="#1b2230" text-anchor="middle" font-weight="700">−</text>`;return b}
+function BBX_LOOK(k){const X=(root.BBX&&root.BBX.BY['battery:'+k])||null;return X&&X.m3d?Object.assign({},X.m3d,{m3shape:X.m3d.shape,shape:X.look&&X.look.shape==='coin'?'coin':X.look&&X.look.shape==='pack'?(X.m3d.shape==='holder'?'pack':'pack'):X.look&&X.look.shape==='box'?'box':X.look&&X.look.shape==='solar'?'solar':'cyl'}):{shape:'cyl'}}
+
+root.BBART={xmod,cell,setFrac,nema17,solenoid,scope,fgen,logicprobe,fc,sht31,mlx90640,lidar,camera,mpu6050,piezo,vibration,mic,lipo,esc,bldc,frame,l298n,dcMotor,esp32s3,install,pcb,breadboard,resistor,diode,led5,ceramic,electrolytic,to92,dip,tactile,slide,pot,battery9,unoBoard,piBoard,genericBoard,esp32,leg};
 })(typeof window!=='undefined'?window:globalThis);

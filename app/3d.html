@@ -106,4 +106,5 @@ select.s{flex:none;height:28px;border:1px solid var(--line);border-radius:4px;ba
 document.getElementById('shapes').innerHTML=S.map(([k,n,p,h])=>`<button class="shp${h?' hole':''}" data-shape="${k}" data-hole="${h?1:0}" title="${n}"><svg viewBox="0 0 24 24" fill="none" stroke="${h?'#7f8b9c':'#185fa5'}" stroke-width="1.5" stroke-linejoin="round">${p}</svg>${n}</button>`).join('')})();
 </script>
 <script src="lib/3d.bundle.js"></script>
+<script>/* opened from the System model tool */(function(){let h=null;try{h=JSON.parse(localStorage.getItem("cesim.handoff.open.3d")||"null");localStorage.removeItem("cesim.handoff.open.3d")}catch(e){}if(!h||!h.text)return;let n=0;const go=()=>{if(typeof window.cesimOpenText==="function"){window.cesimOpenText(h.name,h.text,null);return}if(++n<60)setTimeout(go,100)};setTimeout(go,250)})();</script>
 </body></html>
