@@ -6,7 +6,10 @@
 #   MSIX_PUBLISHER_DISPLAY Package/Properties/PublisherDisplayName
 param([string]$Ver = $env:VER)
 $ErrorActionPreference = 'Stop'
-$name = $env:MSIX_NAME; $pub = $env:MSIX_PUBLISHER; $disp = $env:MSIX_PUBLISHER_DISPLAY
+# defaults: the identity Partner Center gave CEsim Studio (Store ID 9PP2T74GQXZZ)
+$name = if ($env:MSIX_NAME) { $env:MSIX_NAME } else { 'YousefA.Alghamdi.CEsimStudio' }
+$pub = if ($env:MSIX_PUBLISHER) { $env:MSIX_PUBLISHER } else { 'CN=21027604-DABE-4066-BAD0-D124E28C13FF' }
+$disp = if ($env:MSIX_PUBLISHER_DISPLAY) { $env:MSIX_PUBLISHER_DISPLAY } else { 'Yousef A.Alghamdi' }
 if (-not $name -or -not $pub -or -not $disp) {
   Write-Host 'Store package skipped: set the repository variables MSIX_NAME, MSIX_PUBLISHER and MSIX_PUBLISHER_DISPLAY from Partner Center.'
   exit 0

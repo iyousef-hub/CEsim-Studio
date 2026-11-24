@@ -32,7 +32,6 @@ jobs:
           MSIX_PUBLISHER: ${{ inputs.test && 'CN=00000000-0000-0000-0000-000000000000' || vars.MSIX_PUBLISHER }}
           MSIX_PUBLISHER_DISPLAY: ${{ inputs.test && 'Test publisher' || vars.MSIX_PUBLISHER_DISPLAY }}
         run: |
-          if (-not $env:MSIX_NAME) { throw 'Set the repository variables MSIX_NAME, MSIX_PUBLISHER and MSIX_PUBLISHER_DISPLAY (Settings > Secrets and variables > Actions > Variables) from Partner Center > Product identity.' }
           ./build/windows/make-msix.ps1
       - uses: actions/upload-artifact@v4
         with:
