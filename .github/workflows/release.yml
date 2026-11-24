@@ -64,6 +64,22 @@ jobs:
           makensis /DVER=$env:VER build\windows\installer.nsi
           Compress-Archive -Path "out\CEsim Studio-win32-x64" -DestinationPath "dist\CEsim-Studio-$env:VER-Windows-x64-Portable.zip"
 
+      - name: Microsoft Store package
+        if: matrix.target == 'win'
+        shell: pwsh
+        env:
+          MSIX_NAME: ${{ vars.MSIX_NAME }}
+          MSIX_PUBLISHER: ${{ vars.MSIX_PUBLISHER }}
+          MSIX_PUBLISHER_DISPLAY: ${{ vars.MSIX_PUBLISHER_DISPLAY }}
+        run: ./build/windows/make-msix.ps1
+
+      - name: Keep the Store package (not attached to the release)
+        if: matrix.target == 'win' && hashFiles('dist-store/*.msix') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: store-msix
+          path: dist-store/*.msix
+
       - name: Linux AppImage and deb
         if: matrix.target == 'linux'
         run: |
@@ -90,6 +106,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
+          pattern: cesim-*
           path: dist
           merge-multiple: true
       - name: Version

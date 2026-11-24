@@ -1,0 +1,41 @@
+name: Microsoft Store package
+
+on:
+  workflow_dispatch:
+    inputs:
+      test:
+        description: 'Test build with placeholder identity (the package cannot be uploaded)'
+        type: boolean
+        default: false
+
+env:
+  ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+
+jobs:
+  msix:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install --no-audit --no-fund
+      - name: Version
+        shell: bash
+        run: echo "VER=$(node -p "require('./app/package.json').version")" >> "$GITHUB_ENV"
+      - name: Pack the app
+        run: npm run pack:win
+      - name: Build the .msix
+        shell: pwsh
+        env:
+          MSIX_NAME: ${{ inputs.test && 'Test.CEsimStudio' || vars.MSIX_NAME }}
+          MSIX_PUBLISHER: ${{ inputs.test && 'CN=00000000-0000-0000-0000-000000000000' || vars.MSIX_PUBLISHER }}
+          MSIX_PUBLISHER_DISPLAY: ${{ inputs.test && 'Test publisher' || vars.MSIX_PUBLISHER_DISPLAY }}
+        run: |
+          if (-not $env:MSIX_NAME) { throw 'Set the repository variables MSIX_NAME, MSIX_PUBLISHER and MSIX_PUBLISHER_DISPLAY (Settings > Secrets and variables > Actions > Variables) from Partner Center > Product identity.' }
+          ./build/windows/make-msix.ps1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: store-msix
+          path: dist-store/*.msix
+          if-no-files-found: error
