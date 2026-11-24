@@ -121,8 +121,8 @@ const template = [
   { label: 'View', submenu: [{ role: 'reload' }, { role: 'togglefullscreen' }, { type: 'separator' }, { role: 'resetZoom' }, { role: 'zoomIn' }, { role: 'zoomOut' }, { type: 'separator' }, { role: 'toggleDevTools' }] },
   { role: 'windowMenu' }
 ];
-if (!isMac) template.push({ label: 'Help', submenu: [{ label: 'About CEsim Studio', click: () => dialog.showMessageBox({ type: 'info', title: 'CEsim Studio', message: 'CEsim Studio', detail: 'Version 1.38.0\nBY. YOUSEF A.ALGHAMDI' }) }] });
-app.setAboutPanelOptions({ applicationName: 'CEsim Studio', applicationVersion: '1.38.0', credits: 'BY. YOUSEF A.ALGHAMDI' });
+if (!isMac) template.push({ label: 'Help', submenu: [{ label: 'About CEsim Studio', click: () => dialog.showMessageBox({ type: 'info', title: 'CEsim Studio', message: 'CEsim Studio', detail: 'Version 1.39.0\nBY. YOUSEF A.ALGHAMDI' }) }] });
+app.setAboutPanelOptions({ applicationName: 'CEsim Studio', applicationVersion: '1.39.0', credits: 'BY. YOUSEF A.ALGHAMDI' });
 app.whenReady().then(() => { protocol.handle('cesim', req => { const u = new URL(req.url); const rel = decodeURIComponent(u.pathname).replace(/^\/+/, ''); const fp = path.normalize(path.join(__dirname, rel)); if (!fp.startsWith(__dirname + path.sep) || !fs.existsSync(fp)) return new Response('not found', { status: 404 }); const type = fp.endsWith('.wasm') ? 'application/wasm' : fp.endsWith('.js') ? 'text/javascript' : 'application/octet-stream'; return new Response(fs.readFileSync(fp), { headers: { 'content-type': type, 'access-control-allow-origin': '*' } }); }); });
 app.whenReady().then(() => { Menu.setApplicationMenu(Menu.buildFromTemplate(template)); createStudio(); pendingPaths.splice(0).forEach(openPath); app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createStudio(); }); });
 app.on('window-all-closed', () => { if (!isMac) app.quit(); });

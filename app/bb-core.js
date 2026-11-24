@@ -136,9 +136,13 @@ const LIB={
  ultrasonic:{name:'Ultrasonic distance sensor HC-SR04',legs:[[0,0],[1,0],[2,0],[3,0]],props:{cm:50},pins:['VCC','Trig','Echo','GND'],offboard:true,module:true},
  tempsensor:{name:'Temperature sensor (LM35 or TMP36)',legs:[[0,0],[1,0],[2,0]],props:{temp:25,model:'LM35'},pins:['+Vs','Vout','GND']},
  sht31:{name:'Temperature and humidity sensor SHT31-D (I2C)',legs:[[0,0],[1,0],[2,0],[3,0]],props:{temp:25,hum:50},pins:['VIN','GND','SCL','SDA'],offboard:true,module:true,i2c:true},
- mlx90640:{name:'Thermal camera MLX90640 (32×24, I2C)',legs:[[0,0],[1,0],[2,0],[3,0]],props:{amb:24,obj:36,ox:0.5,oy:0.5,size:0.3},pins:['VIN','GND','SCL','SDA'],offboard:true,module:true,i2c:true},
+ mlx90640:{name:'Thermal camera MLX90640-ESF-BAB (32×24, 110°, I2C)',legs:[[0,0],[1,0],[2,0],[3,0]],props:{amb:24,obj:36,ox:0.5,oy:0.5,size:0.3,fov:'BAB'},pins:['VIN','GND','SCL','SDA'],offboard:true,module:true,i2c:true},
  lidar:{name:'LiDAR distance sensor VL53L0X (I2C)',legs:[[0,0],[1,0],[2,0],[3,0]],props:{mm:500,mount:'desk'},pins:['VCC','GND','SCL','SDA'],offboard:true,module:true,i2c:true},
  camera:{name:'RGB camera OV2640 (18-pin module)',legs:Array.from({length:18},(_,i)=>[i,0]),props:{color:'red',ox:0.5,oy:0.5,size:0.25,light:0.8},pins:['3V3','GND','SIOC','SIOD','VSYNC','HREF','PCLK','XCLK','D7','D6','D5','D4','D3','D2','D1','D0','RESET','PWDN'],offboard:true,module:true,i2c:true},
+ rplidar:{name:'LiDAR scanner SLAMTEC RPLIDAR S2 (360°, UART)',legs:[[0,0],[1,0],[2,0],[3,0]],props:{w:6,d:4,px:0.5,py:0.5,obst:1.5,ang:40,size:0.4},pins:['5V','GND','TX','RX'],offboard:true,module:true},
+ inmp441:{name:'I2S MEMS microphone INMP441',legs:[[0,0],[1,0],[2,0],[3,0],[4,0],[5,0]],props:{sound:'voice',level:0.5,freq:440},pins:['VDD','GND','SD','WS','SCK','L/R'],offboard:true,module:true},
+ picam3:{name:'Raspberry Pi Camera Module 3 (12 MP, autofocus, CSI ribbon)',legs:[],props:{color:'red',ox:0.5,oy:0.5,size:0.25,light:0.8,dist:0.5,wide:false},pins:[],offboard:true,module:true},
+ iis3dwb:{name:'Vibration sensor IIS3DWB (3-axis, SPI, 26.7 kHz)',legs:[[0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0]],props:{src:'motor',freq:50,amp:0.5,axis:'z'},pins:['VDD','GND','CS','SCK','SDI','SDO','INT1','INT2'],offboard:true,module:true},
  piezo:{name:'Piezoelectric disc (knock sensor)',legs:[[0,0],[2,0]],props:{strength:0.6},pins:['+ (red)','− (black)']},
  vibration:{name:'Vibration sensor module (SW-420)',legs:[[0,0],[1,0],[2,0]],props:{on:false},pins:['VCC','GND','DO']},
  mic:{name:'Microphone module (MAX4466)',legs:[[0,0],[1,0],[2,0]],props:{sound:'tone',level:0.5,freq:440},pins:['OUT','GND','VCC']},
@@ -196,7 +200,7 @@ function lipoV(p,st){const n=+p.props.cells||3,cap=+p.props.mah||1500;const soc=
 function pinAtNode(sim,node){for(const m of sim.els)if(m.mcu)for(const[g,li]of m.mcu.gpio)if(m.nodes[li]===node)return{e:m,g};return null}
 /* ---------- what the sensors see ---------- */
 /* MLX90640: 24 rows x 32 columns of temperatures, a warm object on a background */
-function thermFrame(pr,out){const amb=+pr.amb,obj=+pr.obj,cx=(+pr.ox)*31,cy=(+pr.oy)*23,r=Math.max(0.6,(+pr.size)*16);out=out||new Array(768);
+function thermFrame(pr,out){const amb=+pr.amb,obj=+pr.obj,cx=(+pr.ox)*31,cy=(+pr.oy)*23,r=Math.max(0.6,(+pr.size)*16*(pr.fov==='BAA'?2:1));out=out||new Array(768);
  for(let y=0;y<24;y++)for(let x=0;x<32;x++){const d=Math.hypot(x-cx,(y-cy)*1.05)/r;const k=Math.exp(-Math.pow(d,4));out[y*32+x]=amb+(obj-amb)*k+(Math.random()-0.5)*0.25+(y/23-0.5)*0.4}return out}
 /* OV2640 picture: a coloured ball in front of a wall and a table */
 const CAM_COL={red:[220,40,35],green:[40,170,70],blue:[40,90,220],yellow:[240,200,40],orange:[245,130,30],purple:[140,60,190],white:[240,240,240],black:[25,25,25]};
@@ -206,6 +210,16 @@ function camPixel(pr,x,y,W,H){const u=x/(W-1),v=y/(H-1);const lt=0.15+0.85*Math.
  if(d<r){const b=CAM_COL[pr.color]||CAM_COL.red;const sh=0.65+0.35*Math.max(0,1-Math.hypot(dx+r*0.35,dy+r*0.35)/(r*1.4));c=b.map(q=>q*sh)}else if(d<r*1.25&&v>(+pr.oy)){c=c.map(q=>q*(0.7+0.3*(d-r)/(r*0.25)))}
  return c.map(q=>Math.max(0,Math.min(255,Math.round(q*lt+(Math.random()-0.5)*6))))}
 /* microphone waveform, -1 to 1 */
+/* RPLIDAR S2: a rectangular room (w x d metres) with the lidar at (px, py) and one round post, range 0.05 to 30 m */
+function lidarRange(pr,deg){const W=Math.max(0.5,+pr.w||6),D=Math.max(0.5,+pr.d||4),x0=Math.max(0.02,Math.min(0.98,+pr.px))*W,y0=Math.max(0.02,Math.min(0.98,+pr.py))*D;const a=deg*Math.PI/180,dx=Math.sin(a),dy=-Math.cos(a);
+ let t=Infinity;if(dx>1e-9)t=Math.min(t,(W-x0)/dx);if(dx<-1e-9)t=Math.min(t,-x0/dx);if(dy>1e-9)t=Math.min(t,(D-y0)/dy);if(dy<-1e-9)t=Math.min(t,-y0/dy);
+ const ob=+pr.obst||0;if(ob>0){const oa=(+pr.ang||0)*Math.PI/180,ox=x0+Math.sin(oa)*ob,oy=y0-Math.cos(oa)*ob,r=Math.max(0.05,+pr.size||0.4)/2;const fx=x0-ox,fy=y0-oy;const b=fx*dx+fy*dy,c=fx*fx+fy*fy-r*r,h=b*b-c;if(h>=0){const t1=-b-Math.sqrt(h);if(t1>0)t=Math.min(t,t1)}}
+ if(!isFinite(t)||t>30)return{d:0,q:0};const mm=t*1000*(1+(Math.random()-0.5)*0.01);return{d:Math.round(mm*4)/4,q:Math.max(10,Math.min(47,Math.round(47-t*1.2)))}}
+/* IIS3DWB: gravity on z plus the vibration of a machine on one axis (in g) */
+function vibAcc(pr,k,t){const g=[0,0,1][k];const ax={x:0,y:1,z:2}[pr.axis]??2;const f=Math.max(1,+pr.freq||50),A=Math.max(0,+pr.amp||0);let v=0;
+ switch(pr.src){case'still':v=0;break;case'tone':v=A*Math.sin(2*Math.PI*f*t);break;case'motor':v=A*(Math.sin(2*Math.PI*f*t)+0.35*Math.sin(4*Math.PI*f*t+0.7)+0.15*Math.sin(6*Math.PI*f*t+1.3));break;
+  case'unbalance':v=A*1.6*Math.sin(2*Math.PI*f*t);break;case'bearing':{const bp=1/(f*3.6),ph=t%bp;v=A*(0.6*Math.sin(2*Math.PI*f*t)+2.2*Math.exp(-ph/0.0004)*Math.sin(2*Math.PI*4200*t))};break}
+ return g+(k===ax?v:v*0.15*(k===2?0.5:1))+(Math.random()-0.5)*0.004}
 function micWave(pr,t){const f=Math.max(20,+pr.freq||440);switch(pr.sound){
  case'tone':return Math.sin(2*Math.PI*f*t);
  case'voice':{const syl=Math.max(0,Math.sin(2*Math.PI*2.6*t))*(t%2<1.4?1:0.05);return syl*(0.6*Math.sin(2*Math.PI*170*t)+0.3*Math.sin(2*Math.PI*340*t+1)+0.15*Math.sin(2*Math.PI*690*t+2))}
@@ -294,6 +308,7 @@ class Sim{
     case'oled':cond(nd[1],nd[0],1/1000);cond(nd[2],nd[0],1e-7);cond(nd[3],nd[0],1e-7);break;
     case'ultrasonic':cond(nd[0],nd[3],1/350);cond(nd[1],nd[3],1e-6);{const on=e.echoHigh&&x[nd[0]]-x[nd[3]]>4;const g=1/100;cond(nd[2],nd[3],on?g:1e-7);if(on)cur(nd[3],nd[2],g*5)}break;
     case'tempsensor':{const V=x[nd[0]]-x[nd[2]];cond(nd[0],nd[2],1/50000);const lm=p.props.model!=='TMP36';const ok=lm?V>3.8:V>2.6;const t=+p.props.temp||0;const vo=ok?Math.max(0,lm?t*0.01:0.5+t*0.01):0;const g=1/100;cond(nd[1],nd[2],g);cur(nd[2],nd[1],g*vo);break}
+    case'rplidar':case'inmp441':case'iis3dwb':cond(nd[0],nd[1],p.type==='rplidar'?1/25:1/3000);for(let k=2;k<nd.length;k++)cond(nd[k],nd[1],1e-7);break;
     case'sht31':case'mlx90640':case'lidar':case'camera':cond(nd[0],nd[1],1/(p.type==='mlx90640'?1000:p.type==='camera'?400:4000));for(let k=2;k<nd.length;k++)cond(nd[k],nd[1],1e-7);break;
     case'piezo':{const g=1/20000;cond(nd[0],nd[1],g);let vo=0;if(st.tap!=null&&!this.dcMode){const k=this.t-st.tap;if(k>=0&&k<0.25)vo=(+p.props.strength||0.5)*9*Math.exp(-k/0.012)*Math.cos(2*Math.PI*330*k)}st.vo=vo;if(vo)cur(nd[1],nd[0],g*vo);break}
     case'vibration':{const on=!!p.props.on&&(Math.sin(this.t*2*Math.PI*35)>-0.6);cond(nd[2],on?nd[0]:nd[1],1/100);cond(nd[2],on?nd[1]:nd[0],1e-9);cond(nd[0],nd[1],1/8000);break}
@@ -379,6 +394,14 @@ class Sim{
    if(e.type==='esc'){e.sig=pinAt(nd[2]);e.fcSig=null;if(!e.sig)for(const f of this.els)if(f.type==='fc'){const k=f.nodes.indexOf(nd[2]);if(k>=2&&k<=9)e.fcSig={f,k:k-2}}e.motor=null;const ph=[nd[4],nd[5],nd[6]];for(const m of this.els){if(m.type!=='bldc')continue;const mn=m.nodes;if(ph.every(k=>mn.includes(k))&&new Set(mn).size===3){e.motor=m;const perm=ph.map(k=>mn.indexOf(k));const inv=(perm[0]>perm[1])+(perm[0]>perm[2])+(perm[1]>perm[2]);m.rev=inv%2===1;m.escE=e}}
     if(!e.sig&&!e.fcSig)this.addWarn(e.p.id,'nosig','Wire the ESC Signal to a flight controller motor pad (M1 to M8) or a board pin, and Signal GND to GND')}
    if(e.type==='fc'){e.inp=[10,11,12,13,14].map(k=>pinAt(nd[k]));e.out=new Array(8).fill(1000);e.armed=false;e.I=[0,0,0]}
+   if(e.type==='rplidar'){const tx=pinAt(nd[2]),rx=pinAt(nd[3]);const b=tx||rx;const self=this,pr=e.p.props;if(!tx)this.addWarn(e.p.id,'uart','Wire the lidar TX to a board RX pin and the lidar RX to a board TX pin');else if(['uno','nano','promini','nanoevery'].includes(tx.e.type))this.addWarn(e.p.id,'uart',`The ${tx.e.mcu.name} has one serial port and it goes to USB. The RPLIDAR S2 needs its own port at 1 000 000 baud: use a board with Serial1 (Mega, Leonardo, ESP32, Pico)`);else if(tx.e.mcu.lang==='python'&&tx.g!==15)this.addWarn(e.p.id,'uart','On the Raspberry Pi the lidar TX goes to GPIO 15 (RXD, pin 10) and RX to GPIO 14 (TXD, pin 8)');
+    if(b&&b.e.rt){const pt={type:'rplidar',src:e,props:pr,used:false,ok:()=>self.x&&self.x[nd[0]]-self.x[nd[1]]>4.3,lidar:a=>lidarRange(pr,a)};(b.e.rt.parts=b.e.rt.parts||[]).push(pt);e.dev=pt}}
+   if(e.type==='inmp441'){const q=[2,3,4].map(k=>pinAt(nd[k]));const b=q.find(Boolean);const self=this,pr=e.p.props;if(q.some(x=>!x))this.addWarn(e.p.id,'i2s','Wire SD, WS and SCK of the microphone to board pins, VDD to 3.3 V and L/R to GND (left channel)');
+    if(b&&b.e.rt){const g=x=>x&&x.e===b.e?x.g:-1;const pt={type:'inmp441',src:e,props:pr,used:false,pins:{sd:g(q[0]),ws:g(q[1]),sck:g(q[2])},ok:()=>self.x&&self.x[nd[0]]-self.x[nd[1]]>1.6,sample:t=>Math.max(-1,Math.min(1,(+pr.level||0)*0.3*(pr.sound==='quiet'?0:micWave(pr,t))+(Math.random()-0.5)*0.0006))};(b.e.rt.parts=b.e.rt.parts||[]).push(pt);e.dev=pt}}
+   if(e.type==='iis3dwb'){const q=[2,3,4,5].map(k=>pinAt(nd[k]));const b=q.find(Boolean);const self=this,pr=e.p.props;if(q.some(x=>!x))this.addWarn(e.p.id,'spi','Wire CS, SCK, SDI (MOSI) and SDO (MISO) of the IIS3DWB to board pins and VDD to 3.3 V');
+    if(b&&b.e.rt){const g=x=>x&&x.e===b.e?x.g:-1;const pt={type:'iis3dwb',src:e,props:pr,used:false,pins:{cs:g(q[0]),sck:g(q[1]),sdi:g(q[2]),sdo:g(q[3])},ok:()=>self.x&&self.x[nd[0]]-self.x[nd[1]]>2.0&&self.x[nd[0]]-self.x[nd[1]]<3.7,acc:(k,t)=>vibAcc(pr,k,t)};(b.e.rt.parts=b.e.rt.parts||[]).push(pt);e.dev=pt}}
+   if(e.type==='picam3'){const pi=mcus.find(m=>m.mcu.lang==='python');const pr=e.p.props;if(!pi)this.addWarn(e.p.id,'csi','The Camera Module 3 plugs into the camera connector (CSI) of a Raspberry Pi with its ribbon cable: add a Raspberry Pi board');
+    else if(pi.rt){const self=this;const pt={type:'picam3',src:e,props:pr,used:false,ok:()=>!!(self.state[pi.p.id]&&self.x&&self.x[pi.nodes[pi.mcu.gnd[0]]]!=null),pix:(x,y,W,H,blur)=>{if(!blur)return camPixel(pr,x,y,W,H);let r=0,g0=0,b0=0,n=0;for(const[dx,dy]of[[0,0],[-1,0],[1,0],[0,-1],[0,1],[-1,-1],[1,1],[-1,1],[1,-1]]){const c=camPixel(pr,Math.max(0,Math.min(W-1,x+dx*blur)),Math.max(0,Math.min(H-1,y+dy*blur)),W,H);r+=c[0];g0+=c[1];b0+=c[2];n++}return[r/n,g0/n,b0/n]}};(pi.rt.parts=pi.rt.parts||[]).push(pt);e.dev=pt}}
    if(e.type==='ultrasonic'){const tr=pinAt(nd[1]),ec=pinAt(nd[2]);if(tr&&ec&&tr.e===ec.e&&tr.e.rt){const pt={type:'ultrasonic',trig:tr.g,echo:ec.g,value:+e.p.props.cm||50,src:e};tr.e.rt.parts.push(pt);e.us=pt}}}}
  /* ESC: reads servo pulses (1000 to 2000 µs), arms after a low signal, spins its brushless motor */
  escStep(e){const x=this.x,nd=e.nodes,dt=this.dt,st=this.state[e.p.id];const V=x[nd[0]]-x[nd[1]];st.vbat=V;let us=null;
@@ -489,6 +512,6 @@ function toPcb(doc){const con=connectivity(doc);const par=new Map();const f=k=>{
   let value='';if(p.type==='resistor')value=fmtOhm(p.props.ohms).replace(' ','');else if(p.type==='capacitor'||p.type==='ecap')value=fmtF(p.props.farads).replace(' ','');else if(p.type==='led')value='LED '+p.props.color;else if(p.type==='pled')value='Power LED '+p.props.color;else if(p.type==='ldr')value='LDR';else if(p.type==='pot')value=fmtOhm(p.props.ohms).replace(' ','');else if(p.type==='battery'||p.type==='supply')value=p.props.volts+'V in';else if(LIB[p.type].ic)value='74LS'+LIB[p.type].ic.slice(2);else if(p.type==='ne555')value='NE555';else if(p.type==='npn')value='2N2222';else if(p.type==='switch')value='slide switch';else if(p.type==='seg7')value='7-seg CC';else if(p.type==='diode')value='1N4007';
   if(pe)value=pe.name.replace(/,.*$/,'');comps.push({ref,fp:m[0],value,x:0,y:0,rot:0});const legs=con.partLegs.get(p.id);legs.forEach((l,i)=>{if((use.get(root(l))||0)<2)return;nets[ref+'.'+(m[1]?m[1][i]:String(i+1))]=nm(l)})}
  return{comps,nets,skipped}}
-const api={BBX,PLIB,xFrac,MCU,BOARD_KEYS,boardSource,ESP32_BLINK,PICO_BLINK,UNO_PINS,UNO_BLINK,P,COLS,ROWS,ROWY,RAILS,RAIL_N,colX,railX,HOLES,holeXY,key,LIB,GATES,gatePins,LED_RGB,LED_VF,legsOf,newPart,connectivity,Sim,fmtOhm,fmtF,parseValue,bands,toNetlist,toPcb,stripLabel,engNum,ldrOhms,AVR8,droneMass,thermFrame,camPixel,CAM_COL,micWave,DCM,BLDC,FRAMES,lipoV};
+const api={lidarRange,vibAcc,BBX,PLIB,xFrac,MCU,BOARD_KEYS,boardSource,ESP32_BLINK,PICO_BLINK,UNO_PINS,UNO_BLINK,P,COLS,ROWS,ROWY,RAILS,RAIL_N,colX,railX,HOLES,holeXY,key,LIB,GATES,gatePins,LED_RGB,LED_VF,legsOf,newPart,connectivity,Sim,fmtOhm,fmtF,parseValue,bands,toNetlist,toPcb,stripLabel,engNum,ldrOhms,AVR8,droneMass,thermFrame,camPixel,CAM_COL,micWave,DCM,BLDC,FRAMES,lipoV};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;else root.BB=api;
 })(typeof window!=='undefined'?window:globalThis);

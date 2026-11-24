@@ -151,7 +151,11 @@ const BOARDS = {
   'LCD 16x2 module': { w: 80, d: 36, holes: [[2.5, 2.5], [77.5, 2.5], [2.5, 33.5], [77.5, 33.5]], hr: 1.5, note: 'Holes Ø3 at 2.5 mm from each corner' },
   'Breadboard 400': { w: 82.5, d: 55, note: '400 tie points' },
   'ESP32-S3 DevKitC-1': { w: 62.74, d: 25.4, g: 'Boards', note: '62.74 × 25.4 mm, two 22-pin headers 22.86 mm apart, two USB ports on the short edge' },
-  'MLX90640 thermal camera': { w: 25.7, d: 17.7, g: 'Sensors', note: 'Breakout 25.7 × 17.7 mm, TO39 sensor can on top (55° version, 16 mm tall)' },
+  'MLX90640 thermal camera': { w: 25.7, d: 17.7, g: 'Sensors', note: 'MLX90640-ESF-BAB (110°) on a 25.7 × 17.7 mm breakout, TO39 sensor can on top' },
+  'RPLIDAR S2 lidar scanner': { w: 77, d: 77, g: 'Sensors', note: 'SLAMTEC RPLIDAR S2, 77 × 77 × 38.85 mm, 4 M2.5 holes in the base' },
+  'INMP441 I2S microphone': { w: 14, d: 14, g: 'Sensors', note: 'Round breakout Ø14 mm, 6-pin header, mic port on top' },
+  'IIS3DWB vibration sensor': { w: 20, d: 15, g: 'Sensors', note: 'IIS3DWB (LGA-14, 2.5 × 3 × 0.83 mm) on a 20 × 15 mm breakout, 8-pin header' },
+  'Raspberry Pi Camera Module 3': { w: 25, d: 24, g: 'Sensors', note: '25 × 24 × 11.5 mm, IMX708 with autofocus lens, 4 M2 holes, 15-pin CSI ribbon' },
   'SHT31-D temperature and humidity': { w: 17.78, d: 12.7, g: 'Sensors', note: 'Breakout 17.78 × 12.7 mm, sensor 2.5 × 2.5 mm' },
   'VL53L0X LiDAR (GY-530)': { w: 25, d: 10.7, g: 'Sensors', note: 'Module 25 × 10.7 mm, sensor 4.4 × 2.4 mm' },
   'OV2640 camera module': { w: 32, d: 32, g: 'Sensors', note: 'Board 32 × 32 mm, M12 lens holder 14 × 14 mm' },
@@ -270,6 +274,17 @@ function build3dExtra(model, G, box, cyl, holes, header, M) {
       box(-1.2, 3.2, 1.6, 4.6, 10.8, 4.4, '#c9ccd1'); box(-1.2, 14.6, 1.6, 4.6, 22.2, 4.4, '#c9ccd1'); box(8, 3, 1.6, 11.5, 6.5, 3.6, '#ddd'); box(8, 18.9, 1.6, 11.5, 22.4, 3.6, '#ddd');
       box(20, 11, 1.6, 22, 13, 2.4, '#f2f2f2'); box(14, 9, 1.6, 19, 14, 2.6, '#1d1d1d');
       header(3.2, 1.27, 22, 2.5); header(3.2, 24.13, 22, 2.5); box(3.2, 0.6, -6, 59.1, 1.9, 0, '#d4af37'); box(3.2, 23.5, -6, 59.1, 24.8, 0, '#d4af37'); break;
+    case 'RPLIDAR S2 lidar scanner': {
+      box(0, 0, 0, 77, 77, 3, '#2a2d33'); cyl(38.5, 38.5, 3, 18, 37, '#1b1d22'); cyl(38.5, 38.5, 18, 20, 36, '#3a3d44'); cyl(38.5, 38.5, 20, 35, 34, '#111318'); cyl(38.5, 38.5, 35, 38.85, 30, '#22252b');
+      box(30, 2.5, 22, 47, 4.5, 32, '#050608'); for (const [x, y] of [[5, 5], [72, 5], [5, 72], [72, 72]]) cyl(x, y, 2.9, 3.1, 1.4, '#111');
+      break; }
+    case 'INMP441 I2S microphone':
+      cyl(7, 7, 0, 1.6, 7, '#3a2a86'); box(4.5, 6, 1.6, 9.5, 9.5, 2.6, '#c9ccd1'); cyl(7, 7.75, 2.6, 2.65, 0.4, '#222'); header(-0.6, 1.27, 6, 2.5); break;
+    case 'IIS3DWB vibration sensor':
+      pcbM(20, 15, '#1f3b6e'); box(8.5, 7, 1.6, 11.5, 9.5, 2.43, '#2b2d31'); holes([[2.5, 12.5], [17.5, 12.5]], 1.2, 1.6); header(0, 1.27, 8, 2.5); break;
+    case 'Raspberry Pi Camera Module 3':
+      pcbM(25, 24, '#1d6b2e', 1); holes([[2, 2], [23, 2], [2, 14.5], [23, 14.5]], 1.1, 1); box(7, 8, 1, 18, 19, 5, '#151515'); cyl(12.5, 13.5, 5, 9.5, 4.2, '#222'); cyl(12.5, 13.5, 9.5, 11.5, 3.2, '#2b2b2b'); cyl(12.5, 13.5, 11.5, 11.55, 2.2, '#243d6b');
+      box(4, -1, 1, 21, 4, 3.2, '#e9e1c8'); box(5.5, -40, 1.2, 19.5, -1, 1.35, '#d9cfae'); break;
     case 'MLX90640 thermal camera':
       pcbM(25.7, 17.7, '#1d1f24'); holes([[2.5, 2.5], [23.2, 2.5], [2.5, 15.2], [23.2, 15.2]], 1.25, 1.6); cyl(12.85, 9.5, 1.6, 8.2, 4.6, '#c9ccd1'); cyl(12.85, 9.5, 8.2, 8.5, 2.2, '#222'); header(6.5, 1.3, 5, 2.5); box(0.5, 6, 1.6, 4, 11.5, 3, '#eee'); box(21.7, 6, 1.6, 25.2, 11.5, 3, '#eee'); break;
     case 'SHT31-D temperature and humidity':

@@ -6,6 +6,18 @@
   const tw = (s, sz = 12) => String(s || '').length * sz * 0.56;
   const lines = s => String(s || '').split('\n').map(x => x.replace(/\s+$/, '')).filter(x => x.trim() !== '');
   const C = { line: '#1f2937', fill: '#ffffff', head: '#eef3fa', note: '#fff8c5', dim: '#64748b', accent: '#185fa5', sel: '#2563eb' };
+  /* drawing styles: colour (tinted by kind, rounded, soft shadow), classic and print (black on white) */
+  const STYLES = {
+    colour: { name: 'Colour', line: '#334155', head: '#e6eef8', note: '#fff6c9', r: 6, shadow: true,
+      heads: { class: '#dbe8fb', abstract: '#e3e3fb', interface: '#d5f2e8', enum: '#fdf0cd', datatype: '#efe4fb', object: '#fbe3ee', stereotype: '#ece6fb', metaclass: '#e5e9ef', entity: '#dbe8fb', weak: '#efe4fb', lifeline: '#dbe8fb' },
+      fills: { usecase: '#f3f8ff', action: '#f1faf4', state: '#f2f8fe', objnode: '#fbfcfe', component: '#f3f8ff', artifact: '#fdfbf3', part: '#f3f8ff', interaction: '#ffffff', iref: '#f7f9fc', task: '#ffffff', subprocess: '#ffffff', extent: '#f7f9fc', sendsig: '#f1faf4', recvsig: '#f1faf4', database: '#f3f8ff' } },
+    classic: { name: 'Classic', line: '#1f2937', head: '#eef3fa', note: '#fff8c5', r: 0, shadow: false, heads: {}, fills: {} },
+    print: { name: 'Print', line: '#000000', head: '#ffffff', note: '#ffffff', r: 0, shadow: false, heads: {}, fills: {} },
+  };
+  let TH = STYLES.colour, ROUND = 6;
+  function useStyle(dg) { TH = STYLES[dg.style] || STYLES.colour; ROUND = TH.r; C.line = TH.line; C.head = TH.head; C.note = TH.note; C.fill = '#ffffff'; C.dim = dg.style === 'print' ? '#333' : '#64748b'; }
+  const DEFS = '<defs><filter id="sdSh" x="-10%" y="-10%" width="125%" height="135%"><feDropShadow dx="0" dy="1.5" stdDeviation="2" flood-color="#0f172a" flood-opacity=".14"/></filter></defs>';
+  const headPath = (x, y, w, h, r, f) => r ? `<path d="M${x + 0.7} ${y + h}V${y + r}Q${x + 0.7} ${y + 0.7} ${x + r} ${y + 0.7}H${x + w - r}Q${x + w - 0.7} ${y + 0.7} ${x + w - 0.7} ${y + r}V${y + h}Z" fill="${f}"/>` : `<rect x="${x + 0.7}" y="${y + 0.7}" width="${w - 1.4}" height="${h - 0.7}" fill="${f}"/>`;
   const T = (x, y, s, o = {}) => `<text x="${x}" y="${y}" font-size="${o.sz || 12}"${o.b ? ' font-weight="600"' : ''}${o.i ? ' font-style="italic"' : ''}${o.u ? ' text-decoration="underline"' : ''} text-anchor="${o.a || 'middle'}" fill="${o.c || C.line}"${o.mono ? ' font-family="IBM Plex Mono,monospace"' : ''}>${esc(s)}</text>`;
   const R = (x, y, w, h, o = {}) => `<rect x="${x}" y="${y}" width="${w}" height="${h}"${o.r ? ` rx="${o.r}"` : ''} fill="${o.f || C.fill}" stroke="${o.s || C.line}" stroke-width="${o.sw || 1.3}"${o.d ? ` stroke-dasharray="${o.d}"` : ''}/>`;
   const Lp = (x1, y1, x2, y2, o = {}) => `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${o.s || C.line}" stroke-width="${o.sw || 1.3}"${o.d ? ` stroke-dasharray="${o.d}"` : ''}/>`;
@@ -55,9 +67,9 @@
     return [Math.ceil(w / 10) * 10, Math.ceil(h / 2) * 2];
   }
   function classDraw(n, b, extra, opt = {}) {
-    let s = R(b.x, b.y, b.w, b.h, { f: opt.fill || C.fill }); let y = b.y + 6;
+    let s = R(b.x, b.y, b.w, b.h, { f: opt.fill || C.fill, r: ROUND }); let y = b.y + 6;
     const head = [n.props.stereo ? '«' + n.props.stereo + '»' : null].concat(extra || []).filter(Boolean);
-    s += `<rect x="${b.x + 0.7}" y="${b.y + 0.7}" width="${b.w - 1.4}" height="${10 + (head.length + 1) * 16 + 4 - 1.4}" fill="${opt.head || C.head}"/>`;
+    s += headPath(b.x, b.y, b.w, 10 + (head.length + 1) * 16 + 4 - 0.7, ROUND, opt.head || C.head);
     for (const t of head) { y += 16; s += T(b.x + b.w / 2, y - 3, t, { sz: 11 }); }
     y += 16; s += T(b.x + b.w / 2, y - 2, n.name, { sz: 13, b: 1, i: !!(n.props.abstract || opt.italic), u: !!opt.under }); y += 8;
     const sec = [n.props.values != null ? lines(n.props.values).map(t => ({ t })) : null, n.props.attrs != null ? members(n.props.attrs) : null, n.props.ops != null ? members(n.props.ops) : null].filter(x => x !== null);
@@ -273,7 +285,7 @@
       let y = top + 4; for (const c of keys) { y += 18; s += T(b.x + 10, y - 5, colText(c, nt) + (c.fk ? ' (FK)' : ''), { a: 'start' }); }
       y += 4; s += Lp(b.x, y, b.x + b.w, y); for (const c of rest) { y += 18; s += T(b.x + 10, y - 5, colText(c, nt) + (c.fk ? ' (FK)' : ''), { a: 'start' }); } return s;
     }
-    let s = R(b.x, b.y, b.w, b.h, { f: '#fff', r: nt === 'uml' ? 0 : 3 }) + `<rect x="${b.x + 0.7}" y="${b.y + 0.7}" width="${b.w - 1.4}" height="28" fill="${n.props.weak ? '#f3ecf9' : C.head}"/>` + Lp(b.x, b.y + 29, b.x + b.w, b.y + 29);
+    const er = nt === 'uml' ? Math.min(ROUND, 3) : Math.max(3, ROUND); let s = R(b.x, b.y, b.w, b.h, { f: '#fff', r: er }) + headPath(b.x, b.y, b.w, 28.3, er, n.props.weak ? (TH.heads.weak || '#f3ecf9') : C.head) + Lp(b.x, b.y + 29, b.x + b.w, b.y + 29);
     if (nt === 'uml') s += T(b.x + b.w / 2, b.y + 19, n.name, { b: 1, sz: 12.5 }); else s += T(b.x + b.w / 2, b.y + 19, n.name, { b: 1, sz: 12.5 });
     const tx0 = cols.some(c => c.pk && c.fk) ? 46 : 34; let y = b.y + 33; for (const c of cols) { y += 18; const tag = [c.pk ? 'PK' : '', c.fk ? 'FK' : ''].filter(Boolean).join(','); s += T(b.x + 8, y - 5, tag, { a: 'start', sz: 9.5, b: 1, c: c.pk ? '#9a6b00' : '#185fa5' }); s += T(b.x + tx0, y - 5, c.name, { a: 'start', u: nt === 'uml' ? false : !!c.pk, b: !!c.pk && nt === 'uml' }); if (c.type) s += T(b.x + b.w - 8, y - 5, c.type + (c.nn && !c.pk ? '' : ''), { a: 'end', sz: 11, c: C.dim }); }
     return s;
@@ -288,18 +300,19 @@
   /* ---------------- render ---------------- */
   function render(dg, opt = {}) {
     const t = TYPES[dg.type]; if (t.special === 'sequence') return renderSequence(dg, opt); if (t.special === 'timing') return renderTiming(dg, opt);
-    const sel = opt.sel || new Set(); const B = {}; for (const n of dg.nodes) B[n.id] = box(n, dg);
-    const nt = dg.notation; let back = '', front = '', edges = ''; let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    useStyle(dg); const sel = opt.sel || new Set(); const B = {}; for (const n of dg.nodes) B[n.id] = box(n, dg);
+    const nt = dg.notation; let back = TH.shadow ? DEFS : '', front = '', edges = ''; let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
     const grow = (x, y) => { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); };
     const cont = dg.nodes.filter(n => NK[n.kind] && NK[n.kind].container).sort((a, b) => B[b.id].w * B[b.id].h - B[a.id].w * B[a.id].h);
     const ord = cont.concat(dg.nodes.filter(n => !(NK[n.kind] && NK[n.kind].container)));
     for (const n of ord) {
       const K = NK[n.kind] || NK.note; const b = B[n.id]; grow(b.x, b.y); grow(b.x + b.w, b.y + b.h + 16);
-      let s;
+      let s; C.fill = TH.fills[n.kind] || '#ffffff'; C.head = TH.heads[n.kind] || TH.head;
       if (n.kind === 'entity') { s = drawEntity(n, b, nt || 'crowsfoot'); if (nt === 'chen') { s += chenAttrs(n, b); grow(b.x - 110, b.y - 90); grow(b.x + b.w + 110, b.y + b.h); } }
       else if (dg.type === 'dfd' && ['extent', 'process', 'store'].includes(n.kind)) s = drawDfd(n, b, nt);
       else s = K.draw ? K.draw(n, b, dg) : R(b.x, b.y, b.w, b.h) + centered(n, b);
-      const on = sel.has(n.id); const g = `<g data-n="${n.id}" class="nd${on ? ' on' : ''}">${s}${on ? `<rect x="${b.x - 4}" y="${b.y - 4}" width="${b.w + 8}" height="${b.h + 8}" fill="none" stroke="${C.sel}" stroke-width="1.4" stroke-dasharray="4 3" rx="3"/>` + (K.container || K.resize ? `<rect data-rs="${n.id}" x="${b.x + b.w - 5}" y="${b.y + b.h - 5}" width="10" height="10" fill="${C.sel}" style="cursor:nwse-resize"/>` : '') : ''}</g>`;
+      C.fill = '#ffffff'; C.head = TH.head; const sh = TH.shadow && !K.container && !['initial', 'final', 'junction', 'forkbar', 'flowfinal', 'terminate', 'actor', 'decision', 'choice', 'annotation'].includes(n.kind) && !(n.kind === 'entity' && nt === 'chen');
+      const on = sel.has(n.id); const g = `<g data-n="${n.id}" class="nd${on ? ' on' : ''}"${sh ? ' filter="url(#sdSh)"' : ''}>${s}${on ? `<rect x="${b.x - 4}" y="${b.y - 4}" width="${b.w + 8}" height="${b.h + 8}" fill="none" stroke="${C.sel}" stroke-width="1.4" stroke-dasharray="4 3" rx="3"/>` + (K.container || K.resize ? `<rect data-rs="${n.id}" x="${b.x + b.w - 5}" y="${b.y + b.h - 5}" width="10" height="10" fill="${C.sel}" style="cursor:nwse-resize"/>` : '') : ''}</g>`;
       if (K.container) back += g; else front += g;
     }
     const PAR = {}; for (const e of dg.edges) { const key = [e.from, e.to].sort().join('|'); (PAR[key] = PAR[key] || []).push(e.id); }
@@ -362,7 +375,7 @@
     return s;
   }
   function renderSequence(dg, opt = {}) {
-    const sel = opt.sel || new Set(); const L = dg.nodes.filter(n => NK[n.kind] && NK[n.kind].seq).sort((a, b) => a.x - b.x); const B = {};
+    useStyle(dg); const sel = opt.sel || new Set(); const L = dg.nodes.filter(n => NK[n.kind] && NK[n.kind].seq).sort((a, b) => a.x - b.x); const B = {};
     for (const n of L) { const [w, h] = size(n, dg); B[n.id] = { x: n.x, y: 0, w, h }; n.y = 0; }
     const msgs = dg.edges.filter(e => B[e.from] && B[e.to]); const rows = msgs.length;
     const gap = new Array(rows + 1).fill(0); for (const f of dg.nodes.filter(n => n.kind === 'fragment')) { const a = (+f.props.first || 1) - 1, ea = +f.props.elseAt; if (a >= 0 && a < rows) gap[a] += 24; if (f.props.op === 'alt' && ea > a + 1 && ea <= rows) gap[ea - 1] += 24; if (+f.props.last >= 1 && +f.props.last < rows) gap[+f.props.last] += 12; }
@@ -416,7 +429,7 @@
   const tChanges = n => String(n.props.changes || '').split(',').map(s => s.trim()).filter(Boolean).map(s => { const [t, v] = s.split(':'); return [+t || 0, (v || '').trim()]; }).sort((a, b) => a[0] - b[0]);
   const timingW = n => 120 + (+n.props.tmax || 50) * TSC + 20; const timingH = n => Math.max(1, tStates(n).length) * 24 + 26;
   function renderTiming(dg, opt = {}) {
-    const sel = opt.sel || new Set(); let s = ''; const B = {}; let x1 = 400, y1 = 200; const rows = dg.nodes.filter(n => n.kind === 'tline').sort((a, b) => a.y - b.y);
+    useStyle(dg); const sel = opt.sel || new Set(); let s = ''; const B = {}; let x1 = 400, y1 = 200; const rows = dg.nodes.filter(n => n.kind === 'tline').sort((a, b) => a.y - b.y);
     let y = 0; for (const n of rows) { n.x = 0; n.y = y; const b = box(n, dg); B[n.id] = b; y += b.h + 4; }
     const tmax = Math.max(10, ...rows.map(n => +n.props.tmax || 50)); const X = t => 120 + t * TSC;
     for (const n of rows) {
@@ -781,6 +794,6 @@
     if (type === 'composite' || type === 'profile' || type === 'booking') return d; layout(d, { all: true }); if (type === 'usecase') return d; return d;
   }
 
-  const api = { marker, TYPES, NK, EK, CARD, NOTATION_NAME, DIALECTS, LANGS, newDoc, newDiagram, newNode, newEdge, size, box, render, toSVG, toSQL, fromSQL, toCode, fromCode, validate, layout, example, inside, erModel, mapType, parseMember, SEQ_TOP, SEQ_ROW };
+  const api = { STYLES, marker, TYPES, NK, EK, CARD, NOTATION_NAME, DIALECTS, LANGS, newDoc, newDiagram, newNode, newEdge, size, box, render, toSVG, toSQL, fromSQL, toCode, fromCode, validate, layout, example, inside, erModel, mapType, parseMember, SEQ_TOP, SEQ_ROW };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.SOFT = api;
 })(typeof window !== 'undefined' ? window : globalThis);

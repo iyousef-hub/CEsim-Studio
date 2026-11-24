@@ -16,7 +16,7 @@
     'gate:xor2': { name: 'XOR gate', ins: ['A', 'B'], ic: 'ic7486', fn: a => a[0] !== a[1], short: 'XOR' }
   };
   const BUILTIN = {
-    Sensors: ['ultrasonic', 'pir', 'tempsensor', 'sht31', 'mpu6050', 'lidar', 'mlx90640', 'mic', 'vibration', 'joystick', 'ldr', 'pot', 'button', 'tilt', 'piezo'],
+    Sensors: ['ultrasonic', 'pir', 'tempsensor', 'sht31', 'mpu6050', 'lidar', 'rplidar', 'mlx90640', 'iis3dwb', 'inmp441', 'mic', 'vibration', 'joystick', 'ldr', 'pot', 'button', 'tilt', 'piezo'],
     'Motors and outputs': ['led', 'buzzer', 'servo', 'motor', 'stepper', 'nema17', 'relay', 'l298n', 'solenoid', 'lcd', 'oled'],
     Drone: ['lipo', 'esc', 'bldc', 'fc'],
     Power: ['battery', 'supply']
@@ -70,6 +70,8 @@
     if (b === 'servo' && P === 'SIGNAL') return 'pwm';
     if (b === 'keypad') return /^R/.test(P) ? 'dout' : 'din_pu';
     if (b === 'mic' && P === 'OUT') return 'ain';
+    if (b === 'inmp441') { if (P === 'VDD') return 'v33'; if (P === 'L/R') return 'gnd'; if (P === 'SD') return 'din'; if (P === 'WS' || P === 'SCK') return 'dout'; }
+    if (b === 'iis3dwb') { if (P === 'VDD') return 'v33'; if (P === 'SDI') return 'spi_out'; if (P === 'SDO') return 'spi_in'; if (/^INT/.test(P)) return 'nc'; }
     if (/^(GND|VSS|AGND|−)$/.test(P)) return 'gnd';
     if (/^(3V3|3\.3V)$/.test(P)) return 'v33';
     if (/^(VCC|VIN|VDD|\+5V|5V|V\+|\+VS|VBUS)$/.test(P)) return 'vcc';
@@ -410,7 +412,7 @@
   }
 
   /* ---------- 3D ---------- */
-  const M3D = { uno: ['Arduino Uno R3', 68.6, 53.3], nano: ['Arduino Nano', 43.2, 17.8], mega: ['Arduino Mega 2560', 101.6, 53.3], esp32: ['ESP32 DevKit V1', 51.5, 28.3], esp32s3: ['ESP32-S3 DevKitC-1', 62.7, 25.4], ultrasonic: ['HC-SR04 ultrasonic', 45, 20], servo: ['SG90 micro servo', 23, 12.2], lcd: ['LCD 16x2 module', 80, 36], mlx90640: ['MLX90640 thermal camera', 25.7, 17.7], sht31: ['SHT31-D temperature and humidity', 18, 13], lidar: ['VL53L0X LiDAR (GY-530)', 25, 10.7], camera: ['OV2640 camera module', 24, 24], mpu6050: ['MPU6050 gyro (GY-521)', 21, 16], piezo: ['Piezo disc 27 mm', 27, 27], vibration: ['SW-420 vibration sensor', 32, 14], mic: ['MAX4466 microphone', 24, 14], lipo: ['LiPo 4S 1500 mAh', 75, 35], esc: ['ESC 35 A', 45, 24], fc: ['Flight controller F405 30 × 30', 36, 36], bldc: ['Brushless motor 2207', 28, 28], l298n: ['L298N motor driver', 43, 43], motor: ['DC motor 130', 20, 25], nema17: ['NEMA 17 stepper motor', 42.3, 42.3], solenoid: ['Push solenoid 12 V', 20, 30], supply: ['Bench power supply', 120, 60] };
+  const M3D = { rplidar: ['RPLIDAR S2 lidar scanner', 77, 77], inmp441: ['INMP441 I2S microphone', 14, 14], iis3dwb: ['IIS3DWB vibration sensor', 20, 15], uno: ['Arduino Uno R3', 68.6, 53.3], nano: ['Arduino Nano', 43.2, 17.8], mega: ['Arduino Mega 2560', 101.6, 53.3], esp32: ['ESP32 DevKit V1', 51.5, 28.3], esp32s3: ['ESP32-S3 DevKitC-1', 62.7, 25.4], ultrasonic: ['HC-SR04 ultrasonic', 45, 20], servo: ['SG90 micro servo', 23, 12.2], lcd: ['LCD 16x2 module', 80, 36], mlx90640: ['MLX90640 thermal camera', 25.7, 17.7], sht31: ['SHT31-D temperature and humidity', 18, 13], lidar: ['VL53L0X LiDAR (GY-530)', 25, 10.7], camera: ['OV2640 camera module', 24, 24], mpu6050: ['MPU6050 gyro (GY-521)', 21, 16], piezo: ['Piezo disc 27 mm', 27, 27], vibration: ['SW-420 vibration sensor', 32, 14], mic: ['MAX4466 microphone', 24, 14], lipo: ['LiPo 4S 1500 mAh', 75, 35], esc: ['ESC 35 A', 45, 24], fc: ['Flight controller F405 30 × 30', 36, 36], bldc: ['Brushless motor 2207', 28, 28], l298n: ['L298N motor driver', 43, 43], motor: ['DC motor 130', 20, 25], nema17: ['NEMA 17 stepper motor', 42.3, 42.3], solenoid: ['Push solenoid 12 V', 20, 30], supply: ['Bench power supply', 120, 60] };
   const BOX = { pir: [32, 24, 18, '#f5f5f5'], tempsensor: [5, 5, 5, '#222'], joystick: [34, 26, 30, '#1565c0'], ldr: [5, 5, 3, '#c62828'], pot: [10, 10, 15, '#1565c0'], button: [6, 6, 5, '#222'], tilt: [5, 5, 12, '#222'], led: [5, 5, 8, '#e53935'], buzzer: [12, 12, 9, '#222'], stepper: [28, 28, 19, '#90a4ae'], relay: [50, 26, 19, '#1565c0'], oled: [27, 27, 4, '#0d47a1'], battery: [26, 17, 48, '#333'] };
   function to3D(pr) {
     const bi = boardInfo(pr.board); const objs = []; let n = 0; const id = () => 'o' + (++n) + Math.random().toString(36).slice(2, 5);

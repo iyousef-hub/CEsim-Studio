@@ -298,6 +298,8 @@ One `.cesoft` file holds as many diagrams as you need, each on its own tab:
 - **Code:** a class diagram becomes Java, C#, C++, Python or TypeScript with fields, methods, parents and the fields its associations need. Classes in any of these languages can be read back into a diagram.
 - **Analysis:** data flow diagrams in Yourdon and DeMarco or Gane and Sarson notation, C4 context and container views, and BPMN processes with events, tasks, gateways, data and pools.
 - **Check:** finds tables without a primary key, broken foreign keys, columns that break first normal form, inheritance loops, data flowing without a process, unreachable states, missing start and end events and more.
+- **Working on the page:** double-click (or F2) any shape or line to type its text in place, right-click for actions (add attribute or column, change kind, bring to front, reverse a line), the + buttons of a selected shape add a joined shape, and class attributes and operations are edited as rows (visibility, name, type, parameters, static, abstract). The parts list has a search box, and the status bar shows the zoom, the selection, and grid and snap switches.
+- **Styles:** Colour (each kind tinted, rounded corners, soft shadows), Classic, and Print (black and white).
 - Arrange lays the diagram out again, lines can be straight or at right angles, and every diagram exports to PNG, SVG and PDF. An example of every diagram type is under Examples.
 
 ## Parts catalog
@@ -320,7 +322,11 @@ Parts the simulator has a model for (resistors, capacitors, diodes, transistors,
 | Part | Wiring | Sketch |
 |---|---|---|
 | SHT31-D temperature and humidity | VIN, GND, SCL, SDA | `Adafruit_SHT31`: begin(0x44), readTemperature(), readHumidity() |
-| MLX90640 thermal camera (32 × 24) | VIN, GND, SCL, SDA | `Adafruit_MLX90640`: begin(), setMode(), setRefreshRate(), getFrame(frame) |
+| MLX90640-ESF-BAB thermal camera (32 × 24, 110°; BAA 55° too) | VIN, GND, SCL, SDA | `Adafruit_MLX90640`: begin(), setMode(), setRefreshRate(), getFrame(frame) |
+| SLAMTEC RPLIDAR S2 (360°, 0.05 to 30 m) | 5V, GND, TX to the board RX, RX to the board TX | `RPLidar`: begin(Serial1), startScan(), waitPoint(), getCurrentPoint().distance / .angle / .startBit. On the Pi: `rplidar` iter_scans() |
+| INMP441 I2S MEMS microphone | VDD 3.3 V, GND, SD, WS, SCK, L/R to GND | `ESP_I2S` (ESP32): setPins(), begin(I2S_MODE_STD, 16000, …), read() gives 24-bit samples |
+| IIS3DWB vibration sensor (3-axis, 26.7 kHz) | VDD 3.3 V, GND, CS, SCK, SDI, SDO | `IIS3DWBSensor`: begin(), Enable_X(), Set_X_FS(), Get_X_Axes(acc) in mg. On the Pi: `spidev` registers (WHO_AM_I 0x7B) |
+| Raspberry Pi Camera Module 3 (IMX708, 12 MP, autofocus) | CSI ribbon to the Raspberry Pi | `picamera2`: start(), autofocus_cycle(), set_controls(), capture_metadata(), capture_array() |
 | LiDAR VL53L0X | VCC, GND, SCL, SDA | `VL53L0X`: init(), startContinuous(), readRangeContinuousMillimeters() |
 | RGB camera OV2640 | 3V3, GND, SIOC, SIOD | `OV2640`: begin(), capture(), red(x, y), green(x, y), blue(x, y), brightness() on an 80 × 60 picture |
 | Gyro and accelerometer MPU6050 | VCC, GND, SCL, SDA | `MPU6050`: initialize(), testConnection(), getAccelerationX() … getRotationZ() |
