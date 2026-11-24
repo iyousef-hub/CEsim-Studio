@@ -3302,7 +3302,7 @@ function openImageTool(){const b=document.createElement("div");b.className="imga
  <div class="ia-row"><label for="ia-model">AI model</label><select id="ia-model"><option value="">Checking Ollama…</option></select><button class="btn" id="ia-refresh" title="Refresh model list">↻</button></div>
  <div id="ia-status" class="ia-status"></div>
  <div class="ia-row"><button class="btn pri" id="ia-run" disabled>Read circuit</button><button class="btn" id="ia-cancel" style="display:none">Cancel</button><span id="ia-time" class="ia-dim"></span></div>
- <details class="ia-adv"><summary>Settings</summary><div class="ia-row"><label for="ia-host">Ollama address</label><input id="ia-host" value="${esc(IMGAI.host)}"></div><p class="ia-dim">Runs on your Mac with Ollama. Nothing is uploaded to the internet.</p></details></div>
+ <details class="ia-adv"><summary>Settings</summary><div class="ia-row"><label for="ia-host">Ollama address</label><input id="ia-host" value="${esc(IMGAI.host)}"></div><p class="ia-dim">Runs on your computer with Ollama. Nothing is uploaded to the internet.</p></details></div>
  <div class="ia-right"><div class="ia-dim" style="margin-bottom:6px">Netlist (you can edit it before importing)</div><textarea id="ia-net" spellcheck="false" placeholder="The circuit the AI reads will appear here as a netlist."></textarea><div id="ia-warn"></div>
  <div class="ia-row" style="justify-content:flex-end"><button class="btn" id="ia-raw" style="display:none">Show AI answer</button><button class="btn pri" id="ia-import" disabled>Import as new design</button></div></div></div>`;
  const w=makeWin("Circuit from image",b,{modal:true});const q=s=>b.querySelector(s);let raw="";
@@ -3316,7 +3316,7 @@ function openImageTool(){const b=document.createElement("div");b.className="imga
  q("#ia-model").onchange=()=>{const v=q("#ia-model").value;if(v==="__pull"){pull(RECOMMENDED_MODEL);return}IMGAI.model=v;IMGAI_SAVE();upd()};
  q("#ia-host").onchange=()=>{IMGAI.host=q("#ia-host").value.trim()||"http://127.0.0.1:11434";IMGAI_SAVE();check()};
  async function check(){const sel=q("#ia-model");sel.innerHTML='<option value="">Checking Ollama…</option>';const r=await ollama({op:"tags"});
-  if(!r.ok){sel.innerHTML='<option value="">Ollama is not running</option>';st(`<b>Ollama is not running on this Mac.</b><ol><li>Download it free from <b>ollama.com</b> and open it (it sits in the menu bar).</li><li>Come back here and press ↻. CEsim can then download the AI model for you (about 6 GB, one time).</li></ol>`,"warn");upd();return}
+  if(!r.ok){sel.innerHTML='<option value="">Ollama is not running</option>';st(`<b>Ollama is not running on this computer.</b><ol><li>Download it free from <b>ollama.com</b> and open it.</li><li>Come back here and press ↻. CEsim can then download the AI model for you (about 6 GB, one time).</li></ol>`,"warn");upd();return}
   const all=(r.data.models||[]).map(m=>m.name);const vis=all.filter(n=>VISION_RX.test(n));const other=all.filter(n=>!VISION_RX.test(n));
   let h=vis.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join("");if(other.length)h+=`<optgroup label="Other models (may not read images)">`+other.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join("")+"</optgroup>";
   if(!vis.length)h=`<option value="">No vision model yet</option><option value="__pull">Download ${RECOMMENDED_MODEL} (about 6 GB)…</option>`+h;else h+=`<option value="__pull">Download ${RECOMMENDED_MODEL}…</option>`;
