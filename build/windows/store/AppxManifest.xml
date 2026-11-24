@@ -47,6 +47,13 @@
           </uap:FileTypeAssociation>
         </uap:Extension>
         <uap:Extension Category="windows.fileTypeAssociation">
+          <uap:FileTypeAssociation Name="cesoft">
+            <uap:DisplayName>CEsim Software design</uap:DisplayName>
+            <uap:Logo>Assets\StoreLogo.png</uap:Logo>
+            <uap:SupportedFileTypes><uap:FileType>.cesoft</uap:FileType></uap:SupportedFileTypes>
+          </uap:FileTypeAssociation>
+        </uap:Extension>
+        <uap:Extension Category="windows.fileTypeAssociation">
           <uap:FileTypeAssociation Name="ce3d">
             <uap:DisplayName>CEsim 3D model</uap:DisplayName>
             <uap:Logo>Assets\StoreLogo.png</uap:Logo>

@@ -25,6 +25,9 @@ const FP={
  'DIP-8':Object.assign({name:'DIP-8 chip'},dip(8)),'DIP-14':Object.assign({name:'DIP-14 chip'},dip(14)),'DIP-16':Object.assign({name:'DIP-16 chip'},dip(16)),
  'Seg7':{name:'7-segment display',pads:[...[1,2,3,4,5].map((n,i)=>th(n,i*2.54,15.24,n===1?'rect':'round',1.6,1.6,0.8)),...[6,7,8,9,10].map((n,i)=>th(n,(4-i)*2.54,0,'round',1.6,1.6,0.8))],silk:[['rect',-1.8,-2.3,13.76,19.84]],body:[-1.8,-2.3,13.76,19.84,'#2a2d31']},
 };
+/* the parts catalog: one footprint per part, keyed by the part key */
+const PLIB=root.PLIB||(typeof require!=='undefined'?(()=>{try{return require('./parts-lib.js')}catch(e){return null}})():null);
+if(PLIB)for(const e of PLIB.LIST){try{const f=PLIB.fp(e);if(f&&f.pads.length){f.plib=e;FP[e.key]=f}}catch(err){}}
 /* ---------------- geometry ---------------- */
 function rotPt(x,y,r){r=((r%360)+360)%360;if(r===90)return[-y,x];if(r===180)return[-x,-y];if(r===270)return[y,-x];return[x,y]}
 function padsOf(c){const f=FP[c.fp];if(!f)return[];return f.pads.map((p,i)=>{const[x,y]=rotPt(p.x,p.y,c.rot||0);const sw=(c.rot||0)%180!==0;return{...p,i,ref:c.ref,x:c.x+x,y:c.y+y,w:sw?p.h:p.w,h:sw?p.w:p.h}})}
@@ -144,7 +147,7 @@ function refPos(c){const b=compBox(c);return[(b[0]+b[2])/2,b[1]-1.2]}
 function gerberFiles(doc,name){name=name||'board';const W=doc.board.w,H=doc.board.h;const F=v=>Math.round(v*1e6).toString();const X=x=>F(x),Y=y=>F(H-y);
  function writer(fn,attr){const ap=new Map();let next=10;const body=[];let cur=null;const apOf=def=>{if(!ap.has(def))ap.set(def,next++);return ap.get(def)};const sel=def=>{const d=apOf(def);if(cur!==d){body.push(`D${d}*`);cur=d}};
   return{flash(def,x,y){sel(def);body.push(`X${X(x)}Y${Y(y)}D03*`)},line(def,pts){sel(def);body.push(`X${X(pts[0][0])}Y${Y(pts[0][1])}D02*`);for(let i=1;i<pts.length;i++)body.push(`X${X(pts[i][0])}Y${Y(pts[i][1])}D01*`)},
-   text(){const head=[`G04 ${fn}, made with CEsim PCB*`,`%TF.GenerationSoftware,CEsim,PCB,1.37.0*%`,`%TF.FileFunction,${attr}*%`,'%FSLAX46Y46*%','%MOMM*%','%LPD*%','G01*'];for(const[def,d]of ap)head.push(`%ADD${d}${def}*%`);return head.concat(body,['M02*']).join('\n')+'\n'}}}
+   text(){const head=[`G04 ${fn}, made with CEsim PCB*`,`%TF.GenerationSoftware,CEsim,PCB,1.38.0*%`,`%TF.FileFunction,${attr}*%`,'%FSLAX46Y46*%','%MOMM*%','%LPD*%','G01*'];for(const[def,d]of ap)head.push(`%ADD${d}${def}*%`);return head.concat(body,['M02*']).join('\n')+'\n'}}}
  const n4=v=>(+v).toFixed(4);const apPad=(p,grow)=>{const w=p.w+2*grow,h=p.h+2*grow;if(p.shape==='round')return`C,${n4(w)}`;if(p.shape==='oval')return`O,${n4(w)}X${n4(h)}`;return`R,${n4(w)}X${n4(h)}`};
  const out={};const items=copper(doc);
  for(const L of['F','B']){const w=writer(`${L==='F'?'Top':'Bottom'} copper`,`Copper,L${L==='F'?1:2},${L==='F'?'Top':'Bot'}`);for(const it of items)if(it.kind==='pad'&&it.layers.includes(L))w.flash(apPad(it.p,0),it.p.x,it.p.y);for(const v of doc.vias)w.flash(`C,${n4(v.d)}`,v.x,v.y);for(const t of doc.traces)if(t.layer===L)w.line(`C,${n4(t.w)}`,[t.a,t.b]);out[`${name}-${L}_Cu.gbr`]=w.text()}
@@ -247,7 +250,7 @@ function fromGerber(files){const dec=new TextDecoder();const txt=v=>typeof v==='
  const hole=(x,y)=>holes.map(h=>({...h,q:T([h.x,h.y])})).find(h=>Math.abs(h.q[0]-x)<0.02&&Math.abs(h.q[1]-y)<0.02);
  const shapeOk=(f,p)=>{const s=f.ap.shape;const want=p.shape==='round'?'C':p.shape==='oval'?'O':'R';if(s!==want)return false;return Math.abs(f.ap.w-p.w)<0.02&&Math.abs(f.ap.h-p.h)<0.02};
  /* footprints with more pads first */
- const fps=Object.keys(FP).sort((a,b)=>FP[b].pads.length-FP[a].pads.length);const count={};
+ const fps=Object.keys(FP).filter(k=>!FP[k].plib).sort((a,b)=>FP[b].pads.length-FP[a].pads.length);const count={};
  for(const k of fps){const F=FP[k];for(const rot of[0,90,180,270]){const c0={fp:k,x:0,y:0,rot,ref:'?'};const rel=padsOf(c0);
    for(const f of fl){if(f.used||!shapeOk(f,rel[0]))continue;const ox=f.x-rel[0].x,oy=f.y-rel[0].y;const hit=[];
     for(const p of rel){const q=fl.find(z=>!z.used&&Math.abs(z.x-(p.x+ox))<0.02&&Math.abs(z.y-(p.y+oy))<0.02&&shapeOk(z,p));if(!q)break;if(p.drill&&!hole(q.x,q.y))break;hit.push(q)}

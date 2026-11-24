@@ -21,6 +21,7 @@ CEsim Studio is a launcher that opens several tools, each in its own window:
 | **Arduino** | Runs Arduino sketches on a virtual Uno in real time: LEDs, RGB LED, buttons, switches, potentiometer, light, temperature, ultrasonic and motion sensors, servo, buzzer and a 16×2 LCD. Serial Monitor, Serial Plotter and live variables. | `.ino` |
 | **Diagram** | Flowcharts, networks, UML, BPMN, data structures, charts, 3D shapes and neural networks: 367 shapes in 21 groups. Hover arrows add connected shapes, a sketch page turns hand-drawn lines into straight lines and shapes, a shape maker saves your own shapes, and a neural-network framework draws or trains networks. | `.cediag` · `.drawio` · `.mmd` |
 | **System model** | Plan a whole project in one place: pick a board, then sensors, motors, batteries (LiPo included), drone parts and logic gates. Every pin is joined to a free board pin or to the part it belongs with, and one click opens the project, under its own name, in Breadboard (with a ready sketch), Circuit (a schematic), Diagram (a block diagram with arrows that show which way each signal goes), 3D (each part's model), Arduino and VLSI (the logic gates laid out as CMOS transistors). | `.cesys` |
+| **Software design** | UML (all 14 diagrams), database diagrams in Chen, crow's foot, IDEF1X and relational tables, data flow (Yourdon and Gane and Sarson), C4 and BPMN. Writes SQL for MySQL, PostgreSQL, SQLite, SQL Server and Oracle and reads it back; turns a class diagram into Java, C#, C++, Python or TypeScript and reads classes from code. A check finds design mistakes. | `.cesoft` · `.sql` |
 | **3D** | Millimetre-accurate modelling with holes, groups, arrays, shells, a board library and enclosure maker. Adjustable zoom / rotate / pan speed. | `.ce3d` · `.stl` · `.obj` · `.3mf` · `.glb` |
 
 The Studio window has five themes and eight accent colours (plus a custom colour).
@@ -285,6 +286,33 @@ Pins are joined for you: power and ground, I2C to the board's SDA and SCL, analo
 | Arduino | The sketch. |
 | VLSI | The logic gates as CMOS transistors, with the design-rule check and the truth table. |
 
+## Software design
+
+One `.cesoft` file holds as many diagrams as you need, each on its own tab:
+
+- **UML structure:** class, object, component, deployment, package, composite structure and profile diagrams.
+- **UML behaviour and interaction:** use case, activity (with swimlanes, forks and signals), state machine (with history, choice and composite states), sequence, communication, timing and interaction overview diagrams.
+- **Sequence diagrams:** actor, boundary, control, entity and database lifelines, synchronous and asynchronous messages, replies, create and destroy, activation bars, and combined fragments (alt with an else branch, opt, loop, par, break and more). Messages can be numbered in the label or in black circles, the heads can be repeated at the bottom, and a lavender look is available.
+- **Databases:** one model drawn in four notations: Chen (attributes as ovals, weak entities, identifying relationships), crow's foot, IDEF1X and relational tables with PK and FK. Each column has a type, primary key, not null, unique, auto number and a foreign key chosen from a list.
+- **SQL:** writes the schema for MySQL, PostgreSQL, SQLite, SQL Server or Oracle, with keys, foreign keys, indexes and a joining table for every many-to-many line. Reads CREATE TABLE and ALTER TABLE scripts back into a diagram.
+- **Code:** a class diagram becomes Java, C#, C++, Python or TypeScript with fields, methods, parents and the fields its associations need. Classes in any of these languages can be read back into a diagram.
+- **Analysis:** data flow diagrams in Yourdon and DeMarco or Gane and Sarson notation, C4 context and container views, and BPMN processes with events, tasks, gateways, data and pools.
+- **Check:** finds tables without a primary key, broken foreign keys, columns that break first normal form, inheritance loops, data flowing without a process, unreachable states, missing start and end events and more.
+- Arrange lays the diagram out again, lines can be straight or at right angles, and every diagram exports to PNG, SVG and PDF. An example of every diagram type is under Examples.
+
+## Parts catalog
+
+592 real parts with their packages, pins and sizes, in Breadboard, Circuit, PCB and 3D:
+
+- **Passive components:** resistors of every kind and size, chip sizes from 0201, networks and arrays, thermistors, varistors, potentiometers, capacitors (ceramic, film, electrolytic, tantalum, supercapacitors), inductors, transformers, crystals, resonators and oscillators.
+- **Discretes and protection:** rectifier, Schottky, zener, TVS and bridge diodes, BJTs, MOSFETs, IGBTs, SiC and GaN transistors, thyristors, relays, optocouplers and isolators, fuses and ESD protection.
+- **Analog and mixed-signal ICs:** op-amps, instrumentation and audio amplifiers, comparators, references, ADCs and DACs, multiplexers, signal conditioning and industrial interfaces.
+- **Logic, timing and memory:** 74xx and 4000 logic, flip-flops, counters, shift registers, decoders, I/O expanders, timers and supervisors, EEPROM, flash, SRAM, DRAM and storage.
+- **Processors and boards:** 8-, 16- and 32-bit microcontrollers, development boards, single-board computers, system-on-modules, FPGAs and CPLDs, DSPs, AI accelerators, programmers and debuggers.
+- **Packages:** DIP, SIP, PGA, SOIC, SSOP, TSSOP, QFP, QFN, DFN, BGA, LGA, WLCSP, SOT, TO-92, TO-220, TO-247, DPAK, chip sizes, sensor and board form factors.
+
+Parts the simulator has a model for (resistors, capacitors, diodes, transistors, op-amps, gates, timers…) simulate in Circuit and on the breadboard; the others are drawn with their real pins for wiring. Every part has a PCB footprint and a 3D model from its package size.
+
 ## Sensors, drone parts and motors
 
 **Sensors** on the breadboard, each with its own library in the sketch:
@@ -405,7 +433,7 @@ The DOS machine uses the js-dos emulators package (DOSBox compiled to WebAssembl
 
 ### بالعربي
 
-**CEsim Studio** برنامج سطح مكتب فيه محاكي دوائر، ولوحة تجارب Breadboard تشتغل مباشرة، وتصميم لوحات PCB مع تصدير ملفات التصنيع، وتصميم شرائح VLSI بترانزستورات CMOS، ومحاكي دوائر رقمية وأدوات الجبر البولياني، ومحاكي Verilog مع عارض الإشارات، ومحاكي معمارية MIPS وRISC-V مع مسار البيانات والـ Pipeline، ومحاكي 8086 بلغة التجميع، ومحاكي Arduino بقطع افتراضية، وأداة رسم مخططات، وأداة System model تجمع مشروعك كامل (اللوحة والحساسات والمحركات والبطاريات وقطع الدرون والبوابات المنطقية) وتفتحه باسمه في البريدبورد والدوائر والدايقرام والـ 3D والأردوينو والـ VLSI، وتصميم ثلاثي الأبعاد بقياسات حقيقية، وأداة تحول صورة الدائرة إلى دائرة قابلة للمحاكاة عن طريق ذكاء اصطناعي يشتغل على جهازك (Ollama). ويقدر يسجّل فيديو للدائرة وهي تشتغل، وفيه Bode Plotter وIV Analyzer وDC Sweep مع رسم النتائج وجداولها، وMonte Carlo، ومولد كلمات ومحلل منطقي، وحاسبات تصميم تبني الدائرة لك، ومولد تقارير معامل Word وPDF، ووضع الأعطال للمعلم، واختبارات، ولوحة Arduino Uno على البريدبورد، وجهاز DOS كامل، وتصدير المخطط إلى .asc و.kicad_sch، وفتح ملفات .ms14 و.asc و.kicad_sch و.gds و.cif و.sch وGerber و.hex و.COM، ووضع "اشرح لي"، وحركة التيار على الأسلاك، والحل اليدوي بطريقة جهود العقد، وسجل النسخ، ومكتبة 144 دائرة، والواجبات اللي تنصحح تلقائيًا، والكفاءة، ولوحات ESP32 وPico مع محركات وشاشات وحساسات وصوت على البريدبورد، ونسخة ويب تشتغل على الآيباد، وروابط مشاركة، ودمج تعديلات الزملاء، وتقدر تبني قطعك الخاصة من دائرة صغيرة ويتأكد منها البرنامج ويكتب جنبها Verified.
+**CEsim Studio** برنامج سطح مكتب فيه محاكي دوائر، ولوحة تجارب Breadboard تشتغل مباشرة، وتصميم لوحات PCB مع تصدير ملفات التصنيع، وتصميم شرائح VLSI بترانزستورات CMOS، ومحاكي دوائر رقمية وأدوات الجبر البولياني، ومحاكي Verilog مع عارض الإشارات، ومحاكي معمارية MIPS وRISC-V مع مسار البيانات والـ Pipeline، ومحاكي 8086 بلغة التجميع، ومحاكي Arduino بقطع افتراضية، وأداة رسم مخططات، وأداة System model تجمع مشروعك كامل (اللوحة والحساسات والمحركات والبطاريات وقطع الدرون والبوابات المنطقية) وتفتحه باسمه في البريدبورد والدوائر والدايقرام والـ 3D والأردوينو والـ VLSI، وأداة Software design لرسم كل مخططات UML ومخططات قواعد البيانات (Chen وCrow's foot وIDEF1X) مع تحويلها إلى SQL وكود والعكس، ومكتبة 592 قطعة حقيقية بأشكالها وأبعادها، وتصميم ثلاثي الأبعاد بقياسات حقيقية، وأداة تحول صورة الدائرة إلى دائرة قابلة للمحاكاة عن طريق ذكاء اصطناعي يشتغل على جهازك (Ollama). ويقدر يسجّل فيديو للدائرة وهي تشتغل، وفيه Bode Plotter وIV Analyzer وDC Sweep مع رسم النتائج وجداولها، وMonte Carlo، ومولد كلمات ومحلل منطقي، وحاسبات تصميم تبني الدائرة لك، ومولد تقارير معامل Word وPDF، ووضع الأعطال للمعلم، واختبارات، ولوحة Arduino Uno على البريدبورد، وجهاز DOS كامل، وتصدير المخطط إلى .asc و.kicad_sch، وفتح ملفات .ms14 و.asc و.kicad_sch و.gds و.cif و.sch وGerber و.hex و.COM، ووضع "اشرح لي"، وحركة التيار على الأسلاك، والحل اليدوي بطريقة جهود العقد، وسجل النسخ، ومكتبة 144 دائرة، والواجبات اللي تنصحح تلقائيًا، والكفاءة، ولوحات ESP32 وPico مع محركات وشاشات وحساسات وصوت على البريدبورد، ونسخة ويب تشتغل على الآيباد، وروابط مشاركة، ودمج تعديلات الزملاء، وتقدر تبني قطعك الخاصة من دائرة صغيرة ويتأكد منها البرنامج ويكتب جنبها Verified.
 النسخ متوفرة للماك (Apple Silicon) والويندوز واللينكس من صفحة **Releases**.
 
 BY. YOUSEF A.ALGHAMDI

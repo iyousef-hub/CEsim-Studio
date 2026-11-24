@@ -16,7 +16,9 @@ import { Brush, Evaluator, ADDITION, SUBTRACTION } from 'three-bvh-csg';
 import { zipSync, strToU8 } from 'three/examples/jsm/libs/fflate.module.js';
 
 import BBXmod from '../app/parts-extra.js';
+import PLIBmod from '../app/parts-lib.js';
 const BBX = BBXmod || (typeof window !== 'undefined' ? window.BBX : null);
+const PLIB = PLIBmod || (typeof window !== 'undefined' ? window.PLIB : null);
 THREE.Object3D.DEFAULT_UP.set(0, 0, 1);
 const $ = s => document.querySelector(s);
 const FONT = new FontLoader().parse(fontJson);
@@ -332,7 +334,7 @@ function build3dExtra(model, G, box, cyl, holes, header, M) {
     case 'Digital multimeter': box(0, 0, 0, 90, 180, 45, '#f2b705'); box(8, 110, 45, 82, 165, 46, '#c7d6a3'); cyl(45, 70, 45, 52, 22, '#2a2a2a'); for (let i = 0; i < 4; i++) cyl(15 + i * 20, 18, 45, 50, 4, ['#222', '#d33', '#d33', '#d33'][i]); break;
     case 'Bench power supply': box(0, 0, 0, 160, 260, 110, '#2a2d33'); box(10, -0.5, 55, 150, 0.5, 100, '#132015'); for (let i = 0; i < 2; i++) add(new THREE.CylinderGeometry(9, 9, 8, 32), '#c9ccd1', 40 + i * 80, -4, 35); for (let i = 0; i < 3; i++) add(new THREE.CylinderGeometry(5, 5, 12, 16), ['#d33', '#222', '#30d158'][i], 40 + i * 40, -6, 12); break;
     case 'Coreless motor 8520': add(new THREE.CylinderGeometry(4.25, 4.25, 20, 32), '#c9ccd1', 10, 4.25, 4.25, Math.PI / 2); break;
-    default: { const X = X3D[model]; if (X) buildX(X, { add, box, cyl, holes, header, bar, pcbM, tube }); }
+    default: { const X = X3D[model]; if (X) buildX(X, { add, box, cyl, holes, header, bar, pcbM, tube }); else if (PL3D[model]) buildPkg(PL3D[model], { add, box, cyl, bar }); }
   }
 }
 /* generic models for the parts in parts-extra.js */
@@ -393,6 +395,88 @@ function buildX(X, T) {
   }
 }
 if (BBX) for (const e of BBX.LIST) { const m = e.m3d; if (!m || !m.name || BOARDS[m.name]) continue; X3D[m.name] = m; BOARDS[m.name] = { w: m.w, d: m.d, g: X3D_GROUP[e.group] || 'Modules', note: e.name } }
+
+/* 3D models of the parts catalog (parts-lib.js), drawn from each package's real size (mm, z up, seated at z = 0) */
+const PL3D = {};
+function buildPkg(e, T) {
+  const { add, box, cyl, bar } = T; const s = e.spec, n = e.pins.length; const [W, D, H0] = e.dims; const H = H0 || 1.5; const c = e.color || '#222';
+  const LEAD = '#c9ccd1', GOLD = '#d4af37', TIN = '#b9bec6', MARK = '#e9e9e9';
+  const leg = (x, y, z1, z2, w = 0.5, t = 0.25) => box(x - w / 2, y - t / 2, z1, x + w / 2, y + t / 2, z2, LEAD);
+  const wire = (x, y, z1, z2, r = 0.3, col = LEAD) => cyl(x, y, z1, z2, r, col);
+  const dot = (x, y, z, r = 0.4) => cyl(x, y, z, z + 0.05, r, MARK);
+  const hcyl = (x1, x2, y, z, r, col, seg = 32) => add(new THREE.CylinderGeometry(r, r, x2 - x1, seg), col, (x1 + x2) / 2, y, z, Math.PI / 2);
+  switch (s.kind) {
+    case 'dip': case 'xodip': {
+      if (s.kind === 'xodip') { box(0, 0, 0.6, W, D, 0.6 + H, TIN); box(0.3, 0.3, 0.6 + H, W - 0.3, D - 0.3, 0.7 + H, '#d9dde2'); const xs = [(W - s.len) / 2, (W + s.len) / 2]; const ys = [(D - s.row) / 2, (D + s.row) / 2]; for (const x of xs) for (const y of ys) wire(x, y, -3.2, 0.6, 0.25); break; }
+      const h = n / 2, x0 = (W - (h - 1) * 2.54) / 2, y1 = (D - s.row) / 2, y2 = (D + s.row) / 2; box(0, 0, 0.5, W, D, 0.5 + H, c);
+      add(new THREE.CylinderGeometry(0.8, 0.8, 0.3, 24, 1, false, 0, Math.PI), '#111', 0, D / 2, 0.45 + H, -Math.PI / 2, Math.PI / 2); dot(1.6, 1.4, 0.5 + H, 0.45);
+      for (let i = 0; i < h; i++) { const x = x0 + i * 2.54; for (const y of [y1, y2]) { box(x - 0.75, Math.min(y, y === y1 ? 0 : D), 1.1, x + 0.75, Math.max(y, y === y1 ? 0 : D), 1.35, LEAD); leg(x, y, -3.2, 1.35, 0.5, 0.25); box(x - 0.75, y - 0.13, 0.2, x + 0.75, y + 0.13, 1.35, LEAD); } }
+      break; }
+    case 'sip': { const x0 = (W - (n - 1) * 2.54) / 2; box(0, 0, 1, W, D, 1 + H, c); for (let i = 0; i < n; i++) leg(x0 + i * 2.54, D / 2, -3.2, 1); dot(1, 0, 1 + H * 0.8, 0.5).rotation.x = Math.PI / 2; break; }
+    case 'gull': { const h = n / 2, p = s.pitch, sp = s.span || D + 2; box(-W / 2, -D / 2, 0.1, W / 2, D / 2, H, c); dot(-W / 2 + 0.6, -D / 2 + 0.6, H, Math.min(0.35, D / 8));
+      for (let i = 0; i < h; i++) { const x = -(h - 1) * p / 2 + i * p; for (const sg of [-1, 1]) { box(x - p * 0.2, sg < 0 ? -sp / 2 : D / 2, 0, x + p * 0.2, sg < 0 ? -D / 2 : sp / 2, 0.15, LEAD); box(x - p * 0.2, sg < 0 ? -D / 2 - 0.3 : D / 2, 0, x + p * 0.2, sg < 0 ? -D / 2 : D / 2 + 0.3, H * 0.5, LEAD); } } break; }
+    case 'quad': case 'qfn': { const side = Math.ceil(n / 4), p = s.pitch, b = s.body || W; const off = (side - 1) * p / 2; const qf = s.kind === 'quad';
+      box(-b / 2, -b / 2, qf ? 0.1 : 0, b / 2, b / 2, H, c); dot(-b / 2 + Math.max(0.5, b * 0.08), -b / 2 + Math.max(0.5, b * 0.08), H, Math.max(0.2, b * 0.03));
+      const ext = qf ? W / 2 : b / 2 + 0.02, inn = qf ? b / 2 : b / 2 - 0.4, z2 = qf ? 0.15 : 0.2;
+      for (let i = 0; i < side; i++) { const t = -off + i * p, a = p * 0.22; box(-ext, t - a, 0, -inn, t + a, z2, LEAD); box(inn, t - a, 0, ext, t + a, z2, LEAD); box(t - a, -ext, 0, t + a, -inn, z2, LEAD); box(t - a, inn, 0, t + a, ext, z2, LEAD); }
+      break; }
+    case 'dfn': case 'lga': { box(-W / 2, -D / 2, 0, W / 2, D / 2, H, c); dot(-W / 2 + 0.3, -D / 2 + 0.3, H, 0.15); if (s.kind === 'dfn') { const h = n / 2; for (let i = 0; i < h; i++) { const y = -(h - 1) * s.pitch / 2 + i * s.pitch; box(-W / 2 - 0.01, y - 0.12, 0, -W / 2 + 0.4, y + 0.12, 0.2, LEAD); box(W / 2 - 0.4, y - 0.12, 0, W / 2 + 0.01, y + 0.12, 0.2, LEAD); } } break; }
+    case 'bga': { box(-W / 2, -D / 2, 0.35, W / 2, D / 2, 0.35 + Math.max(0.3, H - 0.65), '#2e6b3a'); box(-W / 2 + 0.4, -D / 2 + 0.4, 0.35 + Math.max(0.3, H - 0.65), W / 2 - 0.4, D / 2 - 0.4, Math.max(H, 1), c); dot(-W / 2 + 1, -D / 2 + 1, Math.max(H, 1), 0.4);
+      const k = s.cols, p = s.pitch, rows = Math.ceil(n / k); const g = new THREE.SphereGeometry(p * 0.25, 10, 8); const mesh = new THREE.InstancedMesh(g, new THREE.MeshStandardMaterial({ color: TIN, roughness: 0.4, metalness: 0.5 }), n); const m4 = new THREE.Matrix4(); let q = 0;
+      for (let r = 0; r < rows; r++) for (let j = 0; j < k && q < n; j++, q++) { m4.makeTranslation((j - (k - 1) / 2) * p, (r - (rows - 1) / 2) * p, p * 0.25); mesh.setMatrixAt(q, m4); } add(new THREE.BufferGeometry(), c, 0, 0, 0).parent.add(mesh); break; }
+    case 'pga': { box(0, 0, 3, W, D, 3 + H, '#c8b98a'); box(W * 0.25, D * 0.25, 3 + H, W * 0.75, D * 0.75, 3.4 + H, TIN); let k = 4; while (4 * (k - 1) + Math.max(0, 4 * (k - 3)) < n) k++; const p = 2.54, o = (W - (k - 1) * p) / 2; let q = 0;
+      for (let r = 0; r < k && q < n; r++) for (let j = 0; j < k && q < n; j++) { if (r > 1 && r < k - 2 && j > 1 && j < k - 2) continue; wire(o + j * p, o + r * p, 0, 3, 0.23, GOLD); q++; } break; }
+    case 'sot': case 'sot223': case 'dpak': { box(-W / 2, -D / 2, 0.05, W / 2, D / 2, H, c); dot(-W / 2 + 0.35, -D / 2 + 0.35, H, Math.min(0.25, D / 6));
+      if (s.kind === 'sot' && n === 3) { for (const [x, y] of [[-0.95, 1], [0.95, 1], [0, -1]]) box(x - 0.2, y > 0 ? D / 2 : -D / 2 - 0.5, 0, x + 0.2, y > 0 ? D / 2 + 0.5 : -D / 2, 0.12, LEAD); }
+      else if (s.kind === 'sot') { const bot = Math.ceil(n / 2), top = n - bot; for (let i = 0; i < bot; i++) { const x = (i - (bot - 1) / 2) * s.pitch; box(x - 0.2, D / 2, 0, x + 0.2, D / 2 + 0.5, 0.12, LEAD); } for (let i = 0; i < top; i++) { const x = ((top - 1) / 2 - i) * s.pitch * (top === 2 ? 2 : 1); box(x - 0.2, -D / 2 - 0.5, 0, x + 0.2, -D / 2, 0.12, LEAD); } }
+      else { for (let i = 0; i < 3; i++) if (!(s.kind === 'dpak' && i === 1)) { const x = (i - 1) * s.pitch; box(x - 0.4, D / 2, 0, x + 0.4, D / 2 + 1.6, 0.25, LEAD); } box(-W * 0.4, -D / 2 - 0.9, 0, W * 0.4, -D / 2 + 0.6, 0.5, TIN); } break; }
+    case 'chip2': { const cap = Math.max(0.12, W * 0.18); box(-W / 2 + cap, -D / 2, 0, W / 2 - cap, D / 2, H, c); box(-W / 2, -D / 2, 0, -W / 2 + cap, D / 2, H, TIN); box(W / 2 - cap, -D / 2, 0, W / 2, D / 2, H, TIN); break; }
+    case 'can4': { box(-W / 2, -D / 2, 0, W / 2, D / 2, H * 0.35, '#e6dcc2'); box(-W / 2 + 0.1, -D / 2 + 0.1, H * 0.35, W / 2 - 0.1, D / 2 - 0.1, H, TIN); for (const [x, y] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) box(x * W / 2 - (x > 0 ? 0.8 : 0), y * D / 4 - 0.35, -0.01, x * W / 2 + (x < 0 ? 0.8 : 0), y * D / 4 + 0.35, 0.05, GOLD); break; }
+    case 'cansmd': { box(-W / 2, -D / 2, 0, W / 2, D / 2, 1, '#222'); cyl(0, 0, 1, H, W * 0.47, TIN); cyl(0, 0, H, H + 0.02, W * 0.3, '#1d1d1d'); box(-W / 2 - 0.5, -0.4, 0, -W / 2 + 1, 0.4, 0.2, LEAD); box(W / 2 - 1, -0.4, 0, W / 2 + 0.5, 0.4, 0.2, LEAD); break; }
+    case 'smdind': { box(-W / 2, -D / 2, 0, W / 2, D / 2, H, '#3a3a3a'); cyl(0, 0, H, H + 0.02, Math.min(W, D) * 0.38, '#b87333'); box(-W / 2 - 0.2, -1, 0, -W / 2 + 1.2, 1, 0.2, LEAD); box(W / 2 - 1.2, -1, 0, W / 2 + 0.2, 1, 0.2, LEAD); break; }
+    case 'xtalsmd': { box(-W / 2, -D / 2, 0, W / 2, D / 2, 0.6, '#222'); box(-W / 2 + 0.6, -D / 2 + 0.2, 0.6, W / 2 - 0.6, D / 2 - 0.2, H, TIN); box(-W / 2 - 0.2, -0.7, 0, -W / 2 + 1.5, 0.7, 0.2, LEAD); box(W / 2 - 1.5, -0.7, 0, W / 2 + 0.2, 0.7, 0.2, LEAD); break; }
+    case 'axial': case 'fuse': {
+      if (s.kind === 'fuse') { box(0, 0, 0, W, D, 3, '#1d1d1d'); for (const x of [2, W - 7]) box(x, 1, 3, x + 5, D - 1, 8, LEAD); const r = 2.5; hcyl(3, W - 3, D / 2, 6, r, '#cfe3ea'); hcyl(3, 8, D / 2, 6, r + 0.1, TIN); hcyl(W - 8, W - 3, D / 2, 6, r + 0.1, TIN); hcyl(8, W - 8, D / 2, 6, 0.15, '#999'); break; }
+      const L = s.lead || 10.16, [bw, bh] = s.body || [W, D]; const r = bh / 2, z = r + 0.6;
+      hcyl(0, L, 0, z, 0.3, LEAD, 12); hcyl((L - bw) / 2, (L + bw) / 2, 0, z, r, c); wire(0, 0, -3.2, z, 0.3); wire(L, 0, -3.2, z, 0.3);
+      if (e.grp === 'Diodes' || /diode|rectifier/i.test(e.name)) hcyl((L - bw) / 2 + bw * 0.12, (L - bw) / 2 + bw * 0.22, 0, z, r * 1.02, '#e9e9e9');
+      else if (/resistor/i.test(e.name)) ['#a0522d', '#111', '#d33', '#d4af37'].forEach((b, i) => hcyl((L - bw) / 2 + bw * (0.18 + i * 0.17), (L - bw) / 2 + bw * (0.26 + i * 0.17), 0, z, r * 1.03, b));
+      break; }
+    case 'radial': case 'drum': { const r = W / 2, p = s.pitch || 2.54; cyl(p / 2, 0, 0.4, H, r, c); if (s.kind === 'radial') { cyl(p / 2, 0, H - 0.01, H + 0.02, r * 0.85, TIN); add(new THREE.BoxGeometry(r * 0.5, 0.05, H * 0.9), '#e9e9e9', p / 2 - r * 0.5, -r * 0.87, H / 2 + 0.3, -0.5); } else { cyl(p / 2, 0, 0.4, 1.4, r * 1.05, '#2a2a2a'); cyl(p / 2, 0, H - 1, H, r * 1.05, '#2a2a2a'); cyl(p / 2, 0, 1.4, H - 1, r * 0.8, '#b87333'); }
+      wire(0, 0, -3.2, 0.4, 0.3); wire(p, 0, -3.2, 0.4, 0.3); break; }
+    case 'disc': { const p = s.pitch || 5; const g = new THREE.CylinderGeometry(W / 2, W / 2, D, 40); add(g, c, p / 2, 0, H - W / 2, 0, 0, 0); wire(0, 0, -3.2, H - W * 0.6, 0.3); wire(p, 0, -3.2, H - W * 0.6, 0.3); break; }
+    case 'drop': { const p = s.pitch || 2.54; const m = add(new THREE.SphereGeometry(W / 2, 24, 16), c, p / 2, 0, H - W / 2); m.scale.set(1, D / W, (H - 1) / W); wire(0, 0, -3.2, 1.5, 0.25); wire(p, 0, -3.2, 1.5, 0.25); break; }
+    case 'coincap': { cyl(W / 2, D / 2, 0.5, H, W / 2, '#1d1d1d'); cyl(W / 2, D / 2, H - 0.5, H, W / 2 * 0.95, TIN); wire(0.5, D / 2, -3.2, 1, 0.4); wire(W - 0.5, D / 2, -3.2, 1, 0.4); break; }
+    case 'aircoil': { const r = D / 2, turns = 6; for (let i = 0; i < turns; i++) add(new THREE.TorusGeometry(r, 0.35, 8, 24), '#b87333', 1 + i * (W - 2) / (turns - 1), 0, r + 1, 0, 0, Math.PI / 2); wire(0, 0, -3.2, r + 1, 0.35, '#b87333'); wire(W, 0, -3.2, r + 1, 0.35, '#b87333'); break; }
+    case 'toroid': { const R = W / 2; add(new THREE.TorusGeometry(R * 0.7, R * 0.3, 16, 40), '#3a3a3a', R, R, R * 0.3 + 0.5); for (let i = 0; i < 18; i++) { const a = i / 18 * Math.PI * 1.7; add(new THREE.TorusGeometry(R * 0.32, 0.25, 6, 16), '#b87333', R + Math.cos(a) * R * 0.7, R + Math.sin(a) * R * 0.7, R * 0.3 + 0.5, a, Math.PI / 2, 0); } wire(R - 5, R, -3.2, 1, 0.5, '#b87333'); wire(R + 5, R, -3.2, 1, 0.5, '#b87333'); break; }
+    case 'xfmr': { box(0, D * 0.15, 0, W, D * 0.85, H, '#5a5f66'); box(W * 0.2, 0, H * 0.15, W * 0.8, D, H * 0.85, '#2a2a2a'); box(W * 0.25, -0.1, H * 0.25, W * 0.75, D + 0.1, H * 0.75, '#d9a441'); for (let i = 0; i < n; i++) wire(W * 0.25 + (i % 2) * W * 0.5, i < 2 ? 2 : D - 2, -3.5, 0.1, 0.5); break; }
+    case 'xtal': { const p = s.pitch || 4.88; const m = box(-W / 2, -D / 2, 0.5, W / 2, D / 2, 0.5 + H, TIN); m.position.x += p / 2; box(-W / 2 + p / 2 - 0.3, -D / 2 - 0.3, 0.4, W / 2 + p / 2 + 0.3, D / 2 + 0.3, 0.8, '#d9dde2'); wire(0, 0, -3.2, 0.5, 0.22); wire(p, 0, -3.2, 0.5, 0.22); break; }
+    case 'axialv': { cyl(0, 0, 0.5, H, W / 2, TIN); wire(-0.35, 0, -3.2, 0.5, 0.12); wire(0.35, 0, -3.2, 0.5, 0.12); break; }
+    case 'pot': { const p = s.pitch || 5.08; if (W >= 12) { add(new THREE.CylinderGeometry(W / 2, W / 2, 7, 40), '#2a2d33', p, 4, W / 2 + 1, 0, Math.PI / 2, 0); add(new THREE.CylinderGeometry(3.5, 3.5, 7, 24), TIN, p, -2, W / 2 + 1, 0, Math.PI / 2, 0); add(new THREE.CylinderGeometry(3, 3, Math.max(8, H - 14), 24), '#c9ccd1', p, -6 - Math.max(8, H - 14) / 2, W / 2 + 1, 0, Math.PI / 2, 0); }
+      else { box(p - W / 2, -D / 2, 0.5, p + W / 2, D / 2, H, '#2d63c9'); cyl(p, 0, H, H + 0.5, W * 0.3, '#f2f2f2'); } for (let i = 0; i < 3; i++) wire(i * p, 0, -3.2, 1.5, 0.35); break; }
+    case 'to92': { const r = W / 2; const g = new THREE.CylinderGeometry(r, r, H, 32, 1, false, -Math.PI / 2, Math.PI); add(g, c, 2.54, 0.2, 2.5 + H / 2, 0, Math.PI / 2, 0); for (let i = 0; i < n; i++) leg(i * (s.pitch || 2.54), 0, -3.2, 2.5, 0.45, 0.4); break; }
+    case 'tocan': { const r = W / 2; cyl(0, 0, 1, 1 + H, r * 0.92, TIN); cyl(0, 0, 1, 1.4, r * 1.05, TIN); cyl(0, 0, 1 + H, 1.05 + H, r * 0.35, '#2a2a2a'); add(new THREE.BoxGeometry(0.8, 0.8, 0.4), TIN, r, 0, 1.2); for (let i = 0; i < n; i++) { const a = i / n * Math.PI * 2; wire(Math.cos(a) * r * 0.45, Math.sin(a) * r * 0.45, -3.2, 1, 0.22); } break; }
+    case 'to220': case 'to247': { const big = s.kind === 'to247'; const bodyH = big ? 20 : 9, tabH = big ? 0 : 6.5, th = big ? 5 : 4.5, p = s.pitch || 2.54; const x0 = p * (n - 1) / 2;
+      box(x0 - W / 2, 0, 3, x0 + W / 2, th, 3 + bodyH, c); if (!big) { box(x0 - W / 2, th - 1.3, 3 + bodyH, x0 + W / 2, th, 3 + bodyH + tabH, TIN); add(new THREE.CylinderGeometry(1.8, 1.8, 1.4, 24), '#111', x0, th - 0.65, 3 + bodyH + 3); }
+      else { add(new THREE.CylinderGeometry(1.8, 1.8, th + 0.2, 24), '#111', x0, th / 2, 3 + bodyH - 4.5); box(x0 - W / 2, th - 0.6, 3, x0 + W / 2, th, 3 + bodyH, TIN); }
+      for (let i = 0; i < n; i++) leg(i * p, th / 2, -3.2, 3, big ? 1.2 : 0.8, 0.45); break; }
+    case 'chassis': { box(0, 0, 0, W, D, H, c); cyl(W / 2, D / 2, H - 0.1, H + 0.02, 2.6, '#111'); for (const [x, y] of [[3, 3], [W - 3, 3], [3, D - 3], [W - 3, D - 3]]) box(x - 3.2, y - 0.4, H, x + 3.2, y + 0.4, H + 8, TIN); break; }
+    case 'relay': { box(0, 0, 0.5, W, D, H, c); const pts = [[1.5, 1.5], [1.5, D - 1.5], [W - 3.5, D / 2 - 3.5], [W - 3.5, D / 2 + 3.5], [W - 1.5, D / 2]]; pts.slice(0, n).forEach(([x, y]) => leg(x, y, -3.2, 0.5, 0.7, 0.4)); break; }
+    case 'din': { box(0, 0, 0, W, D, H * 0.6, c); box(W * 0.1, D * 0.2, H * 0.6, W * 0.9, D * 0.8, H, c); box(W * 0.25, D * 0.35, H, W * 0.75, D * 0.65, H + 0.3, '#f2f2f2'); for (let i = 0; i < Math.min(n, 8); i++) { const top = i < Math.ceil(n / 2), k = top ? i : i - Math.ceil(n / 2); cyl(W * (0.15 + k * 0.7 / Math.max(1, Math.ceil(n / 2) - 1)), top ? 4 : D - 4, H * 0.6, H * 0.6 + 0.4, 2, TIN); } box(-0.5, D * 0.45, 0, W + 0.5, D * 0.55, 3, '#555'); break; }
+    case 'card': { const g = new THREE.Shape(); g.moveTo(0, 0); g.lineTo(W, 0); g.lineTo(W, D * 0.7); g.lineTo(W * 0.85, D * 0.8); g.lineTo(W * 0.85, D); g.lineTo(0, D); g.lineTo(0, 0); add(new THREE.ExtrudeGeometry(g, { depth: H, bevelEnabled: false }), c, 0, 0, 0); for (let i = 0; i < n; i++) box(1 + i * (W - 2) / n, D - 3.5, H, 1 + (i + 0.6) * (W - 2) / n, D - 0.8, H + 0.02, GOLD); break; }
+    case 'box': { box(0, 0, 0, W, D, H, c); if (e.mark) box(W * 0.15, D * 0.3, H, W * 0.85, D * 0.7, H + 0.02, MARK);
+      if (s.axialLeads) { const L = s.pitch || W + 6; hcyl((W - L) / 2, (W + L) / 2, D / 2, H / 2, 0.4, LEAD, 12); }
+      else { const p = s.pitch && s.pitch <= 10 ? s.pitch : 2.54; const g2 = s.grid; for (let i = 0; i < n; i++) { const x = g2 ? (i % g2[0]) * p : i * p, y = g2 ? Math.floor(i / g2[0]) * p : 0; const ox = (W - (g2 ? (g2[0] - 1) * p : (n - 1) * p)) / 2; wire(ox + x, D / 2 + y - (g2 ? (g2[1] - 1) * p / 2 : 0), -3.2, 0.1, 0.3); } } break; }
+    default: { // module: a board with its main part, pins along one or two edges
+      const t = 1.6, top = Math.max(H, 2.5); box(0, 0, 0, W, D, t, c);
+      const iw = Math.min(W * 0.55, Math.max(4, W - 8)), id = Math.min(D * 0.55, Math.max(4, D - 8)); box((W - iw) / 2, (D - id) / 2, t, (W + iw) / 2, (D + id) / 2, Math.min(top, t + Math.max(1, (top - t))), /sensor|camera|display/i.test(e.grp) ? '#2a2a2a' : '#1d1d1d');
+      if (e.mark) dot((W - iw) / 2 + 1, (D - id) / 2 + 1, Math.min(top, t + Math.max(1, top - t)), 0.5);
+      const rows = n > 12 && W >= 10 ? 2 : 1; const per = Math.ceil(n / rows); const along = W >= D; const len = along ? W : D; const p = Math.min(2.54, (len - 2) / Math.max(1, per)); const o = (len - (per - 1) * p) / 2;
+      for (let i = 0; i < n; i++) { const r = Math.floor(i / per), k = i % per; const a = o + k * p, b = r === 0 ? 1.27 : (along ? D : W) - 1.27; const x = along ? a : b, y = along ? b : a; wire(x, y, -3, t + 0.05, Math.min(0.32, p * 0.2), GOLD); }
+      break; }
+  }
+}
+if (PLIB) for (const e of PLIB.LIST) { if (BOARDS[e.name]) continue; const [w, d, h] = e.dims; PL3D[e.name] = e; BOARDS[e.name] = { w: +(+w).toFixed(2), d: +(+d).toFixed(2), g: e.sec, sub: e.grp, note: `${e.pkg}, ${PLIB.dimText(e)}` }; }
 
 
 /* ---------------- document ---------------- */
@@ -881,8 +965,17 @@ $('#viewSel').addEventListener('change', e => { const v = e.target.value; e.targ
 $('#wpSel').addEventListener('change', e => { const [w, h] = e.target.value.split('x').map(Number); SET.gridW = w; SET.gridH = h; applySettings(); });
 (() => { const ws = $('#wpSel'); const v = SET.gridW + 'x' + SET.gridH; if (![...ws.options].some(o => o.value === v)) ws.add(new Option(SET.gridW + '×' + SET.gridH, v)); ws.value = v; })();
 document.querySelectorAll('[data-shape]').forEach(b => b.addEventListener('click', () => addPrimitive(b.dataset.shape, { hole: b.dataset.hole === '1' })));
-function listBoards(q) { q = (q || '').trim().toLowerCase(); const grp = {}; for (const k of Object.keys(BOARDS)) { const g = BOARDS[k].g || 'Boards'; if (q && !(k + ' ' + g + ' ' + BOARDS[k].note).toLowerCase().includes(q)) continue; (grp[g] = grp[g] || []).push(k); }
-  $('#boards').innerHTML = `<input id="bq3" type="search" placeholder="Search boards, sensors, drone parts, motors" value="${q.replace(/"/g, '')}" style="height:28px;border:1px solid var(--line);border-radius:4px;padding:0 8px;font:12px var(--font);margin-bottom:4px">` + ['Boards', 'Sensors', 'Drone', 'Motors', 'Tools'].filter(g => grp[g]).map(g => `<div class="muted" style="margin:6px 0 2px;font-weight:600">${g}</div>` + grp[g].map(k => `<button class="bl" data-board="${k}"><b>${k}</b><span>${BOARDS[k].w} × ${BOARDS[k].d} mm</span></button>`).join('')).join('') + (Object.keys(grp).length ? '' : '<div class="muted">Nothing matches</div>');
+const BOPEN = new Set();
+function listBoards(q) { q = (q || '').trim().toLowerCase(); const grp = {}; for (const k of Object.keys(BOARDS)) { const B = BOARDS[k]; const g = B.g || 'Boards'; if (q && !(k + ' ' + g + ' ' + (B.sub || '') + ' ' + B.note).toLowerCase().includes(q)) continue; (grp[g] = grp[g] || []).push(k); }
+  const btn = k => `<button class="bl" data-board="${k.replace(/"/g, '&quot;')}" title="${BOARDS[k].note.replace(/"/g, '&quot;')}"><b>${k}</b><span>${BOARDS[k].w} × ${BOARDS[k].d} mm</span></button>`;
+  const first = ['Boards', 'Sensors', 'Drone', 'Motors', 'Power', 'Modules', 'Tools']; const cat = PLIB ? Object.values(PLIB.SEC) : [];
+  const order = [...first.filter(g => grp[g]), ...Object.keys(grp).filter(g => !first.includes(g) && !cat.includes(g)), ...cat.filter(g => grp[g])];
+  $('#boards').innerHTML = `<input id="bq3" type="search" placeholder="Search boards, sensors, parts and packages" value="${q.replace(/"/g, '')}" style="height:28px;border:1px solid var(--line);border-radius:4px;padding:0 8px;font:12px var(--font);margin-bottom:4px">` + order.map(g => {
+    if (!cat.includes(g)) return `<div class="muted" style="margin:6px 0 2px;font-weight:600">${g}</div>` + grp[g].map(btn).join('');
+    const subs = {}; for (const k of grp[g]) (subs[BOARDS[k].sub] = subs[BOARDS[k].sub] || []).push(k);
+    return `<div class="muted" style="margin:8px 0 2px;font-weight:600">${g}</div>` + Object.keys(subs).map(sb => { const id = g + '|' + sb; const open = q || BOPEN.has(id); return `<details data-g="${id.replace(/"/g, '&quot;')}"${open ? ' open' : ''} style="margin:0 0 2px 2px"><summary style="cursor:pointer;font-size:12px;padding:3px 0">${sb} <span class="muted">${subs[sb].length}</span></summary>${open ? subs[sb].map(btn).join('') : ''}</details>`; }).join('');
+  }).join('') + (order.length ? '' : '<div class="muted">Nothing matches</div>');
+  $('#boards').querySelectorAll('details[data-g]').forEach(d => d.addEventListener('toggle', () => { const id = d.dataset.g; if (d.open) { if (q || BOPEN.has(id)) return; BOPEN.add(id); listBoards($('#bq3').value); } else BOPEN.delete(id); }));
   const i = $('#bq3'); i.oninput = () => { const pos = i.selectionStart; listBoards(i.value); const j = $('#bq3'); j.focus(); j.setSelectionRange(pos, pos); }; }
 listBoards('');
 $('#boards').addEventListener('click', e => { const b = e.target.closest('[data-board]'); if (b) addBoard(b.dataset.board); });
@@ -908,4 +1001,4 @@ loop();
   rebuildAll(); dirtyTitle(false); fitView(objs);
   setInterval(() => { try { localStorage.setItem('cesim3d.autosave', JSON.stringify({ format: 'CEsim3D', name: docName, objs })) } catch (e) { } }, 4000);
 })();
-window.CE3D = { openSettings3, SET: () => SET, controls, csvReport, exportSVG3, openShot3, openArray, openShell, openEnclosure, buildEnclosure, BOARDS, to3MF, exportScene, copySel3, paste3, objs: () => objs, addPrimitive, addBoard, groupSel, selectOnly, exportAs, openFile, sel: () => sel, measure: (a, b) => addMeasure(new THREE.Vector3(...a), new THREE.Vector3(...b)), fitView };
+window.CE3D = { buildBoard, openSettings3, SET: () => SET, controls, csvReport, exportSVG3, openShot3, openArray, openShell, openEnclosure, buildEnclosure, BOARDS, to3MF, exportScene, copySel3, paste3, objs: () => objs, addPrimitive, addBoard, groupSel, selectOnly, exportAs, openFile, sel: () => sel, measure: (a, b) => addMeasure(new THREE.Vector3(...a), new THREE.Vector3(...b)), fitView };

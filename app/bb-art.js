@@ -375,5 +375,42 @@ function cell(pr,volts){const k=pr.kind||'',X=BBX_LOOK(k);const sh=X.shape||'cyl
  b+=`<text x="0" y="-3" font-size="7" fill="#c62828" text-anchor="middle" font-weight="700">+</text><text x="20" y="-3" font-size="8" fill="#1b2230" text-anchor="middle" font-weight="700">−</text>`;return b}
 function BBX_LOOK(k){const X=(root.BBX&&root.BBX.BY['battery:'+k])||null;return X&&X.m3d?Object.assign({},X.m3d,{m3shape:X.m3d.shape,shape:X.look&&X.look.shape==='coin'?'coin':X.look&&X.look.shape==='pack'?(X.m3d.shape==='holder'?'pack':'pack'):X.look&&X.look.shape==='box'?'box':X.look&&X.look.shape==='solar'?'solar':'cyl'}):{shape:'cyl'}}
 
-root.BBART={xmod,cell,setFrac,nema17,solenoid,scope,fgen,logicprobe,fc,sht31,mlx90640,lidar,camera,mpu6050,piezo,vibration,mic,lipo,esc,bldc,frame,l298n,dcMotor,esp32s3,install,pcb,breadboard,resistor,diode,led5,ceramic,electrolytic,to92,dip,tactile,slide,pot,battery9,unoBoard,piBoard,genericBoard,esp32,leg};
+/* ---- parts catalog: a drawing for each package ---- */
+function plibEsc(t){return String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+function plibFlex(a,b,e){const s=e.spec,dx=b[0]-a[0],dy=b[1]-a[1],len=Math.hypot(dx,dy)||1,ang=Math.atan2(dy,dx)*180/Math.PI,mx=(a[0]+b[0])/2,my=(a[1]+b[1])/2;const col=e.color||'#1d1d1d';
+ let body='';const line=`<line x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}" stroke="#a9adb3" stroke-width="1.6" stroke-linecap="round"/>`;
+ if(s.kind==='axial'||s.kind==='fuse'){const bl=Math.min(len-6,Math.max(12,(s.body?s.body[0]:8)*3)),bh=Math.max(6,(s.body?s.body[1]:3)*2.4);
+  body=`<g transform="translate(${mx} ${my}) rotate(${ang})"><rect x="${-bl/2}" y="${-bh/2}" width="${bl}" height="${bh}" rx="${bh/2}" fill="${col}" stroke="#0005" stroke-width=".5"/>${s.band?`<rect x="${-bl/2+2}" y="${-bh/2}" width="2.4" height="${bh}" fill="#ddd"/>`:''}${s.glass?`<rect x="${-bl/2+3}" y="${-bh/2+1}" width="${bl-6}" height="${bh-2}" rx="1" fill="#ffffff55"/>`:''}</g>`;
+  return line+body}
+ // radial, disc and similar parts stand up on two legs
+ const nx=-dy/len,ny=dx/len,up=ny>0?-1:1,cx=mx+nx*up*12,cy=my+ny*up*12;const r=Math.max(6,Math.min(16,e.dims[0]*1.2));
+ let shape;switch(s.kind){case'disc':shape=`<ellipse cx="${cx}" cy="${cy}" rx="${r}" ry="${r*.8}" fill="${col}" stroke="#0004"/>`;break;
+  case'radial':shape=`<circle cx="${cx}" cy="${cy}" r="${r}" fill="${col}" stroke="#0006"/><path d="M${cx-r*.5} ${cy-r*.75} a${r} ${r} 0 0 1 ${r} 0" fill="none" stroke="#ffffff66" stroke-width="2"/><rect x="${cx+r*.55}" y="${cy-r*.8}" width="${r*.25}" height="${r*1.6}" fill="#e9edf2" opacity=".8"/>`;break;
+  case'xtal':shape=`<rect x="${cx-r}" y="${cy-r*.45}" width="${2*r}" height="${r*.9}" rx="${r*.45}" fill="#c9ccd1" stroke="#7d848c"/>`;break;
+  default:shape=`<rect x="${cx-r*.8}" y="${cy-r*.7}" width="${r*1.6}" height="${r*1.4}" rx="2" fill="${col}" stroke="#0005"/>`}
+ return `<line x1="${a[0]}" y1="${a[1]}" x2="${cx}" y2="${cy}" stroke="#a9adb3" stroke-width="1.6"/><line x1="${b[0]}" y1="${b[1]}" x2="${cx}" y2="${cy}" stroke="#a9adb3" stroke-width="1.6"/><g filter="url(#aShS)">${shape}</g><text x="${cx}" y="${cy+r+7}" font-size="5" text-anchor="middle" fill="#445" font-family="IBM Plex Mono">${plibEsc(e.mark)}</text>`}
+function plib(svg,L,p){const e=L.plib,s=e.spec,legs=L.legs,col=e.color||'#1d1d1d';const xs=legs.map(l=>l[0]*10),ys=legs.map(l=>l[1]*10);const x0=Math.min(...xs),x1=Math.max(...xs),y1=Math.max(...ys);const W=x1-x0;let b='';
+ const lbl=(x,y,t,sz,c)=>`<text x="${x}" y="${y}" font-size="${sz||5}" fill="${c||'#d4d6d9'}" text-anchor="middle" font-family="IBM Plex Mono">${plibEsc(t)}</text>`;
+ const leg=(x,y1_,y2)=>`<line x1="${x}" y1="${y1_}" x2="${x}" y2="${y2}" stroke="#c6cbd1" stroke-width="1.6"/>`;
+ if(!L.offboard){
+  if(s.kind==='dip'){const h=legs.length/2,row=legs[0][1]*10;for(const[x,y]of legs)b+=`<rect x="${x*10-1.6}" y="${y===0?-1:row-6}" width="3.2" height="7" rx=".6" fill="url(#aMetal)"/>`;
+   b+=`<g filter="url(#aShS)"><rect x="-5.5" y="4" width="${W+11}" height="${row-8}" rx="1.4" fill="url(#aIC)" stroke="#000" stroke-width=".4"/><path d="M-5.5 ${row/2-4} a4 4 0 0 1 0 8" fill="#0f1011"/><circle cx="0" cy="${row-8.5}" r="1.3" fill="#0f1011"/></g>`+lbl(W/2,row/2+2.5,e.mark,Math.min(7,Math.max(4,(W+8)/Math.max(4,e.mark.length)*1.5)));return b}
+  const n=legs.length;for(const x of xs)b+=leg(x,-4,0);
+  switch(s.kind){
+   case'to92':b+=`<g filter="url(#aShS)"><path d="M${x0-3.5} -3 V-15 A${W/2+3.5} 9 0 0 1 ${x1+3.5} -15 V-3 Z" fill="#1b1b1c"/></g>`+lbl(W/2,-9,e.mark,4.2,'#c9c9c9');break;
+   case'tocan':b+=`<g filter="url(#aShS)"><circle cx="${W/2}" cy="-14" r="11" fill="url(#aMetal)" stroke="#7d848c"/><circle cx="${W/2}" cy="-14" r="8" fill="#c9ccd1"/></g>`+lbl(W/2,-12,e.mark,4,'#333');break;
+   case'to220':case'to247':{const bw=Math.max(W+12,s.kind==='to247'?44:30);b+=`<g filter="url(#aShS)"><rect x="${W/2-bw/2}" y="-58" width="${bw}" height="16" rx="1" fill="url(#aMetal)" stroke="#7d848c"/><circle cx="${W/2}" cy="-50" r="4" fill="#dfe5ec" stroke="#7d848c"/><rect x="${W/2-bw/2}" y="-44" width="${bw}" height="40" rx="1.5" fill="#1b1b1c"/></g>`+lbl(W/2,-22,e.mark,Math.min(6,bw/Math.max(4,e.mark.length)*1.6));break}
+   case'pot':b+=`<g filter="url(#aShS)"><rect x="-8" y="-38" width="${W+16}" height="34" rx="3" fill="${col}"/><circle cx="${W/2}" cy="-24" r="11" fill="#9aa3ad" stroke="#555"/><rect x="${W/2-1.5}" y="-34" width="3" height="10" fill="#444"/></g>`;break;
+   default:{const bw=Math.max(W+14,22),bh=Math.max(16,Math.min(40,e.dims[2]*2.6));b+=`<g filter="url(#aShS)"><rect x="${W/2-bw/2}" y="${-4-bh}" width="${bw}" height="${bh}" rx="2" fill="${col}" stroke="#0005"/></g>`+lbl(W/2,-4-bh/2+2,e.mark,Math.min(6,bw/Math.max(4,e.mark.length)*1.6),'#222')}
+  }
+  return b}
+ // beside the breadboard: the part on its own small board with labelled pins
+ const big=s.kind==='module'||s.kind==='din'||s.kind==='chassis';const top=-48,bx=x0-9,bw=W+18,bh=y1-top+16;
+ b+=`<g filter="url(#aSh)"><rect x="${bx}" y="${top}" width="${bw}" height="${bh}" rx="3" fill="${big?pcb(svg,col.length===7?col:'#1f5fae'):pcb(svg,'#1f5fae')}" stroke="#0006"/></g>`;
+ for(let i=0;i<legs.length;i++){const[x,y]=[xs[i],ys[i]];b+=`<circle cx="${x}" cy="${y}" r="3" fill="url(#aGold)"/><circle cx="${x}" cy="${y}" r="1.3" fill="#2a2a2a"/>`;const t=e.pins[i]||'';b+=`<text x="${x}" y="${y+(ys[i]===y1?8.5:-4.5)}" font-size="${t.length>4?2.6:3.2}" fill="#f4f7f5" text-anchor="middle" font-family="IBM Plex Mono">${plibEsc(t.slice(0,8))}</text>`}
+ const cw=Math.min(bw-10,Math.max(16,e.dims[0]*2.2)),ch=Math.min(30,Math.max(8,e.dims[1]*2.2)),cx=bx+bw/2,cy=top+20;
+ if(!big)b+=`<rect x="${cx-cw/2}" y="${cy-ch/2}" width="${cw}" height="${ch}" rx="1" fill="${col}" stroke="#000" stroke-width=".4"/>`+(s.kind==='quad'||s.kind==='gull'||s.kind==='sot'?`<circle cx="${cx-cw/2+2.5}" cy="${cy-ch/2+2.5}" r="1" fill="#555"/>`:'');
+ b+=lbl(cx,big?cy:cy+1.8,e.mark,Math.min(6,Math.max(3.2,cw/Math.max(4,e.mark.length)*1.7)),big?'#f4f7f5':'#d4d6d9');
+ b+=`<text x="${cx}" y="${top+bh-3}" font-size="3.4" fill="#e8eef5" text-anchor="middle" font-family="IBM Plex Sans">${plibEsc(s.label)}</text>`;return b}
+root.BBART={plib,plibFlex,xmod,cell,setFrac,nema17,solenoid,scope,fgen,logicprobe,fc,sht31,mlx90640,lidar,camera,mpu6050,piezo,vibration,mic,lipo,esc,bldc,frame,l298n,dcMotor,esp32s3,install,pcb,breadboard,resistor,diode,led5,ceramic,electrolytic,to92,dip,tactile,slide,pot,battery9,unoBoard,piBoard,genericBoard,esp32,leg};
 })(typeof window!=='undefined'?window:globalThis);

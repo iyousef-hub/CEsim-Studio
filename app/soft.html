@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link href="fonts/fonts.css" rel="stylesheet"><title>CEsim Software design</title>
+<style>
+:root{--bg:#eef1f5;--panel:#f7f8fa;--line:#cdd3dc;--text:#1b2230;--dim:#5e6979;--hover:#e1e7ef;--accent:#185fa5;--font:"IBM Plex Sans",-apple-system,"Segoe UI",Roboto,Arial,sans-serif;--mono:"IBM Plex Mono",ui-monospace,Menlo,monospace}
+*{box-sizing:border-box}html,body{height:100%;margin:0}body{background:var(--bg);color:var(--text);font:13px/1.4 var(--font);display:flex;flex-direction:column;overflow:hidden}
+#top{display:flex;align-items:center;gap:6px;padding:6px 12px;background:var(--panel);border-bottom:1px solid var(--line);flex-wrap:wrap}
+.logo{width:24px;height:24px;border-radius:6px;background:var(--accent);color:#fff;display:grid;place-items:center;font:600 10px var(--mono)}
+.title{font-weight:600;margin-right:6px}
+.btn{height:30px;padding:0 11px;border:1px solid var(--line);border-radius:5px;background:#fff;color:var(--text);cursor:pointer;font:12.5px var(--font);white-space:nowrap}.btn:hover{background:var(--hover)}.btn.pri{background:var(--accent);border-color:var(--accent);color:#fff}.btn.on{background:#d3e4f7;border-color:#93b8e0}
+.btn:disabled{opacity:.45;cursor:default}
+.sep{width:1px;height:22px;background:var(--line);margin:0 3px}
+input.nm{height:30px;border:1px solid var(--line);border-radius:5px;padding:0 9px;font:600 13px var(--font);width:190px}
+select.sl{height:30px;border:1px solid var(--line);border-radius:5px;padding:0 6px;font:12.5px var(--font);background:#fff}
+#tabs{display:flex;align-items:flex-end;gap:2px;padding:5px 10px 0;background:var(--panel);border-bottom:1px solid var(--line);overflow-x:auto}
+.dt{display:flex;align-items:center;gap:6px;height:30px;padding:0 6px 0 12px;border:1px solid var(--line);border-bottom:0;border-radius:6px 6px 0 0;background:#e8ecf1;cursor:pointer;font-size:12.5px;white-space:nowrap;color:var(--dim)}
+.dt.on{background:#fff;color:var(--text);font-weight:600;margin-bottom:-1px;height:31px}.dt small{font-weight:400;color:var(--dim);font-size:11px}
+.dt .x{border:0;background:none;cursor:pointer;color:#8a94a3;font-size:15px;line-height:1;padding:1px 5px;border-radius:4px}.dt .x:hover{background:#fde8e8;color:#b3261e}
+#addTab{height:28px;margin-bottom:2px;border:1px dashed #9aa6b6;background:none;border-radius:6px;padding:0 10px;cursor:pointer;font:12.5px var(--font);color:var(--accent)}
+#body{flex:1;display:grid;grid-template-columns:210px minmax(0,1fr) 300px;min-height:0}
+#pal{border-right:1px solid var(--line);background:var(--panel);overflow:auto;padding:8px 10px 16px}
+#pal h3{font-size:11.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--dim);margin:12px 2px 6px}
+.pg{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.pi{display:flex;flex-direction:column;align-items:center;gap:3px;border:1px solid var(--line);background:#fff;border-radius:7px;padding:6px 4px 5px;cursor:pointer;font:11px/1.2 var(--font);color:var(--text);text-align:center;min-height:66px}.pi:hover{border-color:#93b8e0;background:#f5f9fe}.pi.on{background:#d3e4f7;border-color:#5b8fd0}
+.pi svg{width:72px;height:36px}
+.pl{display:flex;align-items:center;gap:8px;width:100%;border:1px solid transparent;background:none;border-radius:6px;padding:4px 6px;cursor:pointer;font:12px var(--font);color:var(--text);text-align:left}.pl:hover{background:#fff;border-color:var(--line)}.pl.on{background:#d3e4f7;border-color:#93b8e0}
+.pl svg{width:56px;height:18px;flex:none}
+#cv{position:relative;overflow:hidden;background:#fbfcfd;background-image:radial-gradient(#d9dee6 1px,transparent 1px);background-size:20px 20px;outline:none}
+#cv svg#S{position:absolute;inset:0;width:100%;height:100%;user-select:none}
+#cv.conn{cursor:crosshair}
+.nd{cursor:move}
+#zoom{position:absolute;right:10px;bottom:10px;display:flex;gap:4px}
+#zoom .btn{height:28px;width:30px;padding:0}
+#hint{position:absolute;left:10px;bottom:10px;font-size:11.5px;color:var(--dim);background:rgba(255,255,255,.85);padding:4px 8px;border-radius:5px;pointer-events:none;max-width:70%}
+#insp{border-left:1px solid var(--line);background:#fff;overflow:auto;padding:12px 14px 20px}
+#insp h4{margin:0 0 8px;font-size:13px}#insp .k{font-size:11.5px;color:var(--dim);margin:-4px 0 10px}
+.fl{display:block;font-size:11.5px;color:var(--dim);margin:10px 0 3px}
+.fi,.ft,.fs{width:100%;border:1px solid var(--line);border-radius:5px;padding:5px 7px;font:12.5px var(--font);color:var(--text);background:#fff}
+.ft{font:12px/1.5 var(--mono);min-height:80px;resize:vertical}
+.fc{display:flex;align-items:center;gap:6px;margin:10px 0 0;font-size:12.5px}
+.row{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}
+table.cols{width:100%;border-collapse:collapse;font-size:11.5px;margin-top:4px}
+.cols th{font-weight:500;color:var(--dim);text-align:left;padding:2px 2px;font-size:10.5px}
+.cols td{padding:1px 1px}
+.cols input[type=text]{width:100%;border:1px solid var(--line);border-radius:4px;padding:3px 4px;font:11.5px var(--mono)}
+.cols select{width:100%;border:1px solid var(--line);border-radius:4px;padding:2px;font:11px var(--font);max-width:84px}
+.cols .del{border:0;background:none;color:#8a94a3;cursor:pointer;font-size:14px;padding:0 3px}.cols .del:hover{color:#b3261e}
+.chk{list-style:none;padding:0;margin:6px 0 0}.chk li{padding:6px 8px;border-radius:6px;margin-bottom:4px;font-size:12px;cursor:pointer;border:1px solid transparent}.chk li:hover{border-color:var(--line)}
+.chk .error{background:#fdecec;color:#8c1d18}.chk .warn{background:#fff6e0;color:#7a4b00}.chk .info{background:#eef4fc;color:#1d4f86}.chk .ok{background:#e9f7ee;color:#1f6b3a}
+.menu{position:fixed;z-index:60;background:#fff;border:1px solid var(--line);border-radius:7px;box-shadow:0 8px 24px rgba(16,24,40,.16);padding:4px;min-width:210px;max-height:80vh;overflow:auto}
+.menu button{display:flex;justify-content:space-between;gap:14px;width:100%;border:0;background:none;text-align:left;padding:6px 10px;border-radius:5px;cursor:pointer;font:12.5px var(--font);color:var(--text)}.menu button:hover{background:var(--hover)}.menu .mh{font-size:11px;color:var(--dim);padding:6px 10px 2px;text-transform:uppercase;letter-spacing:.04em}.menu hr{border:0;border-top:1px solid #eef1f4;margin:4px 0}
+.menu button small{color:var(--dim)}
+.ov{position:fixed;inset:0;background:rgba(15,23,42,.35);display:grid;place-items:center;z-index:70}
+.mdl{background:#fff;border-radius:10px;width:min(860px,94vw);max-height:90vh;display:flex;flex-direction:column;box-shadow:0 20px 50px rgba(0,0,0,.25)}
+.mdl .mh2{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid #eef1f4}.mdl .mh2 b{flex:1}
+.mdl textarea{flex:1;min-height:360px;border:0;padding:12px 14px;font:12px/1.5 var(--mono);resize:none;outline:none}
+.mdl .mf{display:flex;gap:8px;justify-content:flex-end;padding:10px 14px;border-top:1px solid #eef1f4;align-items:center}.mdl .mf .note{flex:1;font-size:11.5px;color:var(--dim)}
+.picker{padding:12px 16px;overflow:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+.picker h5{grid-column:1/-1;margin:6px 0 -4px;font-size:11.5px;color:var(--dim);text-transform:uppercase;letter-spacing:.04em}
+.pk{border:1px solid var(--line);border-radius:8px;padding:10px 12px;cursor:pointer;background:#fff;text-align:left;font:12.5px var(--font)}.pk:hover{border-color:#5b8fd0;background:#f5f9fe}.pk b{display:block;margin-bottom:3px}.pk span{color:var(--dim);font-size:11.5px}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#1b2230;color:#fff;padding:9px 14px;border-radius:6px;font-size:12.5px;z-index:90;max-width:80vw}
+button:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+[hidden]{display:none!important}
+</style></head><body>
+<div id="top"><div class="logo">CE</div><span class="title">Software design</span>
+ <input class="nm" id="pname" aria-label="Project name" spellcheck="false">
+ <button class="btn" id="bNew">New</button><button class="btn" id="bOpen">Open</button><button class="btn" id="bSave">Save</button><button class="btn" id="bEx">Examples ▾</button>
+ <span class="sep"></span><button class="btn" id="bUndo" title="Undo (Ctrl+Z)">Undo</button><button class="btn" id="bRedo" title="Redo (Ctrl+Y)">Redo</button><button class="btn" id="bDel" title="Delete (Del)">Delete</button>
+ <span class="sep"></span><button class="btn" id="bLayout" title="Arrange the shapes again">Arrange</button><button class="btn" id="bOrtho" title="Draw lines with right angles">Right angles</button>
+ <select class="sl" id="notation" aria-label="Notation" title="Notation"></select>
+ <button class="btn" id="bCheck">Check</button>
+ <span class="sep"></span><button class="btn" id="bImp">Import ▾</button><button class="btn pri" id="bExp">Export ▾</button>
+ <input type="file" id="fileIn" accept=".cesoft,.json,.sql,.txt,.java,.cs,.py,.ts,.h,.hpp,.cpp" hidden>
+</div>
+<div id="tabs"></div>
+<div id="body">
+ <aside id="pal" aria-label="Shapes"></aside>
+ <section id="cv" tabindex="0"><svg id="S" xmlns="http://www.w3.org/2000/svg" font-family="IBM Plex Sans, Segoe UI, Arial, sans-serif"><g id="W"></g><g id="Wx"></g></svg>
+  <div id="hint"></div><div id="zoom"><button class="btn" id="zOut" title="Zoom out">−</button><button class="btn" id="zFit" title="Fit">⤢</button><button class="btn" id="zIn" title="Zoom in">+</button></div></section>
+ <aside id="insp" aria-label="Properties"></aside>
+</div>
+<script src="soft-core.js"></script>
+<script>
+'use strict';
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];const N=window.cesimNative;
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function toast(m,bad){$$('.toast').forEach(t=>t.remove());const d=document.createElement('div');d.className='toast';if(bad)d.style.background='#8c1d18';d.textContent=m;document.body.appendChild(d);setTimeout(()=>d.remove(),3400)}
+const KEY='cesim.soft';
+let DOC=null,filePath=null;const ST={sel:new Set(),view:{s:1,ox:40,oy:40},conn:null,lastEdge:{},undo:[],redo:[],drag:null,checks:null,clip:null};
+const dg=()=>DOC.diagrams.find(d=>d.id===DOC.active)||DOC.diagrams[0];
+const NODE=id=>dg().nodes.find(n=>n.id===id),EDGE=id=>dg().edges.find(e=>e.id===id);
+/* ---------- history ---------- */
+function snap(){ST.undo.push(JSON.stringify(DOC));if(ST.undo.length>200)ST.undo.shift();ST.redo=[]}
+function undo(){if(!ST.undo.length)return;ST.redo.push(JSON.stringify(DOC));DOC=JSON.parse(ST.undo.pop());ST.sel.clear();full()}
+function redo(){if(!ST.redo.length)return;ST.undo.push(JSON.stringify(DOC));DOC=JSON.parse(ST.redo.pop());ST.sel.clear();full()}
+function store(){try{localStorage.setItem(KEY,JSON.stringify(DOC))}catch(e){}}
+/* ---------- drawing ---------- */
+let RES=null;
+function draw(){const d=dg();RES=SOFT.render(d,{sel:ST.sel});$('#W').innerHTML=RES.svg;applyView();handles();store();$('#bUndo').disabled=!ST.undo.length;$('#bRedo').disabled=!ST.redo.length}
+function applyView(){const v=ST.view;$('#W').setAttribute('transform',`translate(${v.ox} ${v.oy}) scale(${v.s})`);$('#Wx').setAttribute('transform',`translate(${v.ox} ${v.oy}) scale(${v.s})`)}
+function handles(){let s='';const d=dg();if(ST.sel.size===1&&!SOFT.TYPES[d.type].special){const n=NODE([...ST.sel][0]);if(n&&RES.boxes[n.id]){const b=RES.boxes[n.id];s=`<g data-link="${n.id}" style="cursor:crosshair"><circle cx="${b.x+b.w+14}" cy="${b.y+b.h/2}" r="7" fill="#2563eb"/><path d="M${b.x+b.w+10} ${b.y+b.h/2}h8m-3 -3l3 3l-3 3" stroke="#fff" stroke-width="1.4" fill="none"/></g>`}}$('#Wx').innerHTML=s}
+function fit(){const d=dg();const r=SOFT.render(d,{});const [x,y,w,h]=r.vb;const R0=$('#cv').getBoundingClientRect();const s=Math.min(1.6,Math.max(.2,Math.min((R0.width-40)/w,(R0.height-40)/h)));ST.view={s,ox:(R0.width-w*s)/2-x*s,oy:(R0.height-h*s)/2-y*s};applyView()}
+function toWorld(e){const r=$('#cv').getBoundingClientRect();return[(e.clientX-r.left-ST.view.ox)/ST.view.s,(e.clientY-r.top-ST.view.oy)/ST.view.s]}
+function zoomAt(f,cx,cy){const r=$('#cv').getBoundingClientRect();if(cx==null){cx=r.width/2;cy=r.height/2}const v=ST.view;const ns=Math.min(4,Math.max(.15,v.s*f));v.ox=cx-(cx-v.ox)*ns/v.s;v.oy=cy-(cy-v.oy)*ns/v.s;v.s=ns;applyView()}
+/* ---------- tabs ---------- */
+function tabs(){$('#tabs').innerHTML=DOC.diagrams.map(d=>`<div class="dt${d.id===DOC.active?' on':''}" data-d="${d.id}" title="${esc(SOFT.TYPES[d.type].name)}">${esc(d.name)} <small>${esc(SOFT.TYPES[d.type].name.replace(/ diagram$/,''))}</small>${DOC.diagrams.length>1?`<button class="x" data-close="${d.id}" title="Remove this diagram">×</button>`:''}</div>`).join('')+'<button id="addTab" title="Add a diagram">+ Diagram</button>';
+ $$('.dt').forEach(t=>t.onclick=e=>{if(e.target.dataset.close){const id=e.target.dataset.close;const d=DOC.diagrams.find(x=>x.id===id);if((d.nodes.length||d.edges.length)&&!confirm(`Remove the diagram "${d.name}"?`))return;snap();DOC.diagrams=DOC.diagrams.filter(x=>x.id!==id);if(DOC.active===id)DOC.active=DOC.diagrams[0].id;ST.sel.clear();full(true);return}if(DOC.active!==t.dataset.d){DOC.active=t.dataset.d;ST.sel.clear();ST.conn=null;full(true)}});
+ $$('.dt').forEach(t=>t.ondblclick=()=>{const d=DOC.diagrams.find(x=>x.id===t.dataset.d);const nm=prompt('Diagram name',d.name);if(nm&&nm.trim()){snap();d.name=nm.trim();full()}});
+ $('#addTab').onclick=()=>pickType(t=>{snap();const d=SOFT.newDiagram(t);DOC.diagrams.push(d);DOC.active=d.id;ST.sel.clear();full(true)})}
+function pickType(cb,withExample){const o=document.createElement('div');o.className='ov';const grp={};for(const k in SOFT.TYPES)(grp[SOFT.TYPES[k].grp]=grp[SOFT.TYPES[k].grp]||[]).push(k);
+ const DESC={class:'Classes, interfaces and how they relate',object:'Objects and their values at one moment',component:'Parts of a system and the interfaces between them',deployment:'Where the software runs: devices, servers, databases',package:'How the code is grouped and which group uses which',composite:'The inside of a class: its parts, ports and connectors',profile:'Stereotypes that extend UML for one field',usecase:'What users can do with the system',activity:'Steps, decisions and parallel work',state:'States of one thing and what moves it between them',sequence:'Messages between objects in time order',communication:'Messages between linked objects, numbered',timing:'How states change along a time line',overview:'Interactions joined by a flow of control',er:"Tables, keys and relationships (Chen, crow's foot, IDEF1X)",dfd:'How data moves between processes and stores',c4:'Context and container views of a software system',bpmn:'Business processes: events, tasks, gateways, pools'};
+ o.innerHTML=`<div class="mdl" role="dialog" aria-label="New diagram"><div class="mh2"><b>${withExample?'Open an example':'Add a diagram'}</b><button class="btn" id="pkX">Close</button></div><div class="picker">${Object.keys(grp).map(g=>`<h5>${esc(g)}</h5>`+grp[g].map(k=>`<button class="pk" data-t="${k}"><b>${esc(SOFT.TYPES[k].name)}</b><span>${esc(DESC[k]||'')}</span></button>`+(withExample&&k==='sequence'?`<button class="pk" data-t="booking"><b>Sequence: booking platform</b><span>Numbered messages, an alt fragment and lifeline heads at both ends</span></button>`:'')).join('')).join('')}</div></div>`;
+ document.body.appendChild(o);o.querySelector('#pkX').onclick=()=>o.remove();o.onclick=e=>{if(e.target===o)o.remove();const b=e.target.closest('[data-t]');if(b){o.remove();cb(b.dataset.t)}}}
+/* ---------- palette ---------- */
+const THUMB={};
+function thumb(type,kind){const key=type+'|'+kind;if(THUMB[key])return THUMB[key];const d=SOFT.newDiagram(type);const nm={class:'Class',abstract:'Shape',interface:'IShape',enum:'Color',actor:'User',usecase:'Use case',action:'Action',state:'State',entity:'Table',process:'Process',extent:'Entity',store:'Store',task:'Task',person:'User',system:'System',extsystem:'System',container:'Container',c4db:'Database',c4comp:'Component',note:'Note',component:'Component',artifact:'app.jar',object:'obj : Class',part:'p : Part',lifeline:'obj',lactor:'User',lboundary:'Page',lcontrol:'Service',lentity:'Item',ldatabase:'DB',interaction:'Flow',iref:'Login',tline:'Signal'}[kind];
+ let r;if(kind==='fragment'){r={svg:'<rect x="0" y="0" width="120" height="60" fill="#fff" stroke="#1f2937"/><path d="M0 16H36L42 8V0" fill="#eef3fa" stroke="#1f2937"/><text x="6" y="12" font-size="11" font-weight="600">alt</text><line x1="0" y1="38" x2="120" y2="38" stroke="#1f2937" stroke-dasharray="5 3"/>',vb:[-4,-4,128,68]}}
+ else{const n=SOFT.newNode(kind,0,0,nm!=null?nm:undefined);if(kind==='entity')n.props.cols=[{name:'id',type:'INT',pk:1},{name:'name',type:'TEXT'}];if(kind==='class')n.props.attrs='- id: int';if(kind==='tline'){n.props.tmax=16;n.props.changes='0:Idle,6:Busy,12:Idle'}if(SOFT.NK[kind].container){n.w=160;n.h=100}d.nodes.push(n);r=SOFT.render(d,{})}
+ const [x,y,w,h]=r.vb;return THUMB[key]=`<svg viewBox="${x+20} ${y+20} ${w-40} ${h-40}" preserveAspectRatio="xMidYMid meet">${r.svg}</svg>`}
+function edgeThumb(d,kind){const K=SOFT.EK[kind];let mS=K.s,mE=K.e;if(kind==='rel'){if(d.notation==='crowsfoot'){mS='cf:1';mE='cf:0..*'}else if(d.notation==='idef1x'){mE='dot'}else mS=mE=null}const [a,ba]=mS?SOFT.marker(mS,4,9,-1,0):['',0];const [b,bb]=mE?SOFT.marker(mE,52,9,1,0):['',0];
+ return `<svg viewBox="0 0 56 18"><line x1="${4+ba}" y1="9" x2="${52-bb}" y2="9" stroke="#1f2937" stroke-width="1.3"${K.d?` stroke-dasharray="${K.d}"`:''}/>${a}${b}</svg>`}
+function palette(){const d=dg();const t=SOFT.TYPES[d.type];let h=`<h3>Shapes</h3><div class="pg">`+t.nodes.map(k=>`<button class="pi" draggable="true" data-k="${k}" title="${esc(SOFT.NK[k].label||k)}">${thumb(d.type,k)}<span>${esc(SOFT.NK[k].label||k.replace(/^\w/,c=>c.toUpperCase()))}</span></button>`).join('')+'</div>';
+ h+=`<h3>${t.special==='sequence'?'Messages':'Lines'}</h3>`+t.edges.map(k=>`<button class="pl${ST.conn&&ST.conn.kind===k?' on':''}" data-ek="${k}" title="Click, then drag from one shape to another">${edgeThumb(d,k)}<span>${esc(SOFT.EK[k].label)}</span></button>`).join('');
+ h+=`<p style="font-size:11.5px;color:var(--dim);margin:12px 2px 0;line-height:1.5">${t.special==='sequence'?'Pick a message, then drag from one lifeline to another. A selected message gets the new one after it.':'Click a shape to add it, or drag it onto the page. Pick a line, then drag from one shape to another, or drag the blue dot of a selected shape.'}</p>`;
+ $('#pal').innerHTML=h;
+ $$('#pal .pi').forEach(b=>{b.onclick=()=>{const r=$('#cv').getBoundingClientRect();addNode(b.dataset.k,(r.width/2-ST.view.ox)/ST.view.s-40+Math.random()*40,(r.height/2-ST.view.oy)/ST.view.s-30+Math.random()*40)};b.ondragstart=e=>e.dataTransfer.setData('text/cesoft-kind',b.dataset.k)});
+ $$('#pal .pl').forEach(b=>b.onclick=()=>{ST.conn=ST.conn&&ST.conn.kind===b.dataset.ek?null:{kind:b.dataset.ek};ST.lastEdge[d.type]=b.dataset.ek;$('#cv').classList.toggle('conn',!!ST.conn);palette();hint()})}
+function hint(){const d=dg();$('#hint').textContent=ST.conn?`Drag from one shape to another to draw: ${SOFT.EK[ST.conn.kind].label}. Esc stops.`:(d.nodes.length?'Drag to move · drag the page to pan · wheel to zoom · Shift+drag to select several':'Add shapes from the left, or open an example.')}
+function addNode(kind,x,y){const d=dg();snap();const n=SOFT.newNode(kind,Math.round(x/10)*10,Math.round(y/10)*10);if(kind==='fragment'){const m=d.edges.length;n.props.first=Math.max(1,m-1);n.props.last=Math.max(1,m)}if(SOFT.TYPES[d.type].special==='timing'){n.y=Math.max(0,...d.nodes.filter(q=>q.kind==='tline').map(q=>q.y+200))}
+ if(SOFT.TYPES[d.type].special==='sequence'&&SOFT.NK[kind].seq){n.x=Math.max(40,...d.nodes.filter(q=>SOFT.NK[q.kind].seq).map(q=>q.x+170))}d.nodes.push(n);ST.sel=new Set([n.id]);full();focusName()}
+function focusName(){setTimeout(()=>{const i=$('#insp [data-f="name"]');if(i){i.focus();i.select&&i.select()}},30)}
+/* ---------- inspector ---------- */
+function insp(){const d=dg();const el=$('#insp');const ids=[...ST.sel];
+ if(ST.checks){el.innerHTML=`<h4>Check: ${esc(d.name)}</h4><ul class="chk">${ST.checks.map((c,i)=>`<li class="${c.lvl}" data-i="${i}">${esc(c.msg)}</li>`).join('')}</ul><div class="row"><button class="btn" id="ckClose">Close</button></div>`;$('#ckClose').onclick=()=>{ST.checks=null;insp()};$$('.chk li').forEach(li=>li.onclick=()=>{const c=ST.checks[+li.dataset.i];if(c.id){ST.sel=new Set([c.id]);draw()}});return}
+ if(!ids.length){const t=SOFT.TYPES[d.type];const nn=d.nodes.length,ne=d.edges.length;
+  el.innerHTML=`<h4>${esc(d.name)}</h4><div class="k">${esc(t.name)} · ${nn} shape${nn===1?'':'s'}, ${ne} ${t.special==='sequence'?'message':'line'}${ne===1?'':'s'}</div><label class="fl">Diagram name</label><input class="fi" id="dgName" value="${esc(d.name)}">`+
+  (t.notations?`<label class="fl">Notation</label><select class="fs" id="dgNt">${t.notations.map(n=>`<option value="${n}"${d.notation===n?' selected':''}>${esc(SOFT.NOTATION_NAME[n])}</option>`).join('')}</select>`:'')+
+  (d.type==='sequence'?`<label class="fl">Message numbers</label><select class="fs" id="sqNum"><option value="text"${(d.seqNum||'text')==='text'?' selected':''}>In the label (1. …)</option><option value="badge"${d.seqNum==='badge'?' selected':''}>In black circles</option><option value="none"${d.seqNum==='none'?' selected':''}>None</option></select><label class="fl">Look</label><select class="fs" id="sqTheme"><option value="plain">Plain</option><option value="lavender"${d.theme==='lavender'?' selected':''}>Lavender</option></select><label class="fc"><input type="checkbox" id="sqMir"${d.mirror?' checked':''}> Repeat the heads at the bottom</label><label class="fc"><input type="checkbox" id="sqAct"${!d.noAct?' checked':''}> Activation bars</label>`:'')+
+  (d.type==='er'?`<div class="row"><button class="btn" id="iSql">SQL…</button><button class="btn" id="iSqlIn">From SQL…</button></div>`:'')+(d.type==='class'?`<div class="row"><button class="btn" id="iCode">Code…</button><button class="btn" id="iCodeIn">From code…</button></div>`:'')+
+  `<p style="font-size:12px;color:var(--dim);line-height:1.55;margin-top:14px">${esc(HELP[d.type]||'')}</p>`;
+  $('#dgName').onchange=e=>{snap();d.name=e.target.value.trim()||d.name;tabs()};if($('#sqNum')){$('#sqNum').onchange=e=>{snap();d.seqNum=e.target.value;draw()};$('#sqTheme').onchange=e=>{snap();d.theme=e.target.value;draw()};$('#sqMir').onchange=e=>{snap();d.mirror=e.target.checked;draw()};$('#sqAct').onchange=e=>{snap();d.noAct=!e.target.checked;draw()}}if($('#dgNt'))$('#dgNt').onchange=e=>setNotation(e.target.value);
+  if($('#iSql'))$('#iSql').onclick=()=>exportText('sql');if($('#iSqlIn'))$('#iSqlIn').onclick=()=>importText('sql');if($('#iCode'))$('#iCode').onclick=()=>exportText('code');if($('#iCodeIn'))$('#iCodeIn').onclick=()=>importText('code');return}
+ if(ids.length>1){el.innerHTML=`<h4>${ids.length} selected</h4><div class="row"><button class="btn" data-al="l">Align left</button><button class="btn" data-al="t">Align top</button><button class="btn" data-al="cx">Centre across</button><button class="btn" data-al="cy">Centre down</button><button class="btn" data-al="h">Spread across</button><button class="btn" data-al="v">Spread down</button></div><div class="row"><button class="btn" id="mDel">Delete</button></div>`;
+  $('#mDel').onclick=delSel;$$('[data-al]').forEach(b=>b.onclick=()=>align(b.dataset.al));return}
+ const n=NODE(ids[0]);if(n)return inspNode(n);const e=EDGE(ids[0]);if(e)return inspEdge(e);el.innerHTML=''}
+const HELP={class:'A class box has three parts: its name, its attributes and its operations. Write members as + public, - private, # protected, ~ package, and add {static} or {abstract} after one. Generalization points from the child to the parent; a diamond sits at the whole in aggregation and composition.',er:"Each table lists its columns: PK marks the primary key, FK points a column at a key of another table. Lines carry the cardinality of each end. Switch the notation to see the same model in Chen, crow's foot, IDEF1X or as relational tables, and use SQL to write or read a schema.",sequence:'Lifelines run left to right; messages run top to bottom in the order of the list. A synchronous call opens an activation bar until the matching reply comes back. Combined fragments (alt, opt, loop, par…) cover a range of message numbers.',usecase:'Actors stand outside the system boundary. «include» points to the use case that is always used; «extend» points from the optional use case to the one it extends.',activity:'Start at the black dot. Decisions carry guards such as [yes] on the lines that leave them. A fork bar splits the flow into parallel paths, a join bar waits for all of them.',state:'Each line is a transition, labelled trigger [guard] / action. The black dot is the initial state, the ringed dot the final state.',dfd:'Data flows always start or end at a process. Name each flow after the data it carries and number each process.',c4:'Start with the context view: the people, your software system and the systems around it. Use containers inside a boundary to zoom into one system.',bpmn:'A process runs from a start event to an end event. Sequence flows stay inside one pool; between pools use message flows.',timing:'Each lifeline lists its states from top to bottom and the times at which it changes state.',component:'A ball (lollipop) is an interface a component gives; the socket end of an assembly line is the side that needs it.',deployment:'Nodes are the machines and environments the software runs on; artifacts are the files deployed to them.',package:'«import» makes another package\'s public names usable; nesting shows that one package owns another.',communication:'Each link lists the messages sent along it, numbered in order (1, 1.1, 2…). Start a line with < when the message goes the other way.',composite:'Parts inside a structured class are joined by connectors; ports on its edge pass messages in and out.',profile:'A stereotype extends a metaclass with the filled arrow and can add its own tagged values.',overview:'Each box is a whole interaction (sd) or a reference to one (ref), joined by an activity flow.',object:'An object is named obj : Class, underlined, and shows the values of its attributes at one moment.'};
+function field(f,v){const [k,lab,kind,opts]=f;
+ if(kind==='lines')return `<label class="fl">${esc(lab)}</label><textarea class="ft" data-f="${k}" spellcheck="false">${esc(v||'')}</textarea>`;
+ if(kind==='check')return `<label class="fc"><input type="checkbox" data-f="${k}"${v?' checked':''}> ${esc(lab)}</label>`;
+ if(kind==='select')return `<label class="fl">${esc(lab)}</label><select class="fs" data-f="${k}">${opts.map(o=>`<option${o===(v||opts[0])?' selected':''}>${esc(o)}</option>`).join('')}</select>`;
+ if(kind==='num')return `<label class="fl">${esc(lab)}</label><input class="fi" type="number" data-f="${k}" value="${esc(v==null?'':v)}">`;
+ return `<label class="fl">${esc(lab)}</label><input class="fi" data-f="${k}" value="${esc(v||'')}" spellcheck="false">`}
+const TYPES_SQL=['INT','BIGINT','SMALLINT','VARCHAR(50)','VARCHAR(100)','VARCHAR(255)','CHAR(1)','TEXT','BOOLEAN','DATE','TIME','DATETIME','DECIMAL(10,2)','FLOAT','DOUBLE','UUID','JSON','BLOB'];
+function inspNode(n){const d=dg();const K=SOFT.NK[n.kind];const el=$('#insp');let h=`<h4>${esc(K.label||n.kind.replace(/^\w/,c=>c.toUpperCase()))}</h4><div class="k">${esc(SOFT.TYPES[d.type].name)}</div>`;
+ for(const f of K.f){if(f[2]==='cols')continue;h+=field(f,f[0]==='name'?n.name:n.props[f[0]])}
+ if(n.kind==='entity'){const others=d.nodes.filter(q=>q.kind==='entity'&&q.id!==n.id);const opts=[''].concat(...others.map(o=>(o.props.cols||[]).filter(c=>c.pk||c.uq).map(c=>o.name+'.'+c.name)));const chen=d.notation==='chen';
+  h+=`<label class="fl">Columns</label><table class="cols"><tr><th>Name</th><th>Type</th><th title="Primary key">PK</th><th title="Not null">NN</th><th title="Unique">UQ</th><th title="Counts up by itself">AI</th>${chen?'<th title="Multi-valued">MV</th><th title="Derived">DV</th>':''}<th></th></tr>`+
+  (n.props.cols||[]).map((c,i)=>`<tr data-ci="${i}"><td><input type="text" data-c="name" value="${esc(c.name)}" spellcheck="false"></td><td><input type="text" data-c="type" value="${esc(c.type||'')}" list="sqlTypes" spellcheck="false" style="width:84px"></td>${['pk','nn','uq','ai'].concat(chen?['multi','derived']:[]).map(k=>`<td><input type="checkbox" data-c="${k}"${c[k]?' checked':''}></td>`).join('')}<td><button class="del" data-cdel="${i}" title="Remove the column">×</button></td></tr><tr data-ci="${i}"><td colspan="${chen?9:7}" style="padding-bottom:5px"><select data-c="fk" style="max-width:none" title="Foreign key: the key this column points to"><option value="">${c.fk&&!opts.includes(c.fk)?'':'no foreign key'}</option>${opts.filter(Boolean).concat(c.fk&&!opts.includes(c.fk)?[c.fk]:[]).map(o=>`<option${o===c.fk?' selected':''}>FK → ${esc(o)}</option>`).join('')}</select></td></tr>`).join('')+
+  `</table><datalist id="sqlTypes">${TYPES_SQL.map(t=>`<option value="${t}">`).join('')}</datalist><div class="row"><button class="btn" id="cAdd">Add column</button></div>`}
+ if(SOFT.TYPES[d.type].special==='sequence'&&SOFT.NK[n.kind].seq)h+=`<label class="fl">Kind</label><select class="fs" id="lkind">${SOFT.TYPES.sequence.nodes.filter(k=>SOFT.NK[k].seq).map(k=>`<option value="${k}"${k===n.kind?' selected':''}>${esc(SOFT.NK[k].label)}</option>`).join('')}</select>`;
+ const same=SOFT.TYPES[d.type].nodes.filter(k=>k!==n.kind&&!SOFT.NK[k].seq&&k!=='fragment'&&k!=='note'&&!!SOFT.NK[k].container===!!K.container&&n.kind!=='note');
+ if(same.length&&!K.seq&&n.kind!=='fragment')h+=`<label class="fl">Change to</label><select class="fs" id="nkind"><option value="">—</option>${same.map(k=>`<option value="${k}">${esc(SOFT.NK[k].label||k.replace(/^\w/,c=>c.toUpperCase()))}</option>`).join('')}</select>`;
+ h+=`<div class="row"><button class="btn" id="nDup">Duplicate</button><button class="btn" id="nDel">Delete</button></div>`;el.innerHTML=h;
+ el.querySelectorAll('[data-f]').forEach(i=>{const k=i.dataset.f;const ev=i.tagName==='SELECT'||i.type==='checkbox'?'change':'input';let first=true;i.addEventListener(ev,()=>{if(first){snap();first=false}let v=i.type==='checkbox'?i.checked:i.type==='number'?(i.value===''?undefined:+i.value):i.value;if(k==='name')n.name=v;else n.props[k]=v;draw()});i.addEventListener('change',()=>{first=true})});
+ if($('#lkind'))$('#lkind').onchange=e=>{snap();n.kind=e.target.value;full()};
+ if($('#nkind'))$('#nkind').onchange=e=>{if(!e.target.value)return;snap();const nk=e.target.value;const nn=SOFT.newNode(nk,n.x,n.y,n.name);n.kind=nk;n.props=Object.assign(nn.props,{attrs:n.props.attrs,ops:n.props.ops,desc:n.props.desc,tech:n.props.tech});Object.keys(n.props).forEach(k=>n.props[k]===undefined&&delete n.props[k]);full()};
+ $('#nDup').onclick=dupSel;$('#nDel').onclick=delSel;
+ if(n.kind==='entity'){$('#cAdd').onclick=()=>{snap();(n.props.cols=n.props.cols||[]).push({name:'column'+((n.props.cols.length)+1),type:'VARCHAR(100)'});inspNode(n);draw();const ins=$$('#insp tr[data-ci] input[data-c="name"]');const l=ins[ins.length-1];l&&(l.focus(),l.select())};
+  el.querySelectorAll('[data-cdel]').forEach(b=>b.onclick=()=>{snap();n.props.cols.splice(+b.dataset.cdel,1);inspNode(n);draw()});
+  el.querySelectorAll('tr[data-ci] [data-c]').forEach(i=>{const c=n.props.cols[+i.closest('tr').dataset.ci];const k=i.dataset.c;let first=true;i.addEventListener(i.type==='checkbox'||i.tagName==='SELECT'?'change':'input',()=>{if(first){snap();first=false}if(i.type==='checkbox'){c[k]=i.checked?1:0;if(k==='pk'&&i.checked)c.nn=1}else if(k==='fk'){c.fk=i.value.replace(/^FK → /,'')||undefined;if(c.fk){const [t,cc]=c.fk.split('.');const p=dg().nodes.find(q=>q.kind==='entity'&&q.name===t);const pc=p&&(p.props.cols||[]).find(x=>x.name===cc);if(pc&&pc.type&&!c.type)c.type=pc.type;linkFk(n,p)}}else c[k]=i.value;draw();if(i.type==='checkbox'||k==='fk')inspNode(n)});i.addEventListener('change',()=>first=true)})}}
+function linkFk(child,parent){const d=dg();if(!parent)return;if(d.edges.some(e=>e.kind==='rel'&&((e.from===parent.id&&e.to===child.id)||(e.from===child.id&&e.to===parent.id))))return;const e=SOFT.newEdge('rel',parent.id,child.id);d.edges.push(e)}
+function inspEdge(e){const d=dg();const K=SOFT.EK[e.kind];const el=$('#insp');const t=SOFT.TYPES[d.type];const a=NODE(e.from),b=NODE(e.to);
+ let h=`<h4>${esc(K.label)}</h4><div class="k">${esc(a?a.name||SOFT.NK[a.kind].label||a.kind:'?')} → ${esc(b?b.name||SOFT.NK[b.kind].label||b.kind:'?')}</div>`;
+ h+=`<label class="fl">Kind</label><select class="fs" id="ekind">${t.edges.map(k=>`<option value="${k}"${k===e.kind?' selected':''}>${esc(SOFT.EK[k].label)}</option>`).join('')}</select>`;
+ const lab=t.special==='sequence'?'Message, e.g. getTotal(id)':e.kind==='transition'?'Label: trigger [guard] / action':K.guard?'Guard or label, e.g. [yes]':e.kind==='rel'?'Relationship name (verb)':e.kind==='dataflow'?'Data it carries':'Label';
+ h+=field(['name',lab,'text'],e.name);
+ if(K.f&&K.f.includes('m1'))h+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:0 8px">${field(['m1','Multiplicity at '+(a?a.name:'start'),'text'],e.props.m1)}${field(['m2','Multiplicity at '+(b?b.name:'end'),'text'],e.props.m2)}${K.f.includes('role1')?field(['role1','Role at start','text'],e.props.role1)+field(['role2','Role at end','text'],e.props.role2):''}</div>`;
+ if(e.kind==='rel'){const card=Object.entries(SOFT.CARD).map(([k,v])=>[k,v]);h+=`<label class="fl">${esc(a?a.name:'Start')} side</label><select class="fs" data-f="c1">${card.map(([k,v])=>`<option value="${k}"${(e.props.c1||'1')===k?' selected':''}>${esc(v)} (${k})</option>`).join('')}</select><label class="fl">${esc(b?b.name:'End')} side</label><select class="fs" data-f="c2">${card.map(([k,v])=>`<option value="${k}"${(e.props.c2||'0..*')===k?' selected':''}>${esc(v)} (${k})</option>`).join('')}</select>`+field(['identifying','Identifying (the child\'s key includes the parent\'s key)','check'],e.props.identifying)}
+ if(e.kind==='c4rel')h+=field(['tech','Technology, e.g. HTTPS','text'],e.props.tech);
+ if(e.kind==='tmsg')h+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:0 8px">${field(['t1','Sent at time','num'],e.props.t1)}${field(['t2','Received at time','num'],e.props.t2)}</div>`;
+ if(d.type==='communication')h+=field(['msgs','Messages (one per line; start with < for the other way)','lines'],e.props.msgs);
+ h+=`<div class="row">${t.special==='sequence'?'<button class="btn" id="mUp">Move up</button><button class="btn" id="mDn">Move down</button>':''}<button class="btn" id="eRev">Reverse</button>${e.via?'<button class="btn" id="eStr">Straighten</button>':''}<button class="btn" id="eDel">Delete</button></div>`;
+ el.innerHTML=h;
+ el.querySelectorAll('[data-f]').forEach(i=>{const k=i.dataset.f;let first=true;i.addEventListener(i.tagName==='SELECT'||i.type==='checkbox'?'change':'input',()=>{if(first){snap();first=false}const v=i.type==='checkbox'?(i.checked?1:0):i.type==='number'?(i.value===''?undefined:+i.value):i.value;if(k==='name')e.name=v;else e.props[k]=v;draw()});i.addEventListener('change',()=>first=true)});
+ $('#ekind').onchange=ev=>{snap();e.kind=ev.target.value;ST.lastEdge[d.type]=e.kind;full()};
+ $('#eRev').onclick=()=>{snap();[e.from,e.to]=[e.to,e.from];[e.props.m1,e.props.m2]=[e.props.m2,e.props.m1];[e.props.c1,e.props.c2]=[e.props.c2,e.props.c1];[e.props.role1,e.props.role2]=[e.props.role2,e.props.role1];Object.keys(e.props).forEach(k=>e.props[k]===undefined&&delete e.props[k]);full()};
+ if($('#eStr'))$('#eStr').onclick=()=>{snap();delete e.via;full()};$('#eDel').onclick=delSel;
+ if($('#mUp')){const mv=k=>{const i=d.edges.indexOf(e),j=i+k;if(j<0||j>=d.edges.length)return;snap();d.edges.splice(i,1);d.edges.splice(j,0,e);full()};$('#mUp').onclick=()=>mv(-1);$('#mDn').onclick=()=>mv(1)}}
+function setNotation(nt){const d=dg();if(d.notation===nt)return;snap();d.notation=nt;if(d.type==='er'){d.ortho=nt!=='chen'}SOFT.layout(d);full(true)}
+function align(k){const d=dg();snap();const ns=[...ST.sel].map(NODE).filter(Boolean);const B=ns.map(n=>SOFT.box(n,d));
+ if(k==='l'){const x=Math.min(...B.map(b=>b.x));ns.forEach(n=>n.x=x)}if(k==='t'){const y=Math.min(...B.map(b=>b.y));ns.forEach(n=>n.y=y)}
+ if(k==='cx'){const c=B.reduce((s,b)=>s+b.y+b.h/2,0)/B.length;ns.forEach((n,i)=>n.y=Math.round(c-B[i].h/2))}if(k==='cy'){const c=B.reduce((s,b)=>s+b.x+b.w/2,0)/B.length;ns.forEach((n,i)=>n.x=Math.round(c-B[i].w/2))}
+ if(k==='h'||k==='v'){const ax=k==='h'?'x':'y',dim=k==='h'?'w':'h';const o=ns.map((n,i)=>[n,B[i]]).sort((a,b)=>a[1][ax]-b[1][ax]);const span=o[o.length-1][1][ax]+o[o.length-1][1][dim]-o[0][1][ax];const tot=o.reduce((s,q)=>s+q[1][dim],0);const gap=(span-tot)/Math.max(1,o.length-1);let p=o[0][1][ax];for(const [n,b] of o){n[ax]=Math.round(p);p+=b[dim]+gap}}draw()}
+/* ---------- edit ---------- */
+function delSel(){const d=dg();if(!ST.sel.size)return;snap();const ids=ST.sel;d.nodes=d.nodes.filter(n=>!ids.has(n.id));d.edges=d.edges.filter(e=>!ids.has(e.id)&&!ids.has(e.from)&&!ids.has(e.to));ST.sel=new Set();full()}
+function dupSel(){const d=dg();const ns=[...ST.sel].map(NODE).filter(Boolean);if(!ns.length)return;snap();const map={};const out=[];for(const n of ns){const c=JSON.parse(JSON.stringify(n));c.id=SOFT.newNode(n.kind).id;c.x+=30;c.y+=30;map[n.id]=c.id;d.nodes.push(c);out.push(c.id)}for(const e of d.edges.slice())if(map[e.from]&&map[e.to]){const c=JSON.parse(JSON.stringify(e));c.id=SOFT.newEdge(e.kind).id;c.from=map[e.from];c.to=map[e.to];delete c.via;d.edges.push(c)}ST.sel=new Set(out);full()}
+function copySel(){const d=dg();const ns=[...ST.sel].map(NODE).filter(Boolean);if(!ns.length)return;const ids=new Set(ns.map(n=>n.id));ST.clip={type:d.type,nodes:JSON.parse(JSON.stringify(ns)),edges:JSON.parse(JSON.stringify(d.edges.filter(e=>ids.has(e.from)&&ids.has(e.to))))};toast(`Copied ${ns.length} shape${ns.length>1?'s':''}`)}
+function paste(){const d=dg();const c=ST.clip;if(!c)return;const ok=SOFT.TYPES[d.type].nodes;const ns=c.nodes.filter(n=>ok.includes(n.kind));if(!ns.length){toast('These shapes do not belong in this kind of diagram',true);return}snap();const map={};const out=[];for(const n of ns){const q=JSON.parse(JSON.stringify(n));q.id=SOFT.newNode(n.kind).id;q.x+=40;q.y+=40;map[n.id]=q.id;d.nodes.push(q);out.push(q.id)}for(const e of c.edges)if(map[e.from]&&map[e.to]&&SOFT.TYPES[d.type].edges.includes(e.kind)){const q=JSON.parse(JSON.stringify(e));q.id=SOFT.newEdge(e.kind).id;q.from=map[e.from];q.to=map[e.to];d.edges.push(q)}ST.sel=new Set(out);c.nodes.forEach(n=>{n.x+=40;n.y+=40});full()}
+function connect(a,b,kind){const d=dg();const t=SOFT.TYPES[d.type];kind=kind||ST.lastEdge[d.type]||t.edges[0];if(a===b&&!['transition','sync','async','flow','association','directed','dependency'].includes(kind)&&t.special!=='sequence'){toast('This line cannot loop back to the same shape',true);return}
+ const A=NODE(a),B=NODE(b);if(t.special==='sequence'&&(!SOFT.NK[A.kind].seq||!SOFT.NK[B.kind].seq)){if(kind!=='anchor'){toast('Messages go between lifelines',true);return}}
+ if(kind==='anchor'&&A.kind!=='note'&&B.kind!=='note'&&A.kind!=='annotation'&&B.kind!=='annotation'){toast('A note link needs a note at one end',true);return}
+ snap();const e=SOFT.newEdge(kind,a,b);if(d.type==='er'){const p=d.edges.filter(q=>q.kind==='rel').length;e.name='';}
+ if(t.special==='sequence'){const s=[...ST.sel].map(EDGE).filter(Boolean)[0];if(s){d.edges.splice(d.edges.indexOf(s)+1,0,e)}else d.edges.push(e);e.name=kind==='reply'?'result':kind==='create'?'new()':kind==='destroy'?'':'message()'}else d.edges.push(e);
+ ST.sel=new Set([e.id]);full();if(t.special==='sequence'||['transition','flow','seqflow','dataflow','c4rel','rel'].includes(kind))focusName()}
+/* ---------- pointer ---------- */
+const cv=$('#cv');
+cv.addEventListener('pointerdown',ev=>{if(ev.button===2)return;cv.focus();const d=dg();const t=SOFT.TYPES[d.type];const w=toWorld(ev);const tgt=ev.target;
+ const rs=tgt.closest('[data-rs]'),via=tgt.closest('[data-via]'),lk=tgt.closest('[data-link]'),gn=tgt.closest('[data-n]'),ge=tgt.closest('[data-e]');
+ if(lk){ST.drag={mode:'link',from:lk.dataset.link,kind:ST.lastEdge[d.type]||t.edges.find(k=>k!=='anchor')||t.edges[0],x:w[0],y:w[1]};cv.setPointerCapture(ev.pointerId);return}
+ if(rs){const n=NODE(rs.dataset.rs);snap();ST.drag={mode:'resize',n,w0:SOFT.box(n,d).w,h0:SOFT.box(n,d).h,x:w[0],y:w[1]};cv.setPointerCapture(ev.pointerId);return}
+ if(via){const e=EDGE(via.dataset.via);snap();ST.drag={mode:'via',e};cv.setPointerCapture(ev.pointerId);return}
+ if(ST.conn&&gn){ST.drag={mode:'link',from:gn.dataset.n,kind:ST.conn.kind,x:w[0],y:w[1]};cv.setPointerCapture(ev.pointerId);return}
+ if(gn){const id=gn.dataset.n;if(ev.shiftKey||ev.metaKey||ev.ctrlKey){ST.sel.has(id)?ST.sel.delete(id):ST.sel.add(id)}else if(!ST.sel.has(id))ST.sel=new Set([id]);
+  const moving=[...ST.sel].map(NODE).filter(Boolean);const extra=[];for(const m of moving)if(SOFT.NK[m.kind].container)for(const q of d.nodes)if(!ST.sel.has(q.id)&&!extra.includes(q)&&SOFT.inside(q,m,d))extra.push(q);
+  ST.drag={mode:'move',nodes:moving.concat(extra).map(n=>({n,x:n.x,y:n.y,via:null})),x:w[0],y:w[1],moved:false,snapDone:false};
+  ST.drag.vias=d.edges.filter(e=>e.via&&moving.concat(extra).some(m=>m.id===e.from)&&moving.concat(extra).some(m=>m.id===e.to)).map(e=>({e,via:JSON.parse(JSON.stringify(e.via))}));
+  ST.checks=null;draw();insp();cv.setPointerCapture(ev.pointerId);return}
+ if(ge){const id=ge.dataset.e;if(ev.shiftKey)ST.sel.has(id)?ST.sel.delete(id):ST.sel.add(id);else ST.sel=new Set([id]);ST.checks=null;draw();insp();return}
+ if(ev.shiftKey){ST.drag={mode:'box',x:w[0],y:w[1]};cv.setPointerCapture(ev.pointerId);return}
+ ST.drag={mode:'pan',cx:ev.clientX,cy:ev.clientY,ox:ST.view.ox,oy:ST.view.oy,moved:false};cv.setPointerCapture(ev.pointerId)});
+cv.addEventListener('pointermove',ev=>{const D0=ST.drag;if(!D0)return;const d=dg();const t=SOFT.TYPES[d.type];const w=toWorld(ev);
+ if(D0.mode==='pan'){ST.view.ox=D0.ox+ev.clientX-D0.cx;ST.view.oy=D0.oy+ev.clientY-D0.cy;if(Math.abs(ev.clientX-D0.cx)+Math.abs(ev.clientY-D0.cy)>3)D0.moved=true;applyView();return}
+ if(D0.mode==='move'){let dx=w[0]-D0.x,dy=w[1]-D0.y;if(!D0.moved&&Math.abs(dx)+Math.abs(dy)<3)return;if(!D0.moved){snap();D0.moved=true}if(t.special==='sequence')dy=0;if(t.special==='timing')dx=0;
+  for(const q of D0.nodes){q.n.x=Math.round((q.x+dx)/5)*5;q.n.y=Math.round((q.y+dy)/5)*5}for(const v of D0.vias)v.e.via=v.via.map(p=>[p[0]+dx,p[1]+dy]);draw();return}
+ if(D0.mode==='resize'){D0.n.w=Math.max(40,Math.round((D0.w0+w[0]-D0.x)/10)*10);D0.n.h=Math.max(t.special?8:8,Math.round((D0.h0+w[1]-D0.y)/(D0.n.kind==='forkbar'?2:10))*(D0.n.kind==='forkbar'?2:10));draw();return}
+ if(D0.mode==='via'){D0.e.via=[[Math.round(w[0]/5)*5,Math.round(w[1]/5)*5]];draw();return}
+ if(D0.mode==='link'){const b=RES.boxes[D0.from]||{x:D0.x,y:D0.y,w:0,h:0};const sx=t.special==='sequence'?b.x+b.w/2:b.x+b.w/2,sy=t.special==='sequence'?w[1]:b.y+b.h/2;$('#Wx').innerHTML=`<line x1="${sx}" y1="${sy}" x2="${w[0]}" y2="${w[1]}" stroke="#2563eb" stroke-width="1.5" stroke-dasharray="5 4"/><circle cx="${w[0]}" cy="${w[1]}" r="4" fill="#2563eb"/>`;return}
+ if(D0.mode==='box'){const x=Math.min(D0.x,w[0]),y=Math.min(D0.y,w[1]),ww=Math.abs(w[0]-D0.x),hh=Math.abs(w[1]-D0.y);D0.r=[x,y,ww,hh];$('#Wx').innerHTML=`<rect x="${x}" y="${y}" width="${ww}" height="${hh}" fill="rgba(37,99,235,.08)" stroke="#2563eb" stroke-dasharray="4 3"/>`}});
+cv.addEventListener('pointerup',ev=>{const D0=ST.drag;ST.drag=null;if(!D0)return;const d=dg();
+ if(D0.mode==='pan'&&!D0.moved){if(ST.sel.size||ST.checks){ST.sel.clear();draw();insp()}return}
+ if(D0.mode==='move'){if(D0.moved){if(SOFT.TYPES[d.type].special==='sequence')SOFT.layout(d);full()}return}
+ if(D0.mode==='resize'||D0.mode==='via'){full();return}
+ if(D0.mode==='link'){$('#Wx').innerHTML='';const el=document.elementFromPoint(ev.clientX,ev.clientY);const gn=el&&el.closest('[data-n]');if(gn){const to=gn.dataset.n;if(to===D0.from){const w=toWorld(ev);if(Math.hypot(w[0]-D0.x,w[1]-D0.y)<8&&ST.conn){ST.sel=new Set([to]);draw();insp();return}}connect(D0.from,to,D0.kind)}else handles();return}
+ if(D0.mode==='box'){$('#Wx').innerHTML='';if(D0.r){const [x,y,w,h]=D0.r;ST.sel=new Set(d.nodes.filter(n=>{const b=SOFT.box(n,d);return b.x>=x&&b.y>=y&&b.x+b.w<=x+w&&b.y+b.h<=y+h}).map(n=>n.id))}draw();insp()}});
+cv.addEventListener('dblclick',ev=>{const gn=ev.target.closest('[data-n]'),ge=ev.target.closest('[data-e]'),via=ev.target.closest('[data-via]');if(via){const e=EDGE(via.dataset.via);snap();delete e.via;full();return}if(gn||ge)focusName()});
+cv.addEventListener('wheel',ev=>{ev.preventDefault();const r=cv.getBoundingClientRect();if(ev.ctrlKey||ev.metaKey||Math.abs(ev.deltaY)>=40&&!ev.shiftKey&&ev.deltaMode===0&&Number.isInteger(ev.deltaY)&&Math.abs(ev.deltaX)<1)zoomAt(Math.exp(-ev.deltaY*0.0016),ev.clientX-r.left,ev.clientY-r.top);else{ST.view.ox-=ev.deltaX;ST.view.oy-=ev.deltaY;applyView()}},{passive:false});
+cv.addEventListener('dragover',ev=>{if([...ev.dataTransfer.types].includes('text/cesoft-kind'))ev.preventDefault()});
+cv.addEventListener('drop',ev=>{const k=ev.dataTransfer.getData('text/cesoft-kind');if(!k)return;ev.preventDefault();ev.stopPropagation();const w=toWorld(ev);addNode(k,w[0]-30,w[1]-20)});
+document.addEventListener('keydown',ev=>{const inField=/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName);const m=ev.metaKey||ev.ctrlKey;const k=ev.key.toLowerCase();
+ if(m&&k==='s'){ev.preventDefault();saveFile(ev.shiftKey);return}if(m&&k==='o'){ev.preventDefault();openFile();return}
+ if(inField)return;
+ if(m&&k==='z'){ev.preventDefault();ev.shiftKey?redo():undo();return}if(m&&k==='y'){ev.preventDefault();redo();return}
+ if(m&&k==='a'){ev.preventDefault();ST.sel=new Set(dg().nodes.map(n=>n.id));draw();insp();return}
+ if(m&&k==='d'){ev.preventDefault();dupSel();return}if(m&&k==='c'){copySel();return}if(m&&k==='v'){paste();return}
+ if(k==='delete'||k==='backspace'){ev.preventDefault();delSel();return}
+ if(k==='escape'){ST.conn=null;cv.classList.remove('conn');ST.sel.clear();closeMenu();$$('.ov').forEach(o=>o.remove());full();return}
+ if(k.startsWith('arrow')&&ST.sel.size){ev.preventDefault();const s=ev.shiftKey?10:2;const dx=k==='arrowleft'?-s:k==='arrowright'?s:0,dy=k==='arrowup'?-s:k==='arrowdown'?s:0;snap();[...ST.sel].map(NODE).filter(Boolean).forEach(n=>{n.x+=dx;n.y+=dy});draw();return}
+ if(k==='+'||k==='='){zoomAt(1.2);return}if(k==='-'){zoomAt(1/1.2);return}if(k==='0'){fit();return}});
+/* ---------- menus ---------- */
+let MENU=null;function closeMenu(){if(MENU){MENU.remove();MENU=null}}
+function menu(btn,items){closeMenu();const r=btn.getBoundingClientRect();const m=document.createElement('div');m.className='menu';m.style.left=r.left+'px';m.style.top=(r.bottom+4)+'px';
+ m.innerHTML=items.map((it,i)=>it==='-'?'<hr>':typeof it==='string'?`<div class="mh">${esc(it)}</div>`:`<button data-i="${i}"${it[2]===false?' disabled style="opacity:.45"':''}>${esc(it[0])}${it[3]?`<small>${esc(it[3])}</small>`:''}</button>`).join('');document.body.appendChild(m);MENU=m;
+ const rr=m.getBoundingClientRect();if(rr.right>innerWidth-8)m.style.left=(innerWidth-rr.width-8)+'px';m.onclick=e=>{const b=e.target.closest('[data-i]');if(!b||b.disabled)return;closeMenu();items[+b.dataset.i][1]()};setTimeout(()=>document.addEventListener('pointerdown',function f(e){if(MENU&&!MENU.contains(e.target)){closeMenu();document.removeEventListener('pointerdown',f)}}),0)}
+$('#bEx').onclick=e=>pickType(t=>{const d=SOFT.example(t);snap();DOC.diagrams.push(d);d.name=t==='booking'?'Booking sequence':'Example: '+SOFT.TYPES[t].name.replace(/ diagram$/,'');DOC.active=d.id;ST.sel.clear();full(true)},true);
+$('#bImp').onclick=e=>menu(e.currentTarget,[['SQL schema (CREATE TABLE) → database diagram…',()=>importText('sql')],['Source code → class diagram…',()=>importText('code')],'-',['Open a .cesoft file…',openFile,true,'Ctrl+O']]);
+$('#bExp').onclick=e=>{const d=dg();menu(e.currentTarget,['Picture',['PNG image…',()=>exportImage('png')],['SVG vector…',()=>exportImage('svg')],['PDF document…',()=>exportImage('pdf')],'-','Text',['SQL schema…',()=>exportText('sql'),d.type==='er'],['Source code…',()=>exportText('code'),d.type==='class'],['Diagram as JSON…',()=>exportText('json')]])};
+/* ---------- text import / export ---------- */
+function dialog(title,body,foot){const o=document.createElement('div');o.className='ov';o.innerHTML=`<div class="mdl" role="dialog" aria-label="${esc(title)}"><div class="mh2"><b>${esc(title)}</b>${body.head||''}<button class="btn" data-x>Close</button></div>${body.html}<div class="mf">${foot}</div></div>`;document.body.appendChild(o);o.querySelector('[data-x]').onclick=()=>o.remove();o.onclick=e=>{if(e.target===o)o.remove()};return o}
+function exportText(kind){const d=dg();let o;
+ if(kind==='sql'){if(d.type!=='er'){toast('SQL comes from a database diagram',true);return}const dl=localStorage.getItem('cesim.soft.dialect')||'mysql';
+  o=dialog('SQL schema',{head:`<select class="sl" id="xDl">${Object.entries(SOFT.DIALECTS).map(([k,v])=>`<option value="${k}"${k===dl?' selected':''}>${esc(v)}</option>`).join('')}</select>`,html:'<textarea id="xTx" spellcheck="false" readonly></textarea>'},`<span class="note">Many-to-many lines become joining tables. Lines without a foreign key column get one.</span><button class="btn" id="xCp">Copy</button><button class="btn pri" id="xSv">Save .sql</button>`);
+  const up=()=>{const v=o.querySelector('#xDl').value;try{localStorage.setItem('cesim.soft.dialect',v)}catch(e){}o.querySelector('#xTx').value=SOFT.toSQL(d,v)};o.querySelector('#xDl').onchange=up;up();o.querySelector('#xSv').onclick=()=>saveText(fname()+'.sql',o.querySelector('#xTx').value)}
+ else if(kind==='code'){if(d.type!=='class'){toast('Code comes from a class diagram',true);return}const lg=localStorage.getItem('cesim.soft.lang')||'java';const ext={java:'java',csharp:'cs',cpp:'hpp',python:'py',typescript:'ts'};
+  o=dialog('Source code',{head:`<select class="sl" id="xDl">${Object.entries(SOFT.LANGS).map(([k,v])=>`<option value="${k}"${k===lg?' selected':''}>${esc(v)}</option>`).join('')}</select>`,html:'<textarea id="xTx" spellcheck="false" readonly></textarea>'},`<span class="note">Each class gets its fields, methods, parents and the fields its associations need. Method bodies are left for you to write.</span><button class="btn" id="xCp">Copy</button><button class="btn pri" id="xSv">Save</button>`);
+  const up=()=>{const v=o.querySelector('#xDl').value;try{localStorage.setItem('cesim.soft.lang',v)}catch(e){}o.querySelector('#xTx').value=SOFT.toCode(d,v)};o.querySelector('#xDl').onchange=up;up();o.querySelector('#xSv').onclick=()=>saveText(fname()+'.'+ext[o.querySelector('#xDl').value],o.querySelector('#xTx').value)}
+ else{o=dialog('Diagram as JSON',{html:'<textarea id="xTx" spellcheck="false" readonly></textarea>'},`<button class="btn" id="xCp">Copy</button><button class="btn pri" id="xSv">Save .json</button>`);o.querySelector('#xTx').value=JSON.stringify(d,null,1);o.querySelector('#xSv').onclick=()=>saveText(fname()+'.json',o.querySelector('#xTx').value)}
+ o.querySelector('#xCp').onclick=async()=>{try{await navigator.clipboard.writeText(o.querySelector('#xTx').value);toast('Copied')}catch(e){o.querySelector('#xTx').select();document.execCommand('copy');toast('Copied')}}}
+function importText(kind,text){const sql=kind==='sql';const o=dialog(sql?'Database diagram from SQL':'Class diagram from source code',{head:sql?'':`<select class="sl" id="iLg"><option value="">Find the language</option>${Object.entries(SOFT.LANGS).filter(([k])=>k!=='cpp').map(([k,v])=>`<option value="${k}">${esc(v)}</option>`).join('')}<option value="cpp">C++</option></select>`,html:`<textarea id="iTx" spellcheck="false" placeholder="${sql?'Paste CREATE TABLE statements, for example:\n\nCREATE TABLE author (\n  id INT PRIMARY KEY,\n  name VARCHAR(100) NOT NULL\n);\nCREATE TABLE book (\n  id INT PRIMARY KEY,\n  title VARCHAR(200),\n  author_id INT REFERENCES author(id)\n);':'Paste classes in Java, C#, C++, Python or TypeScript.'}">${esc(text||'')}</textarea>`},`<span class="note">${sql?'Reads tables, keys, foreign keys and ALTER TABLE … ADD FOREIGN KEY.':'Reads classes, interfaces, enums, their fields, methods and parents.'}</span><button class="btn" id="iFile">From a file…</button><button class="btn pri" id="iGo">Make the diagram</button>`);
+ o.querySelector('#iFile').onclick=()=>{const f=document.createElement('input');f.type='file';f.accept=sql?'.sql,.txt':'.java,.cs,.py,.ts,.h,.hpp,.cpp,.txt';f.onchange=async()=>{if(f.files[0])o.querySelector('#iTx').value=await f.files[0].text()};f.click()};
+ o.querySelector('#iGo').onclick=()=>{const t=o.querySelector('#iTx').value;if(!t.trim()){toast('Paste something first',true);return}let r;try{r=sql?SOFT.fromSQL(t):SOFT.fromCode(t,o.querySelector('#iLg').value||undefined)}catch(e){toast('Could not read it: '+e.message,true);return}
+  if(!r.diagram.nodes.length){toast(sql?'No tables were found':'No classes were found',true);return}snap();const cur=dg();if(!cur.nodes.length&&cur.type===r.diagram.type){r.diagram.id=cur.id;r.diagram.name=cur.name===SOFT.TYPES[cur.type].name?r.diagram.name:cur.name;DOC.diagrams[DOC.diagrams.indexOf(cur)]=r.diagram}else DOC.diagrams.push(r.diagram);DOC.active=r.diagram.id;o.remove();ST.sel.clear();full(true);
+  toast(sql?`${r.tables} table${r.tables===1?'':'s'} read`+(r.warn.length?'. '+r.warn[0]:''):`${r.classes} class${r.classes===1?'':'es'} read from ${SOFT.LANGS[r.lang]}`)}}
+function svgText(){return SOFT.toSVG(dg(),{bg:'#ffffff'})}
+function svgToPng(svg,scale=2){return new Promise((res,rej)=>{const img=new Image();img.onload=()=>{const c=document.createElement('canvas');c.width=img.width*scale;c.height=img.height*scale;const g=c.getContext('2d');g.scale(scale,scale);g.drawImage(img,0,0);res(c.toDataURL('image/png'))};img.onerror=rej;img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg)})}
+async function exportImage(f){const svg=svgText();const nm=fname()+(DOC.diagrams.length>1?'-'+dg().name.replace(/[^\w-]+/g,'_'):'');
+ if(f==='svg')return saveText(nm+'.svg',svg);
+ if(f==='pdf'){if(N&&N.pdf){const p=await N.pdf(nm+'.pdf',svg);if(p)toast('Saved');return}const w=window.open('','_blank');if(w){w.document.write(`<title>${esc(nm)}</title><style>@page{margin:12mm}body{margin:0}svg{max-width:100%;height:auto}</style>`+svg);w.document.close();setTimeout(()=>w.print(),300)}return}
+ const url=await svgToPng(svg,2);if(N&&N.saveBinary){const p=await N.saveBinary(nm+'.png',url.split(',')[1]);if(p)toast('Saved');return}const a=document.createElement('a');a.href=url;a.download=nm+'.png';a.click()}
+async function saveText(name,text){if(N&&N.save){const p=await N.save(name,text);if(p)toast('Saved');return}const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:'text/plain'}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000)}
+/* ---------- files ---------- */
+const fname=()=>(DOC.name||'design').replace(/[^\w.\- ]+/g,'_').trim()||'design';
+async function saveFile(as){const text=JSON.stringify(DOC);if(N&&N.save){if(filePath&&!as&&N.write){const p=await N.write(filePath,text);if(p){toast('Saved');return}}const p=await N.save(fname()+'.cesoft',text);if(p){filePath=p;toast('Saved')}return}saveText(fname()+'.cesoft',text)}
+function openFile(){$('#fileIn').click()}
+function load(o){if(!o||o.format!=='CEsimSoft'||!Array.isArray(o.diagrams)||!o.diagrams.length)throw new Error('not a design');for(const d of o.diagrams){if(!SOFT.TYPES[d.type])throw new Error('unknown diagram '+d.type);d.nodes=(d.nodes||[]).filter(n=>SOFT.NK[n.kind]);d.nodes.forEach(n=>n.props=n.props||{});d.edges=(d.edges||[]).filter(e=>SOFT.EK[e.kind]);d.edges.forEach(e=>e.props=e.props||{})}if(!o.diagrams.some(d=>d.id===o.active))o.active=o.diagrams[0].id;return o}
+window.cesimOpenText=(name,text,path)=>{const ext=(name.split('.').pop()||'').toLowerCase();
+ if(ext==='sql'){importText('sql',text);return}if(['java','cs','py','ts','hpp','h','cpp'].includes(ext)){importText('code',text);return}
+ try{DOC=load(JSON.parse(text));filePath=path||null;ST.undo=[];ST.redo=[];ST.sel.clear();full(true);toast('Opened '+name)}catch(e){toast('This file is not a CEsim software design',true)}};
+$('#fileIn').addEventListener('change',async e=>{const f=e.target.files[0];e.target.value='';if(f)window.cesimOpenText(f.name,await f.text(),N&&N.pathFor?N.pathFor(f):null)});
+document.addEventListener('dragover',e=>{if([...e.dataTransfer.types].includes('Files'))e.preventDefault()});document.addEventListener('drop',async e=>{const f=e.dataTransfer.files&&e.dataTransfer.files[0];if(!f)return;e.preventDefault();window.cesimOpenText(f.name,await f.text(),N&&N.pathFor?N.pathFor(f):null)});
+$('#bNew').onclick=()=>{if(DOC.diagrams.some(d=>d.nodes.length)&&!confirm('Start a new design? Unsaved changes are lost.'))return;pickType(t=>{DOC=SOFT.newDoc('Untitled');DOC.diagrams=[SOFT.newDiagram(t)];DOC.active=DOC.diagrams[0].id;filePath=null;ST.undo=[];ST.redo=[];ST.sel.clear();full(true)})};
+$('#bOpen').onclick=openFile;$('#bSave').onclick=()=>saveFile(false);$('#bUndo').onclick=undo;$('#bRedo').onclick=redo;$('#bDel').onclick=delSel;
+$('#bLayout').onclick=()=>{snap();SOFT.layout(dg());full(true)};$('#bOrtho').onclick=()=>{snap();dg().ortho=!dg().ortho;full()};
+$('#notation').onchange=e=>setNotation(e.target.value);
+$('#bCheck').onclick=()=>{ST.checks=SOFT.validate(dg());ST.sel.clear();draw();insp()};
+$('#pname').onchange=e=>{DOC.name=e.target.value.trim()||'Untitled';store()};
+$('#zIn').onclick=()=>zoomAt(1.2);$('#zOut').onclick=()=>zoomAt(1/1.2);$('#zFit').onclick=fit;
+function full(refit){const d=dg();for(const s of [...ST.sel])if(!NODE(s)&&!EDGE(s))ST.sel.delete(s);tabs();palette();hint();$('#pname').value=DOC.name;
+ const t=SOFT.TYPES[d.type];$('#notation').hidden=!t.notations;if(t.notations)$('#notation').innerHTML=t.notations.map(n=>`<option value="${n}"${d.notation===n?' selected':''}>${esc(SOFT.NOTATION_NAME[n])}</option>`).join('');
+ $('#bOrtho').classList.toggle('on',!!d.ortho);$('#bOrtho').disabled=!!t.special;$('#bUndo').disabled=!ST.undo.length;$('#bRedo').disabled=!ST.redo.length;draw();insp();if(refit)fit()}
+window.addEventListener('resize',()=>applyView());
+/* ---------- start ---------- */
+(function(){let o=null;try{o=JSON.parse(localStorage.getItem(KEY)||'null')}catch(e){}try{DOC=o?load(o):null}catch(e){DOC=null}
+ if(!DOC){DOC=SOFT.newDoc('My design');const a=SOFT.example('class');a.name='Shapes';const b=SOFT.example('er');b.name='Shop database';DOC.diagrams=[a,b];DOC.active=a.id}
+ full(true)})();
+</script>
+<script>/* opened from another tool */(function(){let h=null;try{h=JSON.parse(localStorage.getItem("cesim.handoff.open.software")||"null");localStorage.removeItem("cesim.handoff.open.software")}catch(e){}if(h&&h.text)window.cesimOpenText(h.name,h.text,null)})();</script>
+</body></html>

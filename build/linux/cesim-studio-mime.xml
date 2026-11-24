@@ -2,6 +2,7 @@
 <mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
   <mime-type type="application/x-cesim"><comment>CEsim Circuit</comment><glob pattern="*.cesim"/></mime-type>
   <mime-type type="application/x-cesys"><comment>CEsim System model</comment><glob pattern="*.cesys"/></mime-type>
+  <mime-type type="application/x-cesoft"><comment>CEsim Software design</comment><glob pattern="*.cesoft"/></mime-type>
   <mime-type type="application/x-cediag"><comment>CEsim Diagram</comment><glob pattern="*.cediag"/></mime-type>
   <mime-type type="application/x-cedig"><comment>CEsim Logic circuit</comment><glob pattern="*.cedig"/></mime-type>
   <mime-type type="application/x-cebb"><comment>CEsim Breadboard</comment><glob pattern="*.cebb"/></mime-type>

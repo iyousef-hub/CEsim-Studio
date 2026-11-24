@@ -15,7 +15,7 @@
 #main{display:grid;grid-template-columns:172px minmax(0,1fr) 290px;min-height:0}
 #pal{background:var(--panel);border-right:1px solid var(--line);overflow:auto;padding:6px 8px 14px;user-select:none}
 h3{font:600 11px var(--font);color:var(--dim);text-transform:uppercase;letter-spacing:.06em;margin:10px 2px 6px}
-.pi{display:block;width:100%;border:1px solid transparent;background:none;border-radius:5px;padding:5px 7px;cursor:pointer;font:12.5px var(--font);color:var(--text);text-align:left}.pi:hover{background:#fff;border-color:#dde2e9}.pi.on{background:#dce9f8;border-color:#9dbde4}.pi small{display:block;color:var(--dim);font-size:11px}
+.pi{display:block;width:100%;border:1px solid transparent;background:none;border-radius:5px;padding:5px 7px;cursor:pointer;font:12.5px var(--font);color:var(--text);text-align:left}.pi:hover{background:#fff;border-color:#dde2e9}.pi.on{background:#dce9f8;border-color:#9dbde4}.pi small{display:block;color:var(--dim);font-size:11px}.palq{width:100%;box-sizing:border-box;margin:6px 0 4px;padding:5px 7px;border:1px solid #d5dbe3;border-radius:5px;font:12.5px var(--font)}details.pg>summary{cursor:pointer;font-size:12.5px;padding:4px 2px;color:var(--text)}details.pg>summary small{color:var(--dim)}details.pg{margin-left:2px}
 #stage{position:relative;overflow:hidden;background:#0b1220}
 #cv{width:100%;height:100%;display:block;touch-action:none;user-select:none}
 #hint{position:absolute;left:12px;top:10px;background:rgba(15,22,36,.85);color:#dbe4f0;border-radius:6px;padding:6px 10px;font-size:12px;pointer-events:none;max-width:65%}
@@ -56,6 +56,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
 <div id="statusbar"><span id="status"><b>Ready.</b></span><span id="stats"></span><span id="coord"></span></div>
 </div>
 <input type="file" id="fileIn" accept=".cepcb,.json,.zip,.gbr,.ger,.gtl,.gbl,.gko,.gm1,.drl,.xln" multiple hidden><input type="file" id="netIn" accept=".cir,.net,.txt,.sp,.spice" hidden>
+<script src="parts-lib.js"></script>
 <script src="pcb-core.js"></script>
 <script>
 'use strict';
@@ -150,7 +151,7 @@ function commitRoute(){const rt=ST.route;if(rt.pts.length<2){ST.route=null;draw(
 /* ---------- pointer ---------- */
 let drag=null;
 cv.addEventListener('pointerdown',e=>{cv.focus();const[px,py]=evPos(e);const[wx,wy]=S2W(px,py);const gx=snapG(wx),gy=snapG(wy);if(e.button===1||e.button===2){if(e.button===2&&ST.route){ST.route=null;draw();return}return startPan(e,px,py)}cv.setPointerCapture(e.pointerId);
- if(ST.placing){snapshot();const c={ref:nextRef(FP_PFX[ST.placing.fp]||'U'),fp:ST.placing.fp,value:'',x:gx,y:gy,rot:ST.placing.rot||0};ST.doc.comps.push(c);ST.sel={comp:ST.doc.comps.length-1};if(!e.shiftKey)setTool('select');changed();toast(`Placed ${c.ref}. Give its pads nets in the panel, or use Netlist`);return}
+ if(ST.placing){snapshot();const pe=PCB.FP[ST.placing.fp].plib;const c={ref:nextRef(FP_PFX[ST.placing.fp]||(pe?PLIB.refPfx(pe):'U')),fp:ST.placing.fp,value:pe?pe.name:'',x:gx,y:gy,rot:ST.placing.rot||0};ST.doc.comps.push(c);ST.sel={comp:ST.doc.comps.length-1};if(!e.shiftKey)setTool('select');changed();toast(`Placed ${c.ref}. Give its pads nets in the panel, or use Netlist`);return}
  if(ST.tool==='route'){const p=[gx,gy];const near=copperAt(wx,wy,ST.route?ST.route.layer:ST.layer);const pt=near&&near.kind==='pad'?[near.p.x,near.p.y]:p;if(!ST.route)startRoute(...(near?[wx,wy]:p));else routeClick(...(near?[wx,wy]:p),e.detail>=2);return}
  // board corner
  const b=ST.doc.board;const[cxp,cyp]=W2S(b.w,b.h);if(!ST.real&&Math.abs(px-cxp)<7&&Math.abs(py-cyp)<7){snapshot();drag={kind:'board',moved:false};return}
@@ -283,7 +284,15 @@ const EX={
 function loadExample(k){const[text,route,note]=EX[k];const r=PCB.fromNetlist(text);const d=Object.assign(emptyDoc(),{comps:r.comps,nets:r.nets});PCB.autoPlace(d);if(route){const res=PCB.autoroute(d);d.traces.push(...res.traces);d.vias.push(...res.vias)}loadDoc(d,k.toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,''),null,note)}
 /* ---------- palette ---------- */
 const PAL=[['Passive',['R_Axial','C_Disc','CP_Radial','Pot_Trim','R_0805','C_0805']],['Semiconductors',['D_DO41','LED_5mm','LED_0805','TO-92','DIP-8','DIP-14','DIP-16','Seg7']],['Connectors',['Terminal_2','Header_1x2','Header_1x3','Header_1x4','Header_1x6','SW_Push_6mm']]];
-function buildPalette(){let h='';for(const[g,list]of PAL){h+=`<h3>${g}</h3>`;for(const k of list){const f=PCB.FP[k];const[nm,...rest]=f.name.split(', ');h+=`<button class="pi" data-fp="${k}">${esc(nm)}<small>${esc(rest.join(', ')||(f.pads.some(p=>!p.drill)?'surface mount':''))}</small></button>`}}$('#pal').innerHTML=h;
+const PALOPEN=new Set();
+function palBtn(k){const f=PCB.FP[k];const pe=f.plib;const[nm,...rest]=f.name.split(', ');const sub=pe?pe.pkg+(PLIB.dimText?' · '+PLIB.dimText(pe):''):(rest.join(', ')||(f.pads.some(p=>!p.drill)?'surface mount':''));return`<button class="pi" data-fp="${esc(k)}" title="${esc(pe?pe.name+' — '+pe.pkg:f.name)}">${esc(pe?pe.name:nm)}<small>${esc(sub)}</small></button>`}
+function buildPalette(){const q=(($('#palQ')||{}).value||'').trim().toLowerCase();let h=`<input id="palQ" class="palq" placeholder="Search footprints" value="${esc(q)}">`;
+ const hit=k=>{if(!q)return true;const f=PCB.FP[k];const pe=f.plib;return(f.name+' '+k+' '+(pe?pe.grp+' '+pe.pkg+' '+pe.sec:'')).toLowerCase().includes(q)};
+ for(const[g,list]of PAL){const l=list.filter(hit);if(!l.length)continue;h+=`<h3>${g}</h3>`;for(const k of l)h+=palBtn(k)}
+ if(window.PLIB){const secs={};for(const e of PLIB.LIST){if(!PCB.FP[e.key]||!hit(e.key))continue;((secs[e.sec]=secs[e.sec]||{})[e.grp]=secs[e.sec][e.grp]||[]).push(e.key)}
+  for(const sec in secs){h+=`<h3>${esc(sec)}</h3>`;for(const g in secs[sec]){const id=sec+'|'+g;const open=q||PALOPEN.has(id);h+=`<details class="pg" data-g="${esc(id)}"${open?' open':''}><summary>${esc(g)} <small>${secs[sec][g].length}</small></summary>${open?secs[sec][g].map(palBtn).join(''):''}</details>`}}}
+ $('#pal').innerHTML=h;const qi=$('#palQ');qi.oninput=()=>{buildPalette();const n=$('#palQ');n.focus();n.setSelectionRange(n.value.length,n.value.length)};qi.onkeydown=e=>e.stopPropagation();
+ $$('#pal details.pg').forEach(d=>d.addEventListener('toggle',()=>{const id=d.dataset.g;if(d.open){if(q||PALOPEN.has(id))return;PALOPEN.add(id)}else{PALOPEN.delete(id);return}buildPalette()}));
  $$('.pi').forEach(b=>b.onclick=()=>{setTool('select');ST.placing={fp:b.dataset.fp,rot:0,at:null};b.classList.add('on');hint('Click on the board to place it. R rotates, Shift+click places another, Esc cancels')})}
 /* ---------- wiring up ---------- */
 $('#bFile').onclick=e=>menu(e.currentTarget,[['New board',()=>loadDoc(emptyDoc(),'board'),''],['Open…',()=>$('#fileIn').click(),'Ctrl+O'],'-',['Save',()=>saveFile(false),'Ctrl+S'],['Save as…',()=>saveFile(true),'Ctrl+Shift+S'],'-',['Import netlist…',()=>$('#netIn').click(),''],['Edit netlist',()=>netlistDialog(),''],'-',['Export Gerber and drill (.zip)',exportGerber,''],['Export picture (PNG)',exportPng,'']]);

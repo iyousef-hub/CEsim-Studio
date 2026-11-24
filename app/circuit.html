@@ -198,12 +198,13 @@ kbd{font:11px var(--font-mono);border:1px solid var(--ui-border);border-bottom-w
 </div>
 <div id="splash" role="dialog" aria-label="CEsim"><div class="sp-box"><canvas id="sp-cv"></canvas><div class="sp-in">
  <div class="sp-row"><div class="sp-logo">CE</div><div><div class="sp-name">CE<span>sim</span></div><div class="sp-sub">Circuit Design &amp; Simulation Suite</div></div></div>
- <div class="sp-ver">Version 1.37.0</div><div class="sp-bar"><i id="sp-bar"></i></div><div class="sp-foot"><span id="sp-msg">Loading component database…</span><span class="sp-by">BY. YOUSEF</span></div>
+ <div class="sp-ver">Version 1.38.0</div><div class="sp-bar"><i id="sp-bar"></i></div><div class="sp-foot"><span id="sp-msg">Loading component database…</span><span class="sp-by">BY. YOUSEF</span></div>
 </div></div></div>
 <script src="lib/canvas2svg.js"></script>
 <script src="ms14.js"></script>
 <script src="ms14-templates.js"></script>
 <script src="circuit-import.js"></script>
+<script src="parts-lib.js"></script>
 <script>(function(){if(!window.C2S)return;const P=C2S.prototype;const os=P.save,or=P.restore,ost=P.stroke;P.setLineDash=function(a){this.__dash=a||[]};P.getLineDash=function(){return this.__dash||[]};P.save=function(){(this.__ds=this.__ds||[]).push(this.__dash);os.call(this)};P.restore=function(){this.__dash=(this.__ds||[]).pop();or.call(this)};P.stroke=function(){ost.apply(this,arguments);if(this.__dash&&this.__dash.length&&this.__currentElement)this.__currentElement.setAttribute("stroke-dasharray",this.__dash.join(","))}})()</script>
 <input type="file" id="fileIn" accept=".cesim,.json,.cir,.net,.sp,.txt,.ms14,.ms13,.ms12,.asc,.kicad_sch" style="display:none">
 <script>
@@ -243,6 +244,12 @@ const MODELS={
  opto:{"4N25":{ctr:0.5},"4N35":{ctr:1.0},"PC817":{ctr:1.0},"TLP521-1":{ctr:1.0},"CNY17-2":{ctr:0.9},"4N26":{ctr:0.5}},
  reg:{"LM7805":{v:5,drop:2},"LM7806":{v:6,drop:2},"LM7809":{v:9,drop:2},"LM7812":{v:12,drop:2},"LM7815":{v:15,drop:2},"LM7824":{v:24,drop:2},"LM7905":{v:-5,drop:2},"LM7912":{v:-12,drop:2},"LM7915":{v:-15,drop:2},"LM1117-3.3":{v:3.3,drop:1.2},"LM1117-5.0":{v:5,drop:1.2},"AMS1117-3.3":{v:3.3,drop:1.1},"LM2940-5":{v:5,drop:0.5},"LM78L05":{v:5,drop:1.7}}
 };
+/* extra models used by the parts catalog */
+Object.assign(MODELS.npn,{"TIP120":{bf:1000,is:2e-12,br:3},"MPSA13":{bf:5000,is:1e-13,br:3}});
+Object.assign(MODELS.pnp,{"TIP127":{bf:1000,is:2e-12,br:3}});
+Object.assign(MODELS.nmos,{"SiC 900V":{vth:2.5,k:8,lam:0.005},"SiC 1200V":{vth:2.7,k:6,lam:0.005}});
+Object.assign(MODELS.opamp,{"MCP6022":{a:1e6,gbw:10e6,sr:7e6,drop:0.03}});
+if(window.PLIB)for(const e of PLIB.LIST){const m=e.model;if(m&&m.params&&MODELS[m.kind]&&!MODELS[m.kind][m.name])MODELS[m.kind][m.name]=m.params}
 const ZENERS={};[["1N4728A",3.3],["1N4729A",3.6],["1N4730A",3.9],["1N4731A",4.3],["1N4732A",4.7],["1N4733A",5.1],["1N4734A",5.6],["1N4735A",6.2],["1N4736A",6.8],["1N4737A",7.5],["1N4738A",8.2],["1N4739A",9.1],["1N4740A",10],["1N4741A",11],["1N4742A",12],["1N4743A",13],["1N4744A",15],["1N4745A",16],["1N4746A",18],["1N4747A",20],["1N4748A",22],["1N4749A",24],["1N4750A",27],["1N4751A",30],["1N4752A",33],["BZX55C2V7",2.7],["BZX55C3V0",3],["BZX55C5V1",5.1],["BZX55C9V1",9.1],["BZX55C12",12]].forEach(([n,v])=>ZENERS[n]=v);
 /* zener models with full diode parameters: 1N4735A matches the Multisim readings of the lab workbook (Figs. 4.4 to 4.6) */
 const ZMODELS={"1N4735A":{is:7.2e-13,n:0.9,rs:0.2338,bv:6.1067,ibv:1e-3}};
@@ -757,6 +764,16 @@ const DB=[
 let DBCOUNT=0;DB.forEach(g=>g.fams.forEach(f=>{f.items=null}));
 function famItems(f){if(!f.items)f.items=f[2]();return f.items}
 function countDB(){let n=0;DB.forEach(g=>g.fams.forEach(f=>n+=famItems(f).length));return n}
+/* ================= Parts catalog: every catalog part as a symbol ================= */
+function plGeom(e){const n=e.pins.length;const sp=n>48?10:20;const nl=Math.ceil(n/2),nr=n-nl;const h=Math.max(40,nl*sp+20);const lw=Math.max(...e.pins.map(x=>String(x).length),1);
+ const hw=Math.max(40,Math.ceil((Math.max(Math.min(e.name.length,30)*3.6,lw*2*(sp>10?3.6:3.1))+16)/20)*10);const pins=[];for(let i=0;i<nl;i++)pins.push([-hw-10,-h/2+20+i*sp]);for(let i=0;i<nr;i++)pins.push([hw+10,-h/2+20+i*sp]);return{h,hw,pins,fs:sp>10?7:6}}
+function plSymbol(e){const t="pl_"+e.key.slice(3);if(LIB[t])return t;const g=plGeom(e);const hw=g.hw;const nm=e.name.length>30?e.name.slice(0,29)+"…":e.name;
+ def(t,{name:e.name,ar:"",prefix:PLIB.refPfx(e),plib:e,pins:g.pins.map((p,i)=>[p[0],p[1],e.pins[i]]),bb:[-hw-10,-g.h/2,hw+10,g.h/2],props:{},
+  draw(c,st,tx){RECT(c,-hw,-g.h/2,hw,g.h/2,CV.bg);g.pins.forEach((p,i)=>{const lf=p[0]<0;L(c,lf?-hw-10:hw,p[1],lf?-hw:hw+10,p[1]);tx(e.pins[i],lf?-hw+3:hw-3,p[1]+3,g.fs,"pin",lf?"left":"right")});tx(nm,0,-g.h/2+11,7,"part","center")},
+  spice(c){return `* ${c.label} (${e.name}) is drawn for wiring only and is left out of the simulation`}});return t}
+if(window.PLIB){const secs={};for(const e of PLIB.LIST){let t,p={};if(e.cir&&LIB[e.cir[0]]){t=e.cir[0];p=Object.assign({},e.cir[1]||{});if(e.model&&LIB[t].fields&&LIB[t].fields.some(f=>f[0]==="model"))p.model=e.model.name;if(p.model&&MODELS[t]&&!MODELS[t][p.model])delete p.model}else t=plSymbol(e);
+  ((secs[e.sec]=secs[e.sec]||{})[e.grp]=secs[e.sec][e.grp]||[]).push({n:e.name,t,p,pl:e})}
+ for(const sec in secs)DB.push({g:sec,icon:"chip",fams:Object.keys(secs[sec]).map(g=>{const its=secs[sec][g];return[g,its[0].t,()=>its]})})}
 /* ================= My parts: new parts built from a small circuit ================= */
 const MYP_KEY="cesim.myparts";const MYP={};
 const MYP_NOINNER=/^(xsc|xfg|xmm|xwm|xbp|xla|xwg|probe|lprobe|text|netlabel|gnd)$/;
@@ -1240,7 +1257,7 @@ function openBrowser(group,famName){if(group){cbState.g=group;cbState.f=0;cbStat
  function preview(){const c_=cur();{const mine=!!(c_&&c_.it.mine);foot.querySelector("#cb-edit").hidden=!mine;foot.querySelector("#cb-delp").hidden=!mine}const r=pv.getBoundingClientRect();const dpr=devicePixelRatio||1;pv.width=r.width*dpr;pv.height=r.height*dpr;const g=pv.getContext("2d");g.setTransform(dpr,0,0,dpr,0,0);g.fillStyle=CV.bg;g.fillRect(0,0,r.width,r.height);if(!c_){info.textContent="";return}
   const L_=LIB[c_.t];const comp={id:"pv",t:c_.t,x:0,y:0,r:0,f:0,label:L_.prefix?L_.prefix+"?":"",p:Object.assign({},L_.props,c_.it.p||{})};const b=L_.bb;const s=Math.min(2.4,Math.min((r.width-40)/(b[2]-b[0]+20),(r.height-40)/(b[3]-b[1]+20)));g.translate(r.width/2-(b[0]+b[2])/2*s,r.height/2-(b[1]+b[3])/2*s+6);g.scale(s,s);drawComp(comp,null,g);drawLabels(comp,null,g);
   const fl_=L_.fields.map(f=>f[1]+": "+(comp.p[f[0]]??"")).join("\n");const pins=L_.pins.map(p=>p[2]).join(", ");
-  info.innerHTML=`<b>${esc(c_.it.n)}</b>${c_.it.mine?mypBadge(c_.it.mine)+mypInfo(c_.it.mine):""}<br>${esc(L_.name)} · <span dir="rtl">${esc(L_.ar||"")}</span><br><span style="color:var(--ui-dim)">Family:</span> ${esc(c_.fam.trim())}<br><span style="color:var(--ui-dim)">Pins:</span> ${esc(pins)}<div class="mono" style="margin-top:6px">${esc(fl_)}</div>`}
+  info.innerHTML=`<b>${esc(c_.it.n)}</b>${c_.it.mine?mypBadge(c_.it.mine)+mypInfo(c_.it.mine):""}<br>${esc(L_.name)}${L_.ar?' · <span dir="rtl">'+esc(L_.ar)+"</span>":""}<br><span style="color:var(--ui-dim)">Family:</span> ${esc(c_.fam.trim())}<br>${c_.it.pl?'<span style="color:var(--ui-dim)">Package:</span> '+esc(c_.it.pl.pkg)+" · "+esc(PLIB.dimText(c_.it.pl))+(L_.plib?'<br><span style="color:var(--ui-dim)">Drawn for wiring only, not simulated</span>':"")+"<br>":""}<span style="color:var(--ui-dim)">Pins:</span> ${esc(pins)}<div class="mono" style="margin-top:6px">${esc(fl_)}</div>`}
  function doSearch(){const s=q.value.trim().toLowerCase();cbState.q=q.value;if(!s){results=null;cbState.i=0;draw();return}results=[];for(const g of DB)for(const f of g.fams){const fam=f[0].toLowerCase(),nm=LIB[f[1]].name.toLowerCase(),ar=LIB[f[1]].ar||"";for(const it of famItems(f)){if(it.n.toLowerCase().includes(s)||fam.includes(s)||nm.includes(s)||ar.includes(s))results.push({t:it.t||f[1],it,fam:f[0],g:g.g});if(results.length>3000)break}}cbState.i=0;draw()}
  gl.onclick=e=>{const d=e.target.closest("[data-g]");if(!d)return;cbState.g=d.dataset.g;cbState.f=0;cbState.i=0;results=null;q.value="";cbState.q="";draw()};
  fl.onclick=e=>{const d=e.target.closest("[data-f]");if(!d)return;cbState.f=+d.dataset.f;cbState.i=0;draw()};

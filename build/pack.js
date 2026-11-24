@@ -9,6 +9,7 @@ const docTypes = [
   { CFBundleTypeName: 'SPICE Netlist', CFBundleTypeExtensions: ['cir', 'net', 'sp'], CFBundleTypeRole: 'Editor', LSHandlerRank: 'Alternate' },
   { CFBundleTypeName: 'CEsim Diagram', CFBundleTypeExtensions: ['cediag'], CFBundleTypeRole: 'Editor', LSHandlerRank: 'Owner' },
   { CFBundleTypeName: 'CEsim System model', CFBundleTypeExtensions: ['cesys'], CFBundleTypeRole: 'Editor', LSHandlerRank: 'Owner' },
+  { CFBundleTypeName: 'CEsim Software design', CFBundleTypeExtensions: ['cesoft'], CFBundleTypeRole: 'Editor', LSHandlerRank: 'Owner' },
   { CFBundleTypeName: 'Diagram file', CFBundleTypeExtensions: ['drawio', 'dio', 'mmd', 'mermaid'], CFBundleTypeRole: 'Editor', LSHandlerRank: 'Alternate' },
   { CFBundleTypeName: 'CEsim Logic', CFBundleTypeExtensions: ['cedig'], CFBundleTypeRole: 'Editor', LSHandlerRank: 'Owner' },
   { CFBundleTypeName: 'CEsim Breadboard', CFBundleTypeExtensions: ['cebb'], CFBundleTypeRole: 'Editor', LSHandlerRank: 'Owner' },

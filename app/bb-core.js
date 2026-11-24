@@ -170,6 +170,11 @@ const XSIM=new Set(['asens','asens3','dsens','module','pdb']);
 if(BBX)for(const e of BBX.LIST){if(LIB[e.key])continue;
  if(XSIM.has(e.sim))LIB[e.key]={name:e.name,legs:e.pins.map((_,i)=>[i,0]),props:JSON.parse(JSON.stringify(e.props||{})),pins:e.pins.slice(),offboard:true,module:true,sim:e.sim,x:e};
  else{const b=LIB[e.sim];LIB[e.key]={alias:e.sim,name:e.name,legs:b.legs,props:Object.assign(JSON.parse(JSON.stringify(b.props||{})),e.props||{}),pins:b.pins,offboard:true,module:b.module,x:e}}}
+/* the parts catalog: real parts in their real packages; parts with a breadboard model use it */
+const PLIB=root.PLIB||(typeof require!=='undefined'?require('./parts-lib.js'):null);
+if(PLIB)for(const e of PLIB.LIST){if(LIB[e.key])continue;const g=PLIB.bbLegs(e);
+ if(e.bb&&LIB[e.bb[0]]){const b=LIB[e.bb[0]];LIB[e.key]={alias:e.bb[0],name:e.name,legs:b.legs,flex:b.flex,span:b.span,props:Object.assign(JSON.parse(JSON.stringify(b.props||{})),e.bb[1]||{}),pins:b.pins,plib:e,module:b.module,offboard:b.offboard};continue}
+ LIB[e.key]=g.flex?{name:e.name,flex:true,legs:2,span:g.span,props:{},pins:e.pins.slice(),plib:e}:{name:e.name,legs:g.legs,props:{},pins:e.pins.slice(),plib:e,offboard:!g.on}}
 /* the value an analog module puts on AO, as a fraction of its supply */
 function xFrac(p,t){const L=LIB[p.type];const ui=L&&L.x&&L.x.ui;if(!ui)return 0.5;let f=+ui.v(+p.props.val);if(ui.pulse){const bpm=+p.props.val||72;const ph=(t*bpm/60)%1;f=0.5+0.3*Math.exp(-Math.pow((ph-0.1)/0.035,2))-0.06*Math.exp(-Math.pow((ph-0.3)/0.06,2))}return Math.max(0.001,Math.min(0.999,isFinite(f)?f:0.5))}
 const GATES={7400:{f:(a,b)=>!(a&&b),n:4},7402:{f:(a,b)=>!(a||b),n:4,nor:true},7404:{f:a=>!a,n:6,not:true},7408:{f:(a,b)=>a&&b,n:4},7432:{f:(a,b)=>a||b,n:4},7486:{f:(a,b)=>a!==b,n:4}};
@@ -478,12 +483,12 @@ function toPcb(doc){const con=connectivity(doc);const par=new Map();const f=k=>{
  const names=new Map();const src=doc.parts.find(p=>p.type==='battery'||p.type==='supply');if(src){const l=con.partLegs.get(src.id);names.set(root(l[1]),'GND');names.set(root(l[0]),'VCC')}
  let k=1;const nm=leg=>{const r=root(leg);if(!names.has(r))names.set(r,'N'+(k++));return names.get(r)};
  // count how many part legs sit on each net, so nets with one leg stay unconnected
- const use=new Map();for(const p of doc.parts){if(!PCB_FP[p.type])continue;for(const l of con.partLegs.get(p.id)){const r=root(l);use.set(r,(use.get(r)||0)+1)}}
+ const use=new Map();for(const p of doc.parts){if(!PCB_FP[p.type]&&!(LIB[p.type]&&LIB[p.type].plib)&&!(p.v&&LIB[p.v]&&LIB[p.v].plib))continue;for(const l of con.partLegs.get(p.id)){const r=root(l);use.set(r,(use.get(r)||0)+1)}}
  const comps=[],nets={},cnt={};const skipped=[];
- for(const p of doc.parts){const m=PCB_FP[p.type];if(!m){if(p.type!=='voltmeter'&&p.type!=='ammeter')skipped.push(LIB[p.type].name);continue}const pf=PCB_PFX[p.type];cnt[pf]=(cnt[pf]||0)+1;const ref=pf+cnt[pf];
+ for(const p of doc.parts){const pe=p.v&&LIB[p.v]&&LIB[p.v].plib||LIB[p.type]&&LIB[p.type].plib;const m=pe?[pe.key,pe.pins]:PCB_FP[p.type];if(!m){if(p.type!=='voltmeter'&&p.type!=='ammeter')skipped.push(LIB[p.type].name);continue}const pf=PCB_PFX[p.type]||(pe?({Resistors:'R','Special resistors':'R',Capacitors:'C',Inductors:'L',Transformers:'T',Frequency:'Y',Diodes:'D',Transistors:'Q',Switching:'K',Protection:'F'}[pe.grp]||'U'):'U');cnt[pf]=(cnt[pf]||0)+1;const ref=pf+cnt[pf];
   let value='';if(p.type==='resistor')value=fmtOhm(p.props.ohms).replace(' ','');else if(p.type==='capacitor'||p.type==='ecap')value=fmtF(p.props.farads).replace(' ','');else if(p.type==='led')value='LED '+p.props.color;else if(p.type==='pled')value='Power LED '+p.props.color;else if(p.type==='ldr')value='LDR';else if(p.type==='pot')value=fmtOhm(p.props.ohms).replace(' ','');else if(p.type==='battery'||p.type==='supply')value=p.props.volts+'V in';else if(LIB[p.type].ic)value='74LS'+LIB[p.type].ic.slice(2);else if(p.type==='ne555')value='NE555';else if(p.type==='npn')value='2N2222';else if(p.type==='switch')value='slide switch';else if(p.type==='seg7')value='7-seg CC';else if(p.type==='diode')value='1N4007';
-  comps.push({ref,fp:m[0],value,x:0,y:0,rot:0});const legs=con.partLegs.get(p.id);legs.forEach((l,i)=>{if((use.get(root(l))||0)<2)return;nets[ref+'.'+(m[1]?m[1][i]:String(i+1))]=nm(l)})}
+  if(pe)value=pe.name.replace(/,.*$/,'');comps.push({ref,fp:m[0],value,x:0,y:0,rot:0});const legs=con.partLegs.get(p.id);legs.forEach((l,i)=>{if((use.get(root(l))||0)<2)return;nets[ref+'.'+(m[1]?m[1][i]:String(i+1))]=nm(l)})}
  return{comps,nets,skipped}}
-const api={BBX,xFrac,MCU,BOARD_KEYS,boardSource,ESP32_BLINK,PICO_BLINK,UNO_PINS,UNO_BLINK,P,COLS,ROWS,ROWY,RAILS,RAIL_N,colX,railX,HOLES,holeXY,key,LIB,GATES,gatePins,LED_RGB,LED_VF,legsOf,newPart,connectivity,Sim,fmtOhm,fmtF,parseValue,bands,toNetlist,toPcb,stripLabel,engNum,ldrOhms,AVR8,droneMass,thermFrame,camPixel,CAM_COL,micWave,DCM,BLDC,FRAMES,lipoV};
+const api={BBX,PLIB,xFrac,MCU,BOARD_KEYS,boardSource,ESP32_BLINK,PICO_BLINK,UNO_PINS,UNO_BLINK,P,COLS,ROWS,ROWY,RAILS,RAIL_N,colX,railX,HOLES,holeXY,key,LIB,GATES,gatePins,LED_RGB,LED_VF,legsOf,newPart,connectivity,Sim,fmtOhm,fmtF,parseValue,bands,toNetlist,toPcb,stripLabel,engNum,ldrOhms,AVR8,droneMass,thermFrame,camPixel,CAM_COL,micWave,DCM,BLDC,FRAMES,lipoV};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;else root.BB=api;
 })(typeof window!=='undefined'?window:globalThis);
