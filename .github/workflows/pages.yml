@@ -2,7 +2,7 @@ name: Web version
 on:
   push:
     branches: [main]
-    paths: ['app/**', 'simulators/**', '.github/workflows/pages.yml']
+    paths: ['app/**', '.github/workflows/pages.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -24,7 +24,6 @@ jobs:
           mkdir -p _site
           cp -r app/* _site/
           rm -f _site/main.js _site/preload.js _site/package.json
-          cp -r simulators _site/simulators
           touch _site/.nojekyll
           cat > _site/manifest.webmanifest <<'JSON'
           {"name":"CEsim Studio","short_name":"CEsim","start_url":"studio.html","display":"standalone","background_color":"#0f141a","theme_color":"#0f141a","icons":[{"src":"icon.png","sizes":"512x512","type":"image/png"}]}
