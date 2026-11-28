@@ -9,14 +9,14 @@
 /* Layout idea: classic EDA workbench — menu bar, two toolbars, schematic sheet, instrument rail on the right, design tabs and status bar at the bottom. */
 :root{
   --ui-bg:#e9ecf0; --ui-panel:#f5f6f8; --ui-border:#c3c9d2; --ui-text:#1b2230; --ui-dim:#5b6676; --ui-hover:#d9e1ea; --ui-active:#c9d6e6;
-  --accent:#0d6e8a; --accent-ink:#ffffff; --danger:#c0392b; --ok:#1e8e3e;
+  --accent:#c2410c; --accent-ink:#ffffff; --danger:#c0392b; --ok:#1e8e3e;
   --cv-bg:#ffffff; --cv-dot:#c2c8d0; --cv-part:#1d3c8f; --cv-wire:#d3461a; --cv-label:#1d3c8f; --cv-value:#1b2230; --cv-sel:#0f9bb4; --cv-border:#9aa3af; --cv-pin:#6b7686;
   --font-ui:"IBM Plex Sans",-apple-system,"Segoe UI",Roboto,Arial,sans-serif; --font-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
   color-scheme:light;
 }
 :root[data-cetheme="dark"]{
   --ui-bg:#1a1f27; --ui-panel:#222833; --ui-border:#353e4c; --ui-text:#dfe5ee; --ui-dim:#9aa6b6; --ui-hover:#2c3442; --ui-active:#34506a;
-  --accent:#35b6d4; --accent-ink:#0b1117;
+  --accent:#fb923c; --accent-ink:#1c1917;
   --cv-bg:#12161d; --cv-dot:#2c3442; --cv-part:#8fbaff; --cv-wire:#ff8a50; --cv-label:#ffd27a; --cv-value:#c9d3e0; --cv-sel:#4fd1e8; --cv-border:#3b4555; --cv-pin:#7d8899;
   color-scheme:dark;
 }
@@ -37,7 +37,7 @@ html,body{height:100%;margin:0}
 body{background:var(--ui-bg);color:var(--ui-text);font:13px/1.35 var(--font-ui);overflow:hidden;user-select:none;-webkit-user-select:none}
 #app{display:grid;grid-template-rows:28px 26px 34px 34px 1fr 26px 22px;height:100%}
 #titlebar{display:flex;align-items:center;gap:8px;padding:0 10px;background:var(--ui-panel);border-bottom:1px solid var(--ui-border);font-size:12.5px}
-#titlebar .logo{width:18px;height:18px;border-radius:4px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font:600 9px var(--font-mono)}
+#titlebar .logo{width:18px;height:18px;border-radius:4px;display:grid;place-items:center;font:600 9px var(--font-mono)}
 #titlebar .t{font-weight:500}
 #titlebar .sp{flex:1}
 #titlebar .theme{display:flex;gap:4px}
@@ -157,27 +157,27 @@ kbd{font:11px var(--font-mono);border:1px solid var(--ui-border);border-bottom-w
 .hint{position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);text-align:center;color:var(--ui-dim);pointer-events:none;font-size:13px;line-height:1.7}
 .hint h2{font-size:18px;margin:0 0 6px;color:var(--ui-text);font-weight:600;text-wrap:balance}
 
-#splash{position:fixed;inset:0;display:grid;place-items:center;z-index:100;background:rgba(10,20,40,.18);transition:opacity .35s}
+#splash{position:fixed;inset:0;display:grid;place-items:center;z-index:100;background:rgba(28,25,23,.2);transition:opacity .35s}
 #splash.out{opacity:0;pointer-events:none}
-.sp-box{width:min(520px,90vw);border-radius:10px;overflow:hidden;box-shadow:0 24px 60px rgba(5,20,60,.45);background:linear-gradient(135deg,#0a2a6b 0%,#1048a8 55%,#1a6fd6 100%);color:#fff;position:relative}
+.sp-box{width:min(520px,90vw);border-radius:10px;overflow:hidden;box-shadow:0 24px 60px rgba(28,25,23,.45);background:#1c1917;color:#fff;position:relative}
 .sp-box canvas{position:absolute;inset:0;width:100%;height:100%;opacity:.22}
 .sp-in{position:relative;padding:34px 36px 22px;display:grid;gap:4px}
 .sp-row{display:flex;align-items:center;gap:16px}
-.sp-logo{width:58px;height:58px;border-radius:12px;background:#fff;color:#0d47a1;display:grid;place-items:center;font:700 22px var(--font-mono);box-shadow:0 4px 14px rgba(0,0,0,.25)}
+.sp-logo{width:58px;height:58px;border-radius:12px;display:grid;place-items:center;filter:drop-shadow(0 4px 14px rgba(0,0,0,.35))}
 .sp-name{font:600 44px/1 var(--font-ui);letter-spacing:-.01em}
-.sp-name span{color:#8fd3ff}
-.sp-sub{font-size:13.5px;color:#cfe3ff;margin-top:2px}
-.sp-ver{margin-top:22px;font:500 12.5px var(--font-mono);color:#e3efff}
+.sp-name span{color:#fb923c}
+.sp-sub{font-size:13.5px;color:#d6d3d1;margin-top:2px}
+.sp-ver{margin-top:22px;font:500 12.5px var(--font-mono);color:#e7e5e4}
 .sp-bar{height:3px;background:rgba(255,255,255,.18);border-radius:2px;overflow:hidden;margin-top:10px}
-.sp-bar i{display:block;height:100%;width:0;background:#8fd3ff;transition:width 1.6s ease-out}
-.sp-foot{display:flex;justify-content:space-between;align-items:end;margin-top:14px;font-size:10.5px;color:#b9d4f7}
+.sp-bar i{display:block;height:100%;width:0;background:#ea580c;transition:width 1.6s ease-out}
+.sp-foot{display:flex;justify-content:space-between;align-items:end;margin-top:14px;font-size:10.5px;color:#a8a29e}
 .sp-by{font:600 10.5px var(--font-ui);letter-spacing:.14em;color:#fff;opacity:.85}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 </head>
 <body>
 <div id="app">
-  <div id="titlebar"><div class="logo">CE</div><span class="t" id="ttl">Design1 - CEsim</span><span class="sp"></span>
+  <div id="titlebar"><div class="logo"><svg viewBox="0 0 512 512" width="100%" height="100%" aria-hidden="true"><rect width="512" height="512" rx="112" fill="#EA580C"/><path d="M236 168A100 100 0 1 0 236 344M424 160H316V352H424M316 256H404" fill="none" stroke="#FFF7ED" stroke-width="50" stroke-linecap="round" stroke-linejoin="round"/></svg></div><span class="t" id="ttl">Design1 - CEsim</span><span class="sp"></span>
     <span style="color:var(--ui-dim);font-size:11.5px">Theme</span>
     <div class="theme">
       <button class="swatch" title="Classic White" style="background:#fff" data-th="white"></button>
@@ -197,8 +197,8 @@ kbd{font:11px var(--font-mono);border:1px solid var(--ui-border);border-bottom-w
   <div id="status"><span id="st-hint">For Help, press F1</span><span id="st-mid"></span><span>Tran: <b id="st-time">0 s</b></span></div>
 </div>
 <div id="splash" role="dialog" aria-label="CEsim"><div class="sp-box"><canvas id="sp-cv"></canvas><div class="sp-in">
- <div class="sp-row"><div class="sp-logo">CE</div><div><div class="sp-name">CE<span>sim</span></div><div class="sp-sub">Circuit Design &amp; Simulation Suite</div></div></div>
- <div class="sp-ver">Version 1.39.0</div><div class="sp-bar"><i id="sp-bar"></i></div><div class="sp-foot"><span id="sp-msg">Loading component database…</span><span class="sp-by">BY. YOUSEF</span></div>
+ <div class="sp-row"><div class="sp-logo"><svg viewBox="0 0 512 512" width="100%" height="100%" aria-hidden="true"><rect width="512" height="512" rx="112" fill="#EA580C"/><path d="M268 178A96 96 0 1 0 268 334M402 170H324V342H402M324 256H384" fill="none" stroke="#FFF7ED" stroke-width="30" stroke-linecap="round" stroke-linejoin="round"/><g fill="#1C1917"><circle cx="268" cy="178" r="17"/><circle cx="268" cy="334" r="17"/><circle cx="402" cy="170" r="17"/><circle cx="402" cy="342" r="17"/><circle cx="384" cy="256" r="17"/></g></svg></div><div><div class="sp-name">CE<span>sim</span></div><div class="sp-sub">Circuit Design &amp; Simulation Suite</div></div></div>
+ <div class="sp-ver">Version 1.40.0</div><div class="sp-bar"><i id="sp-bar"></i></div><div class="sp-foot"><span id="sp-msg">Loading component database…</span><span class="sp-by">BY. YOUSEF</span></div>
 </div></div></div>
 <script src="lib/canvas2svg.js"></script>
 <script src="ms14.js"></script>
@@ -2449,9 +2449,9 @@ if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{dirty=1})
 
 if(/fromimage/.test(location.search))setTimeout(()=>openImageTool(),300);
 if(/fromcode/.test(location.search))setTimeout(()=>openCodeEditor(),300);
-(function splash(){const sp=$("#splash");if(!sp)return;if(/nosplash/.test(location.search)){sp.remove();return}const cvs=$("#sp-cv"),r=cvs.getBoundingClientRect(),g=cvs.getContext("2d");cvs.width=r.width;cvs.height=r.height;g.strokeStyle="#bfe2ff";g.lineWidth=1.4;
+(function splash(){const sp=$("#splash");if(!sp)return;if(/nosplash/.test(location.search)){sp.remove();return}const cvs=$("#sp-cv"),r=cvs.getBoundingClientRect(),g=cvs.getContext("2d");cvs.width=r.width;cvs.height=r.height;g.strokeStyle="#fdba74";g.lineWidth=1.4;
  // faint circuit traces in the background
- const rnd=(a)=>Math.floor(Math.random()*a);for(let k=0;k<14;k++){let x=rnd(r.width),y=rnd(r.height);g.beginPath();g.moveTo(x,y);for(let j=0;j<4;j++){if(j%2)y+=(rnd(2)?1:-1)*(20+rnd(60));else x+=(rnd(2)?1:-1)*(30+rnd(90));g.lineTo(x,y)}g.stroke();g.beginPath();g.arc(x,y,2.5,0,7);g.fillStyle="#bfe2ff";g.fill()}
+ const rnd=(a)=>Math.floor(Math.random()*a);for(let k=0;k<14;k++){let x=rnd(r.width),y=rnd(r.height);g.beginPath();g.moveTo(x,y);for(let j=0;j<4;j++){if(j%2)y+=(rnd(2)?1:-1)*(20+rnd(60));else x+=(rnd(2)?1:-1)*(30+rnd(90));g.lineTo(x,y)}g.stroke();g.beginPath();g.arc(x,y,2.5,0,7);g.fillStyle="#fdba74";g.fill()}
  requestAnimationFrame(()=>$("#sp-bar").style.width="100%");const msgs=["Loading component database…",countDB().toLocaleString()+" components ready","Starting workspace…"];let i=0;const it=setInterval(()=>{i++;if(i<msgs.length)$("#sp-msg").textContent=msgs[i]},550);
  const done=()=>{clearInterval(it);sp.classList.add("out");setTimeout(()=>sp.remove(),400)};sp.onclick=done;setTimeout(done,1900)})();
 

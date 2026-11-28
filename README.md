@@ -24,7 +24,7 @@ CEsim Studio is a launcher that opens several tools, each in its own window:
 | **Software design** | UML (all 14 diagrams), database diagrams in Chen, crow's foot, IDEF1X and relational tables, data flow (Yourdon and Gane and Sarson), C4 and BPMN. Writes SQL for MySQL, PostgreSQL, SQLite, SQL Server and Oracle and reads it back; turns a class diagram into Java, C#, C++, Python or TypeScript and reads classes from code. A check finds design mistakes. | `.cesoft` · `.sql` |
 | **3D** | Millimetre-accurate modelling with holes, groups, arrays, shells, a board library and enclosure maker. Adjustable zoom / rotate / pan speed. | `.ce3d` · `.stl` · `.obj` · `.3mf` · `.glb` |
 
-The Studio window has five themes and eight accent colours (plus a custom colour).
+The Studio window has five themes and eight accent colours (plus a custom colour). The brand colour is orange, and the logo is in `assets/logo.svg` (`python3 build/make-icons.py` makes every icon size from it).
 
 ## Download
 

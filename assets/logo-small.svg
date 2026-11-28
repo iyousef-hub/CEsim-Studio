@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <title>CEsim Studio</title>
+  <rect width="512" height="512" rx="112" fill="#EA580C"/>
+  <g fill="none" stroke="#FFF7ED" stroke-width="50" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M236 168 A100 100 0 1 0 236 344"/>
+    <path d="M424 160 H316 V352 H424 M316 256 H404"/>
+  </g>
+</svg>
