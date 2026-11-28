@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link href="fonts/fonts.css" rel="stylesheet"><title>CEsim VLSI</title>
 <style>
-:root{--bg:#e9edf2;--panel:#f7f8fa;--line:#cdd3dc;--text:#1b2230;--dim:#5e6979;--hover:#e1e7ef;--accent:#185fa5;--font:"IBM Plex Sans",-apple-system,"Segoe UI",Roboto,Arial,sans-serif;--mono:"IBM Plex Mono",ui-monospace,Menlo,monospace}
+:root{--bg:#e9edf2;--panel:#f7f8fa;--line:#cdd3dc;--text:#1b2230;--dim:#5e6979;--hover:#e1e7ef;--accent:#c2410c;--font:"IBM Plex Sans",-apple-system,"Segoe UI",Roboto,Arial,sans-serif;--mono:"IBM Plex Mono",ui-monospace,Menlo,monospace}
 *{box-sizing:border-box}html,body{height:100%;margin:0}body{background:var(--bg);color:var(--text);font:13px/1.35 var(--font);overflow:hidden}
 #app{display:grid;grid-template-rows:auto 1fr 28px;height:100%}
 #top{display:flex;flex-wrap:wrap;row-gap:2px;align-items:center;gap:2px;padding:4px 10px;min-height:44px;background:var(--panel);border-bottom:1px solid var(--line);user-select:none}
-.logo{flex:none;width:24px;height:24px;border-radius:6px;background:var(--accent);color:#fff;display:grid;place-items:center;font:600 10px var(--mono);margin-right:6px}
+.logo{flex:none;width:24px;height:24px;border-radius:6px;display:grid;place-items:center;font:600 10px var(--mono);margin-right:6px}
 #docname{flex:none;font-weight:600;margin-right:10px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:text;padding:3px 5px;border-radius:3px}#docname:hover{background:var(--hover)}
 .tb{flex:none;height:30px;min-width:30px;padding:0 9px;border:1px solid transparent;border-radius:4px;background:none;color:var(--text);cursor:pointer;font:12.5px var(--font);white-space:nowrap}
 .tb:hover{background:var(--hover);border-color:var(--line)}.tb.pri{background:var(--accent);color:#fff}.tb.on{background:#dce9f8;border-color:#9dbde4}.tb.pri.on{background:#0f3f73;color:#fff;border-color:#0f3f73}.tb kbd{font:10.5px var(--mono);color:var(--dim);margin-left:4px}
@@ -40,7 +40,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
 </style></head>
 <body><div id="app">
 <div id="top">
- <div class="logo">CE</div><span id="docname" title="Click to rename">cell</span>
+ <div class="logo"><svg viewBox="0 0 512 512" width="100%" height="100%" aria-hidden="true"><rect width="512" height="512" rx="112" fill="#EA580C"/><path d="M236 168A100 100 0 1 0 236 344M424 160H316V352H424M316 256H404" fill="none" stroke="#FFF7ED" stroke-width="50" stroke-linecap="round" stroke-linejoin="round"/></svg></div><span id="docname" title="Click to rename">cell</span>
  <button class="tb" id="bFile">File ▾</button><button class="tb" id="bEx">Examples ▾</button><button class="tb" id="bUndo" title="Undo (Ctrl+Z)">↶</button><button class="tb" id="bRedo" title="Redo (Ctrl+Y)">↷</button><div class="sep"></div>
  <button class="tb" id="tSel" data-tool="select" title="Select an area to move, copy or delete (S)">Select<kbd>S</kbd></button><button class="tb on" id="tPaint" data-tool="paint" title="Paint rectangles of the chosen layer (P)">Paint<kbd>P</kbd></button><button class="tb" id="tErase" data-tool="erase" title="Erase the chosen layer; hold Shift to erase every layer (E)">Erase<kbd>E</kbd></button>
  <button class="tb" id="tCont" data-tool="contact" title="Place a contact: metal 1 to poly or diffusion (C)">Contact<kbd>C</kbd></button><button class="tb" id="tVia" data-tool="via" title="Place a via: metal 1 to metal 2 (U)">Via<kbd>U</kbd></button><button class="tb" id="tVia2" data-tool="via2" title="Place a via 2: metal 2 to metal 3 (V)">Via 2<kbd>V</kbd></button><button class="tb" id="tLabel" data-tool="label" title="Name a wire: VDD, GND, inputs and outputs (T)">Label<kbd>T</kbd></button><button class="tb" id="tCut" data-tool="cut" title="Choose where the cross-section is cut (K)">Cross-section<kbd>K</kbd></button><div class="sep"></div>

@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link href="fonts/fonts.css" rel="stylesheet"><title>CEsim Software design</title>
 <style>
-:root{--bg:#eef1f5;--panel:#f7f8fa;--line:#cdd3dc;--text:#1b2230;--dim:#5e6979;--hover:#e1e7ef;--accent:#185fa5;--font:"IBM Plex Sans",-apple-system,"Segoe UI",Roboto,Arial,sans-serif;--mono:"IBM Plex Mono",ui-monospace,Menlo,monospace}
+:root{--bg:#eef1f5;--panel:#f7f8fa;--line:#cdd3dc;--text:#1b2230;--dim:#5e6979;--hover:#e1e7ef;--accent:#c2410c;--font:"IBM Plex Sans",-apple-system,"Segoe UI",Roboto,Arial,sans-serif;--mono:"IBM Plex Mono",ui-monospace,Menlo,monospace}
 *{box-sizing:border-box}html,body{height:100%;margin:0}body{background:var(--bg);color:var(--text);font:13px/1.4 var(--font);display:flex;flex-direction:column;overflow:hidden}
 #top{display:flex;align-items:center;gap:6px;padding:6px 12px;background:var(--panel);border-bottom:1px solid var(--line);flex-wrap:wrap}
-.logo{width:24px;height:24px;border-radius:6px;background:var(--accent);color:#fff;display:grid;place-items:center;font:600 10px var(--mono)}
+.logo{width:24px;height:24px;border-radius:6px;display:grid;place-items:center;font:600 10px var(--mono)}
 .title{font-weight:600;margin-right:6px}
 .btn{height:30px;padding:0 11px;border:1px solid var(--line);border-radius:5px;background:#fff;color:var(--text);cursor:pointer;font:12.5px var(--font);white-space:nowrap}.btn:hover{background:var(--hover)}.btn.pri{background:var(--accent);border-color:var(--accent);color:#fff}.btn.on{background:#d3e4f7;border-color:#93b8e0}
 .btn:disabled{opacity:.45;cursor:default}
@@ -76,7 +76,7 @@ textarea.inl{text-align:left;resize:none}
 .lnk{border:0;background:none;color:var(--accent);cursor:pointer;font:11.5px var(--font);padding:0;margin-left:6px}
 .keys{padding:12px 18px;display:grid;grid-template-columns:auto 1fr;gap:7px 16px;font-size:12.5px;overflow:auto}.keys kbd{font:11.5px var(--mono);background:#f1f4f8;border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:1px 6px;white-space:nowrap}
 </style></head><body>
-<div id="top"><div class="logo">CE</div><span class="title">Software design</span>
+<div id="top"><div class="logo"><svg viewBox="0 0 512 512" width="100%" height="100%" aria-hidden="true"><rect width="512" height="512" rx="112" fill="#EA580C"/><path d="M236 168A100 100 0 1 0 236 344M424 160H316V352H424M316 256H404" fill="none" stroke="#FFF7ED" stroke-width="50" stroke-linecap="round" stroke-linejoin="round"/></svg></div><span class="title">Software design</span>
  <input class="nm" id="pname" aria-label="Project name" spellcheck="false">
  <button class="btn" id="bNew"><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M12 11v6M9 14h6"/></svg>New</button><button class="btn" id="bOpen"><svg viewBox="0 0 24 24"><path d="M3 7h6l2 2h10v10H3z"/></svg>Open</button><button class="btn" id="bSave"><svg viewBox="0 0 24 24"><path d="M5 3h12l3 3v15H5z"/><path d="M8 3v5h8V3M8 21v-7h8v7"/></svg>Save</button><button class="btn" id="bEx"><svg viewBox="0 0 24 24"><path d="M4 5h7v7H4zM13 5h7v7h-7zM4 14h7v6H4zM13 14h7v6h-7z"/></svg>Examples</button>
  <span class="sep"></span><button class="btn ic" id="bUndo" title="Undo (Ctrl+Z)"><svg viewBox="0 0 24 24"><path d="M9 7L4 12l5 5"/><path d="M4 12h11a5 5 0 010 10h-2"/></svg></button><button class="btn ic" id="bRedo" title="Redo (Ctrl+Y)"><svg viewBox="0 0 24 24"><path d="M15 7l5 5-5 5"/><path d="M20 12H9a5 5 0 000 10h2"/></svg></button><button class="btn ic" id="bDel" title="Delete (Del)"><svg viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button>

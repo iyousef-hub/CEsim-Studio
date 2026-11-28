@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link href="fonts/fonts.css" rel="stylesheet"><title>CEsim Boolean tools</title>
 <style>
-:root{--bg:#eef1f5;--panel:#f7f8fa;--line:#cdd3dc;--text:#1b2230;--dim:#5e6979;--hover:#e1e7ef;--accent:#185fa5;--font:"IBM Plex Sans",-apple-system,"Segoe UI",Roboto,Arial,sans-serif;--mono:"IBM Plex Mono",ui-monospace,Menlo,monospace}
+:root{--bg:#eef1f5;--panel:#f7f8fa;--line:#cdd3dc;--text:#1b2230;--dim:#5e6979;--hover:#e1e7ef;--accent:#c2410c;--font:"IBM Plex Sans",-apple-system,"Segoe UI",Roboto,Arial,sans-serif;--mono:"IBM Plex Mono",ui-monospace,Menlo,monospace}
 *{box-sizing:border-box}html,body{height:100%;margin:0}body{background:var(--bg);color:var(--text);font:13px/1.4 var(--font)}
 #top{display:flex;align-items:center;gap:6px;padding:6px 12px;background:var(--panel);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
-.logo{width:24px;height:24px;border-radius:6px;background:var(--accent);color:#fff;display:grid;place-items:center;font:600 10px var(--mono)}
+.logo{width:24px;height:24px;border-radius:6px;display:grid;place-items:center;font:600 10px var(--mono)}
 .title{font-weight:600;margin-right:14px}
 .tab{height:32px;padding:0 14px;border:1px solid transparent;border-radius:6px;background:none;cursor:pointer;font:13px var(--font);color:var(--text)}.tab:hover{background:var(--hover)}.tab.on{background:#d3e4f7;border-color:#93b8e0;font-weight:600}
 .btn{height:30px;padding:0 12px;border:1px solid var(--line);border-radius:5px;background:#fff;color:var(--text);cursor:pointer;font:12.5px var(--font);white-space:nowrap}.btn:hover{background:var(--hover)}.btn.pri{background:var(--accent);border-color:var(--accent);color:#fff}.btn.pri:hover{filter:brightness(.92)}
@@ -35,7 +35,7 @@ svg text{font-family:var(--font)}
 button:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible,td:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 [hidden]{display:none!important}
 </style></head><body>
-<div id="top"><div class="logo">CE</div><span class="title">Boolean tools</span>
+<div id="top"><div class="logo"><svg viewBox="0 0 512 512" width="100%" height="100%" aria-hidden="true"><rect width="512" height="512" rx="112" fill="#EA580C"/><path d="M236 168A100 100 0 1 0 236 344M424 160H316V352H424M316 256H404" fill="none" stroke="#FFF7ED" stroke-width="50" stroke-linecap="round" stroke-linejoin="round"/></svg></div><span class="title">Boolean tools</span>
  <button class="tab on" data-tab="fn">Function, truth table and K-map</button><button class="tab" data-tab="fsm">State machine (FSM)</button>
  <span style="flex:1"></span><button class="btn" id="bLogic">Open Logic</button></div>
 <main>
@@ -139,7 +139,7 @@ function render() {
   const n = S.vars.length; saveS(); syncInputs(); document.querySelectorAll('.curout').forEach(e => e.textContent = S.outs[S.cur].name);
   $('#outsel').innerHTML = S.outs.map((o, i) => `<button class="chip ${i === S.cur ? 'on' : ''}" data-o="${i}">${esc(o.name)}</button>`).join('');
   $('#outsel').querySelectorAll('[data-o]').forEach(b => b.onclick = () => { S.cur = +b.dataset.o; render(); });
-  let h = `<thead><tr><th>#</th>${S.vars.map(v => `<th>${esc(v)}</th>`).join('')}<th class="sepc"></th>${S.outs.map((o, i) => `<th style="${i === S.cur ? 'color:#185fa5' : ''}">${esc(o.name)}</th>`).join('')}</tr></thead><tbody>`;
+  let h = `<thead><tr><th>#</th>${S.vars.map(v => `<th>${esc(v)}</th>`).join('')}<th class="sepc"></th>${S.outs.map((o, i) => `<th style="${i === S.cur ? 'color:#c2410c' : ''}">${esc(o.name)}</th>`).join('')}</tr></thead><tbody>`;
   for (let m = 0; m < 1 << n; m++) { h += `<tr><td class="idx">${m}</td>` + S.vars.map((_, i) => `<td>${(m >> (n - 1 - i)) & 1}</td>`).join('') + '<td class="sepc"></td>' + S.outs.map((o, j) => { const v = o.values[m]; return `<td class="o ${v === 1 ? 'one' : v === 'x' ? 'dc' : ''}" tabindex="0" data-m="${m}" data-j="${j}" title="Click to change">${v}</td>`; }).join('') + '</tr>'; }
   $('#tt').innerHTML = h + '</tbody>';
   $('#tt').querySelectorAll('td.o').forEach(td => { const f = () => { const o = S.outs[+td.dataset.j]; const m = +td.dataset.m; o.values[m] = o.values[m] === 0 ? 1 : o.values[m] === 1 ? 'x' : 0; S.cur = +td.dataset.j; render(); const again = $(`#tt td.o[data-m="${m}"][data-j="${td.dataset.j}"]`); if (again) again.focus(); }; td.onclick = f; td.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); f(); } }; });

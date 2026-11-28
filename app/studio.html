@@ -2,12 +2,12 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link href="fonts/fonts.css" rel="stylesheet"><title>CEsim Studio</title>
 <style>
 /* Layout idea: launcher — category rail on the left, tool tiles grouped by discipline, recent files at the bottom. */
-:root{--bg:#f3f5f8;--panel:#ffffff;--rail:#eef1f5;--line:#d6dce4;--text:#18202d;--dim:#5b6676;--mute:#8a94a3;--accent:#185fa5;--accent-soft:#e3eefa;--accent-ink:#0c447c;--soon:#eef1f5;--field:#ffffff;--hover:#e3e8ef;--hover2:#f0f3f7;--chip:#e2e6ec;--row:#edf0f4;--rowh:#f6f8fb;--font:"IBM Plex Sans",-apple-system,"Segoe UI",Roboto,Arial,sans-serif;--mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;color-scheme:light}
+:root{--bg:#f3f5f8;--panel:#ffffff;--rail:#eef1f5;--line:#d6dce4;--text:#18202d;--dim:#5b6676;--mute:#8a94a3;--accent:#c2410c;--accent-soft:#fbe7dc;--accent-ink:#7c2d12;--soon:#eef1f5;--field:#ffffff;--hover:#e3e8ef;--hover2:#f0f3f7;--chip:#e2e6ec;--row:#edf0f4;--rowh:#f6f8fb;--font:"IBM Plex Sans",-apple-system,"Segoe UI",Roboto,Arial,sans-serif;--mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;color-scheme:light}
 *{box-sizing:border-box}html,body{height:100%;margin:0}body{background:var(--bg);color:var(--text);font:13.5px/1.45 var(--font);overflow:hidden}
 #app{display:grid;grid-template-columns:220px minmax(0,1fr);height:100%}
 #rail{background:var(--rail);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:18px 12px;gap:2px}
 .brand{display:flex;align-items:center;gap:10px;padding:0 6px 18px}
-.brand .lg{width:36px;height:36px;border-radius:9px;background:var(--accent);color:#fff;display:grid;place-items:center;font:600 13px var(--mono)}
+.brand .lg{width:36px;height:36px;border-radius:9px;display:grid;place-items:center;font:600 13px var(--mono)}
 .brand b{font-size:16px;letter-spacing:-.01em}.brand span{display:block;font-size:11.5px;color:var(--dim)}
 .nav{width:100%;border:none;background:none;text-align:left;padding:8px 10px;border-radius:6px;font:13px var(--font);color:var(--dim);cursor:pointer;display:flex;justify-content:space-between}
 .nav:hover{background:var(--hover);color:var(--text)}.nav.on{background:var(--accent-soft);color:var(--accent-ink);font-weight:500}
@@ -41,18 +41,18 @@ h2{font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--dim)
 .empty{padding:18px;color:var(--dim);font-size:13px}
 #drop{position:fixed;inset:0;display:none;place-items:center;background:color-mix(in srgb,var(--accent) 12%,transparent);border:3px dashed var(--accent);z-index:30;font-size:18px;color:var(--accent-ink);font-weight:500}
 /* splash */
-#splash{position:fixed;inset:0;display:grid;place-items:center;z-index:100;background:rgba(10,20,40,.18);transition:opacity .35s}
+#splash{position:fixed;inset:0;display:grid;place-items:center;z-index:100;background:rgba(28,25,23,.2);transition:opacity .35s}
 #splash.out{opacity:0;pointer-events:none}
-.sp-box{width:min(520px,90vw);border-radius:10px;overflow:hidden;box-shadow:0 24px 60px rgba(5,20,60,.45);background:linear-gradient(135deg,#0a2a6b 0%,#1048a8 55%,#1a6fd6 100%);color:#fff;position:relative}
+.sp-box{width:min(520px,90vw);border-radius:10px;overflow:hidden;box-shadow:0 24px 60px rgba(28,25,23,.45);background:#1c1917;color:#fff;position:relative}
 .sp-box canvas{position:absolute;inset:0;width:100%;height:100%;opacity:.22}
 .sp-in{position:relative;padding:34px 36px 22px;display:grid;gap:4px}
 .sp-row{display:flex;align-items:center;gap:16px}
-.sp-logo{width:58px;height:58px;border-radius:12px;background:#fff;color:#0d47a1;display:grid;place-items:center;font:700 22px var(--mono);box-shadow:0 4px 14px rgba(0,0,0,.25)}
-.sp-name{font:600 44px/1 var(--font);letter-spacing:-.01em}.sp-name span{color:#8fd3ff}.sp-name small{font-size:20px;font-weight:500;color:#cfe3ff;margin-left:8px}
-.sp-sub{font-size:13.5px;color:#cfe3ff;margin-top:2px}
-.sp-ver{margin-top:22px;font:500 12.5px var(--mono);color:#e3efff}
-.sp-bar{height:3px;background:rgba(255,255,255,.18);border-radius:2px;overflow:hidden;margin-top:10px}.sp-bar i{display:block;height:100%;width:0;background:#8fd3ff;transition:width 1.6s ease-out}
-.sp-foot{display:flex;justify-content:space-between;align-items:end;margin-top:14px;font-size:10.5px;color:#b9d4f7}
+.sp-logo{width:58px;height:58px;border-radius:12px;display:grid;place-items:center;filter:drop-shadow(0 4px 14px rgba(0,0,0,.35))}
+.sp-name{font:600 44px/1 var(--font);letter-spacing:-.01em}.sp-name span{color:#fb923c}.sp-name small{font-size:20px;font-weight:500;color:#d6d3d1;margin-left:8px}
+.sp-sub{font-size:13.5px;color:#d6d3d1;margin-top:2px}
+.sp-ver{margin-top:22px;font:500 12.5px var(--mono);color:#e7e5e4}
+.sp-bar{height:3px;background:rgba(255,255,255,.18);border-radius:2px;overflow:hidden;margin-top:10px}.sp-bar i{display:block;height:100%;width:0;background:#ea580c;transition:width 1.6s ease-out}
+.sp-foot{display:flex;justify-content:space-between;align-items:end;margin-top:14px;font-size:10.5px;color:#a8a29e}
 .sp-by{font:600 10.5px var(--font);letter-spacing:.14em;color:#fff;opacity:.85}
 [data-theme=paper]{--bg:#f6f2ea;--panel:#fffdf8;--rail:#efe9dd;--line:#ddd3c2;--text:#2a241b;--dim:#6b604f;--mute:#9a8f7c;--soon:#efe9dd;--field:#fffdf8;--hover:#e7dfcf;--hover2:#f1ebdf;--chip:#e5dccb;--row:#efe8db;--rowh:#f8f3ea}
 [data-theme=gray]{--bg:#e9ecf0;--panel:#f7f8fa;--rail:#dfe3e9;--line:#c8cfd8;--text:#151b24;--dim:#4d5868;--mute:#7c8696;--soon:#e1e5ea;--field:#ffffff;--hover:#d3d9e1;--hover2:#e6e9ee;--chip:#d6dbe2;--row:#e3e7ec;--rowh:#eef1f4}
@@ -71,7 +71,7 @@ h2{font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--dim)
 #themePop .row2{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--dim)}
 #themePop .row2 input{width:34px;height:24px;border:none;background:none;padding:0;cursor:pointer}
 .about{max-width:760px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:28px 30px;margin-top:6px}
-.ab-head{display:flex;align-items:center;gap:16px;margin-bottom:18px}.ab-lg{width:58px;height:58px;border-radius:14px;background:var(--accent);color:#fff;display:grid;place-items:center;font:700 22px var(--font,sans-serif)}
+.ab-head{display:flex;align-items:center;gap:16px;margin-bottom:18px}.ab-lg{width:58px;height:58px;border-radius:14px;display:grid;place-items:center;font:700 22px var(--font,sans-serif)}
 .ab-head h2{margin:0;font-size:22px;text-transform:none;letter-spacing:0;color:var(--text)}.ab-head span{color:var(--dim);font-size:13px}
 .ab-lead{font-size:15px;line-height:1.7;margin:0 0 14px;color:var(--text)}.ab-by{font-size:14px;margin:0 0 18px;color:var(--text)}
 .ab-links{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:22px}
@@ -86,7 +86,7 @@ h2{font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--dim)
 <body>
 <div id="app">
  <nav id="rail" aria-label="Categories">
-  <div class="brand"><div class="lg">CE</div><div><b>CEsim Studio</b><span>Version 1.39.0</span></div></div>
+  <div class="brand"><div class="lg"><svg viewBox="0 0 512 512" width="100%" height="100%" aria-hidden="true"><rect width="512" height="512" rx="112" fill="#EA580C"/><path d="M236 168A100 100 0 1 0 236 344M424 160H316V352H424M316 256H404" fill="none" stroke="#FFF7ED" stroke-width="50" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div><b>CEsim Studio</b><span>Version 1.40.0</span></div></div>
   <div id="navs"></div>
   <div class="railfoot">Opens .cesim · .cesys · .cesoft · .cir · .ms14 · .asc · .kicad_sch · .cebb · .cepcb · Gerber .zip · .cevlsi · .msk · .gds · .cif · .sch · .cedig · .circ · .cediag · .drawio · .mmd · .ce3d · .stl · .obj · .3mf · .asm · .com · .s · .hex · .ino · .v · .vcd<button class="btn" id="aboutBtn">About</button><button class="btn" id="themeBtn" aria-haspopup="dialog"><i></i>Theme and colors</button></div>
  </nav>
@@ -99,8 +99,8 @@ h2{font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--dim)
 </div>
 <div id="drop">Drop a file to open it in the right tool</div>
 <div id="splash" role="dialog" aria-label="CEsim Studio"><div class="sp-box"><canvas id="sp-cv"></canvas><div class="sp-in">
- <div class="sp-row"><div class="sp-logo">CE</div><div><div class="sp-name">CE<span>sim</span><small>Studio</small></div><div class="sp-sub">Circuit Design &amp; Simulation Suite</div></div></div>
- <div class="sp-ver">Version 1.39.0</div><div class="sp-bar"><i id="sp-bar"></i></div><div class="sp-foot"><span id="sp-msg">Loading tools…</span><span class="sp-by">BY. YOUSEF</span></div>
+ <div class="sp-row"><div class="sp-logo"><svg viewBox="0 0 512 512" width="100%" height="100%" aria-hidden="true"><rect width="512" height="512" rx="112" fill="#EA580C"/><path d="M268 178A96 96 0 1 0 268 334M402 170H324V342H402M324 256H384" fill="none" stroke="#FFF7ED" stroke-width="30" stroke-linecap="round" stroke-linejoin="round"/><g fill="#1C1917"><circle cx="268" cy="178" r="17"/><circle cx="268" cy="334" r="17"/><circle cx="402" cy="170" r="17"/><circle cx="402" cy="342" r="17"/><circle cx="384" cy="256" r="17"/></g></svg></div><div><div class="sp-name">CE<span>sim</span><small>Studio</small></div><div class="sp-sub">Circuit Design &amp; Simulation Suite</div></div></div>
+ <div class="sp-ver">Version 1.40.0</div><div class="sp-bar"><i id="sp-bar"></i></div><div class="sp-foot"><span id="sp-msg">Loading tools…</span><span class="sp-by">BY. YOUSEF</span></div>
 </div></div></div>
 <script>
 const $=s=>document.querySelector(s);
@@ -127,11 +127,11 @@ const TOOLS=[
  {id:'d3',cat:'Drawing and 3D',name:'3D',desc:'Millimetre-accurate modelling with board library and STL export.',fmt:'.ce3d · .stl · .obj · .3mf',ready:1,isNew:1},
  {id:'vlsi',cat:'Hardware and PCB',name:'VLSI',desc:'Draw CMOS transistors on a λ grid, check the design rules, see the truth table and the cross-section.',fmt:'.cevlsi · .MSK · .sch · .sp · GDSII · CIF',ready:1,isNew:1}];
 const CATS=['All tools','Circuits','Digital and architecture','Programming','Drawing and 3D','Hardware and PCB'];
-let cat='All tools';const VERSION='1.39.0';
+let cat='All tools';const VERSION='1.40.0';
 const N=window.cesimNative;
 function svg(n){return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${IC[n]}</svg>`}
 function toast(m){const d=document.createElement('div');d.className='toast';d.textContent=m;document.body.appendChild(d);setTimeout(()=>d.remove(),2600)}
-function renderAbout(){$('#recentH').hidden=true;$('#recent').hidden=true;$('#sections').innerHTML=`<section class="about" aria-labelledby="abH"><div class="ab-head"><div class="ab-lg">CE</div><div><h2 id="abH">CEsim Studio</h2><span>Version ${VERSION}</span></div></div><p class="ab-lead">This application was designed and developed to serve Computer Engineering students at the College of Computers and Information Technology, Taif University, Kingdom of Saudi Arabia. It is available to everyone free of charge, and it is built entirely on free and open-source tools.</p><p class="ab-by">Designed and developed by <b>YOUSEF A.ALGHAMDI</b></p><div class="ab-links"><a class="ab-link" href="mailto:youssefbinaziz@gmail.com" target="_blank"><span>${svg('mail')}</span><b>Email</b><i>youssefbinaziz@gmail.com</i></a><a class="ab-link" href="https://www.linkedin.com/in/yousef-alghamdi-793345267/" target="_blank" rel="noopener"><span>${svg('linkedin')}</span><b>LinkedIn</b><i>yousef-alghamdi</i></a><a class="ab-link" href="https://github.com/iyousef-hub" target="_blank" rel="noopener"><span>${svg('github')}</span><b>GitHub</b><i>iyousef-hub</i></a></div><h3>Built with</h3><p class="ab-oss">Electron · three.js · three-bvh-csg · three-mesh-bvh · fflate · canvas2svg · IBM Plex fonts · Ollama (optional, for Circuit from image)</p></section>`}
+function renderAbout(){$('#recentH').hidden=true;$('#recent').hidden=true;$('#sections').innerHTML=`<section class="about" aria-labelledby="abH"><div class="ab-head"><div class="ab-lg"><svg viewBox="0 0 512 512" width="100%" height="100%" aria-hidden="true"><rect width="512" height="512" rx="112" fill="#EA580C"/><path d="M268 178A96 96 0 1 0 268 334M402 170H324V342H402M324 256H384" fill="none" stroke="#FFF7ED" stroke-width="30" stroke-linecap="round" stroke-linejoin="round"/><g fill="#1C1917"><circle cx="268" cy="178" r="17"/><circle cx="268" cy="334" r="17"/><circle cx="402" cy="170" r="17"/><circle cx="402" cy="342" r="17"/><circle cx="384" cy="256" r="17"/></g></svg></div><div><h2 id="abH">CEsim Studio</h2><span>Version ${VERSION}</span></div></div><p class="ab-lead">This application was designed and developed to serve Computer Engineering students at the College of Computers and Information Technology, Taif University, Kingdom of Saudi Arabia. It is available to everyone free of charge, and it is built entirely on free and open-source tools.</p><p class="ab-by">Designed and developed by <b>YOUSEF A.ALGHAMDI</b></p><div class="ab-links"><a class="ab-link" href="mailto:youssefbinaziz@gmail.com" target="_blank"><span>${svg('mail')}</span><b>Email</b><i>youssefbinaziz@gmail.com</i></a><a class="ab-link" href="https://www.linkedin.com/in/yousef-alghamdi-793345267/" target="_blank" rel="noopener"><span>${svg('linkedin')}</span><b>LinkedIn</b><i>yousef-alghamdi</i></a><a class="ab-link" href="https://github.com/iyousef-hub" target="_blank" rel="noopener"><span>${svg('github')}</span><b>GitHub</b><i>iyousef-hub</i></a></div><h3>Built with</h3><p class="ab-oss">Electron · three.js · three-bvh-csg · three-mesh-bvh · fflate · canvas2svg · IBM Plex fonts · Ollama (optional, for Circuit from image)</p></section>`}
 function renderNav(){$('#navs').innerHTML=CATS.map(c=>`<button class="nav ${c===cat?'on':''}" data-c="${c}">${c}<i>${c==='All tools'?TOOLS.length:TOOLS.filter(t=>t.cat===c).length}</i></button>`).join('')}
 $('#aboutBtn').onclick=()=>{cat='About';renderNav();render()};
 $('#navs').onclick=e=>{const b=e.target.closest('[data-c]');if(b){cat=b.dataset.c;renderNav();render()}};
@@ -154,15 +154,15 @@ let dragN=0;addEventListener('dragenter',e=>{e.preventDefault();dragN++;$('#drop
 addEventListener('drop',e=>{e.preventDefault();dragN=0;$('#drop').style.display='none';for(const f of e.dataTransfer.files){const p=N&&N.pathFor?N.pathFor(f):null;if(p)N.openPath(p);else toast('Drop files onto the desktop app to open them.')}});
 addEventListener('focus',()=>renderRecent($('#q').value.trim().toLowerCase()));
 renderNav();render();
-(function splash(){const sp=$('#splash');const cvs=$('#sp-cv'),r=cvs.getBoundingClientRect(),g=cvs.getContext('2d');cvs.width=r.width;cvs.height=r.height;g.strokeStyle='#bfe2ff';g.lineWidth=1.4;const rnd=a=>Math.floor(Math.random()*a);for(let k=0;k<14;k++){let x=rnd(r.width),y=rnd(r.height);g.beginPath();g.moveTo(x,y);for(let j=0;j<4;j++){if(j%2)y+=(rnd(2)?1:-1)*(20+rnd(60));else x+=(rnd(2)?1:-1)*(30+rnd(90));g.lineTo(x,y)}g.stroke();g.beginPath();g.arc(x,y,2.5,0,7);g.fillStyle='#bfe2ff';g.fill()}
+(function splash(){const sp=$('#splash');const cvs=$('#sp-cv'),r=cvs.getBoundingClientRect(),g=cvs.getContext('2d');cvs.width=r.width;cvs.height=r.height;g.strokeStyle='#fdba74';g.lineWidth=1.4;const rnd=a=>Math.floor(Math.random()*a);for(let k=0;k<14;k++){let x=rnd(r.width),y=rnd(r.height);g.beginPath();g.moveTo(x,y);for(let j=0;j<4;j++){if(j%2)y+=(rnd(2)?1:-1)*(20+rnd(60));else x+=(rnd(2)?1:-1)*(30+rnd(90));g.lineTo(x,y)}g.stroke();g.beginPath();g.arc(x,y,2.5,0,7);g.fillStyle='#fdba74';g.fill()}
  requestAnimationFrame(()=>$('#sp-bar').style.width='100%');const msgs=['Loading tools…','Circuit · Breadboard · PCB · VLSI · Logic · Verilog · MIPS · RISC-V · 8086 · Arduino ready','Starting CEsim Studio…'];let i=0;const it=setInterval(()=>{i++;if(i<msgs.length)$('#sp-msg').textContent=msgs[i]},550);const done=()=>{clearInterval(it);sp.classList.add('out');setTimeout(()=>sp.remove(),400)};sp.onclick=done;setTimeout(done,1900)})();
 </script>
 <div id="themePop" role="dialog" aria-label="Theme and colors"><h3>Theme</h3><div class="th" id="thList"></div><h3>Accent color</h3><div class="ac" id="acList"></div><div class="row2"><label>Custom color <input type="color" id="acCustom"></label><button class="btn" id="thReset" style="height:28px;padding:0 10px;font-size:12px">Reset</button></div></div>
 <script>
 (function(){
  const THEMES=[["light","Light","#f3f5f8","#ffffff"],["paper","Paper","#f6f2ea","#fffdf8"],["gray","Gray","#e9ecf0","#f7f8fa"],["dark","Dark","#151a22","#1d2430"],["midnight","Night","#0b1020","#121a2e"]];
- const ACC=["#185fa5","#0f7c86","#1f8a4c","#6b3fb3","#c4621a","#b8323a","#b0306f","#3d4756"];
- const KEY="cesim.studioTheme";let st={theme:"light",accent:"#185fa5"};try{Object.assign(st,JSON.parse(localStorage.getItem(KEY)||"{}"))}catch(e){}
+ const ACC=["#c2410c","#185fa5","#0f7c86","#1f8a4c","#6b3fb3","#b8323a","#b0306f","#3d4756"];
+ const KEY="cesim.studioTheme";let st={theme:"light",accent:"#c2410c"};try{Object.assign(st,JSON.parse(localStorage.getItem(KEY)||"{}"))}catch(e){}if(!st.brand){if(st.accent==="#185fa5")st.accent="#c2410c";st.brand=2}
  const mix=(h,w,t)=>{const p=x=>parseInt(h.slice(x,x+2),16);const c=[1,3,5].map(i=>Math.round(p(i)*(1-t)+w*t));return"#"+c.map(v=>v.toString(16).padStart(2,"0")).join("")};
  function apply(){const r=document.documentElement;const dark=st.theme==="dark"||st.theme==="midnight";r.dataset.theme=st.theme;const a=st.accent;
   r.style.setProperty("--accent",dark?mix(a,255,.25):a);r.style.setProperty("--accent-soft",dark?mix(a,20,.62):mix(a,255,.86));r.style.setProperty("--accent-ink",dark?mix(a,255,.6):mix(a,0,.35));
@@ -175,7 +175,7 @@ renderNav();render();
  document.getElementById("themeBtn").onclick=e=>{e.stopPropagation();pop.style.display=pop.style.display==="block"?"none":"block"};
  pop.addEventListener("click",e=>{e.stopPropagation();const t=e.target.closest("[data-t]"),a=e.target.closest("[data-a]");if(t){st.theme=t.dataset.t;apply()}if(a){st.accent=a.dataset.a;apply()}});
  document.getElementById("acCustom").oninput=e=>{st.accent=e.target.value;apply()};
- document.getElementById("thReset").onclick=()=>{st={theme:"light",accent:"#185fa5"};apply()};
+ document.getElementById("thReset").onclick=()=>{st={theme:"light",accent:"#c2410c",brand:2};apply()};
  document.addEventListener("click",()=>pop.style.display="none");document.addEventListener("keydown",e=>{if(e.key==="Escape")pop.style.display="none"});
  window.CETHEME={get:()=>st,set:(t,a)=>{if(t)st.theme=t;if(a)st.accent=a;apply()}};
 })();

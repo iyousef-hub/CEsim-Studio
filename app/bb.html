@@ -2,11 +2,11 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link href="fonts/fonts.css" rel="stylesheet"><title>CEsim Breadboard</title>
 <style>
 .recdot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#d93025;margin-right:6px;vertical-align:0}#bRec.on{background:#fde7e7;border-color:#d93025}#bRec.on .recdot{animation:recblink 1s steps(2) infinite}@keyframes recblink{50%{opacity:.2}}
-:root{--bg:#e9edf2;--panel:#f7f8fa;--line:#cdd3dc;--text:#1b2230;--dim:#5e6979;--hover:#e1e7ef;--accent:#185fa5;--font:"IBM Plex Sans",-apple-system,"Segoe UI",Roboto,Arial,sans-serif;--mono:"IBM Plex Mono",ui-monospace,Menlo,monospace}
+:root{--bg:#e9edf2;--panel:#f7f8fa;--line:#cdd3dc;--text:#1b2230;--dim:#5e6979;--hover:#e1e7ef;--accent:#c2410c;--font:"IBM Plex Sans",-apple-system,"Segoe UI",Roboto,Arial,sans-serif;--mono:"IBM Plex Mono",ui-monospace,Menlo,monospace}
 *{box-sizing:border-box}html,body{height:100%;margin:0}body{background:var(--bg);color:var(--text);font:13px/1.35 var(--font);overflow:hidden}
 #app{display:grid;grid-template-rows:auto 1fr 28px;height:100%}
 #top{display:flex;flex-wrap:wrap;row-gap:2px;align-items:center;gap:2px;padding:4px 10px;min-height:44px;background:var(--panel);border-bottom:1px solid var(--line);user-select:none}
-.logo{flex:none;width:24px;height:24px;border-radius:6px;background:var(--accent);color:#fff;display:grid;place-items:center;font:600 10px var(--mono);margin-right:6px}
+.logo{flex:none;width:24px;height:24px;border-radius:6px;display:grid;place-items:center;font:600 10px var(--mono);margin-right:6px}
 #docname{flex:none;font-weight:600;margin-right:10px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:text;padding:3px 5px;border-radius:3px}#docname:hover{background:var(--hover)}
 .tb{flex:none;height:30px;min-width:30px;padding:0 9px;border:1px solid transparent;border-radius:4px;background:none;color:var(--text);cursor:pointer;font:12.5px var(--font);white-space:nowrap}
 .tb:hover{background:var(--hover);border-color:var(--line)}.tb.pri{background:#1f8a3a;color:#fff}.tb.pri:hover{filter:brightness(.93)}.tb.on{background:#dce9f8;border-color:#9dbde4}.tb:disabled{opacity:.4;cursor:default;background:none;border-color:transparent}
@@ -63,7 +63,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
 </style></head>
 <body><div id="app">
 <div id="top">
- <div class="logo">CE</div><span id="docname" title="Click to rename">breadboard</span>
+ <div class="logo"><svg viewBox="0 0 512 512" width="100%" height="100%" aria-hidden="true"><rect width="512" height="512" rx="112" fill="#EA580C"/><path d="M236 168A100 100 0 1 0 236 344M424 160H316V352H424M316 256H404" fill="none" stroke="#FFF7ED" stroke-width="50" stroke-linecap="round" stroke-linejoin="round"/></svg></div><span id="docname" title="Click to rename">breadboard</span>
  <button class="tb" id="bFile">File ▾</button><button class="tb" id="bEx">Examples ▾</button><button class="tb" id="bUndo" title="Undo (Ctrl+Z)">↶</button><button class="tb" id="bRedo" title="Redo (Ctrl+Y)">↷</button><div class="sep"></div>
  <button class="tb on" id="tSel" title="Select and move (V)">Select<kbd>V</kbd></button><button class="tb" id="tWire" title="Draw wires (W)">Wire<kbd>W</kbd></button>
  <select id="wireColor" class="tb" style="border:1px solid var(--line)" aria-label="Wire colour" title="Colour of new wires"><option value="red">Red</option><option value="black">Black</option><option value="yellow">Yellow</option><option value="green">Green</option><option value="blue">Blue</option><option value="orange">Orange</option><option value="white">White</option></select>
